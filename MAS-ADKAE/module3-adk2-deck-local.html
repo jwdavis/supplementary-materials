@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Module 3 — Build Multi-agent Systems with ADK (2.x)</title>
+<style>
+  :root{
+    --page-bg:#e8eaed; --page-ink:#3c4043; --chrome-bg:#ffffff; --chrome-border:#dadce0;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-yellow:#fbbc04; --g-green:#34a853;
+    --ink:#202124; --ink-2:#5f6368; --ink-3:#80868b; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --badge-new:#188038; --badge-new-bg:#e6f4ea; --badge-chg:#b06000; --badge-chg-bg:#fef7e0;
+    --badge-2x:#1a73e8; --badge-2x-bg:#e8f0fe; --badge-risk:#c5221f; --badge-risk-bg:#fce8e6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --page-bg:#1f1f1f; --page-ink:#bdc1c6; --chrome-bg:#2d2e30; --chrome-border:#3c4043; }
+  }
+  :root[data-theme="dark"]{ --page-bg:#1f1f1f; --page-ink:#bdc1c6; --chrome-bg:#2d2e30; --chrome-border:#3c4043; }
+  :root[data-theme="light"]{ --page-bg:#e8eaed; --page-ink:#3c4043; --chrome-bg:#ffffff; --chrome-border:#dadce0; }
+
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);font-family:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;}
+  .stage{position:fixed;inset:0 0 46px 0;display:flex;overflow:auto;padding:14px;box-sizing:border-box;}
+  .frame{width:1280px;height:720px;position:relative;margin:auto;flex:none;}
+
+  .slide{position:absolute;inset:0;background:#fff;color:var(--ink);border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,.18);padding:52px 64px 56px;box-sizing:border-box;
+    display:none;flex-direction:column;overflow:hidden;}
+  .slide.on{display:flex;}
+  .slide .conf{position:absolute;top:16px;right:24px;font-size:10px;color:#bdc1c6;letter-spacing:.02em;}
+  .slide .gcloud{position:absolute;bottom:18px;right:28px;font-size:14px;color:#5f6368;font-weight:500;}
+  .slide .gcloud .g1{color:#4285f4}.slide .gcloud .g2{color:#ea4335}.slide .gcloud .g3{color:#fbbc04}.slide .gcloud .g4{color:#4285f4}.slide .gcloud .g5{color:#34a853}.slide .gcloud .g6{color:#ea4335}
+
+  h1.t{font-size:30px;font-weight:500;color:var(--ink);margin:0 0 26px;letter-spacing:-.01em;text-wrap:balance;}
+  .sub{font-size:15px;color:var(--ink-2);margin:-18px 0 22px;}
+
+  .checks{display:flex;flex-direction:column;gap:0;margin:6px 0;position:relative;}
+  .checkrow{display:flex;gap:16px;align-items:flex-start;position:relative;padding:9px 0;}
+  .checkrow::before{content:"";position:absolute;left:13px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;}
+  .checkrow:only-child::before{display:none;}
+  .cdot{width:26px;height:26px;border-radius:50%;background:var(--g-blue);flex:0 0 26px;position:relative;z-index:1;}
+  .cdot::after{content:"";position:absolute;left:7px;top:8px;width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .checkrow p{margin:3px 0 0;font-size:16.5px;line-height:1.45;color:var(--ink-2);max-width:960px;}
+  .checkrow p b, .checkrow p strong{color:var(--ink);font-weight:500;}
+
+  .numrows{display:flex;flex-direction:column;gap:8px;max-width:640px;}
+  .numrow{display:flex;align-items:center;gap:0;}
+  .numrow .n{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    font-size:22px;color:var(--ink);width:56px;flex:0 0 56px;font-weight:500;}
+  .numrow.dim .n{color:#bdc1c6;} .numrow.hot .n{color:var(--g-blue-deep);}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:11px 16px;font-size:15.5px;color:var(--ink);}
+  .numrow.dim .body{color:#9aa0a6;background:transparent;border-left-color:var(--line);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  .code{background:var(--panel);border-radius:6px;padding:18px 22px;font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    font-size:13.5px;line-height:1.55;color:var(--ink);white-space:pre;overflow-x:auto;margin:4px 0;}
+  .code b{font-weight:700;} .code .cm{color:#137333;} .code .chg{background:#fef7e0;border-radius:3px;padding:0 3px;}
+  .code.sm{font-size:12.5px;line-height:1.5;}
+  code.i{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;font-size:.92em;background:var(--panel);border-radius:4px;padding:1px 6px;color:var(--ink);}
+
+  .chip{display:inline-block;border:1.5px solid var(--g-blue);color:var(--g-blue-deep);border-radius:18px;
+    padding:6px 18px;font-size:14px;background:#fff;box-shadow:0 1px 3px rgba(66,133,244,.18);white-space:nowrap;}
+  .chipcol{display:flex;flex-direction:column;gap:14px;align-items:flex-start;}
+
+  .bdg{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:2px 7px;vertical-align:2px;margin-left:8px;}
+  .bdg.new{color:var(--badge-new);background:var(--badge-new-bg);}
+  .bdg.chg{color:var(--badge-chg);background:var(--badge-chg-bg);}
+  .bdg.x2{color:var(--badge-2x);background:var(--badge-2x-bg);}
+  .bdg.risk{color:var(--badge-risk);background:var(--badge-risk-bg);}
+  .bdg.dep{color:var(--badge-risk);background:var(--badge-risk-bg);}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .cell h4{margin:0 0 4px;font-size:14.5px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:12px;line-height:1.4;color:var(--ink-2);}
+
+  .cols{display:flex;gap:36px;align-items:flex-start;}
+  .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+
+  table.cmp{border-collapse:collapse;width:100%;font-size:13.5px;}
+  table.cmp th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+    font-weight:600;padding:8px 14px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp code, table.cmp .m{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;font-size:12.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+
+  .divider{justify-content:center;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,monospace;font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;text-wrap:balance;}
+  .divider .dsub{font-size:16px;color:var(--ink-2);margin-top:16px;max-width:480px;line-height:1.5;}
+
+  .labcard{display:flex;gap:20px;align-items:center;background:var(--row);border:1px solid var(--line);border-radius:10px;padding:20px 26px;margin-bottom:20px;}
+  .labcard .flask{width:52px;height:52px;border-radius:50%;background:#e8f0fe;flex:0 0 52px;display:flex;align-items:center;justify-content:center;color:var(--g-blue-deep);font-size:24px;font-weight:700;}
+  .labcard h3{margin:0 0 3px;font-size:19px;font-weight:600;color:var(--ink);}
+  .labcard p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  .drow{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);align-items:flex-start;}
+  .drow:last-child{border-bottom:none;}
+  .dtag{flex:0 0 84px;font-size:10.5px;font-weight:700;letter-spacing:.05em;border-radius:4px;padding:3px 0;text-align:center;margin-top:2px;}
+  .dtag.keep{color:var(--badge-new);background:var(--badge-new-bg);}
+  .dtag.fix{color:var(--badge-chg);background:var(--badge-chg-bg);}
+  .dtag.x2{color:var(--badge-2x);background:var(--badge-2x-bg);}
+  .dtag.risk{color:var(--badge-risk);background:var(--badge-risk-bg);}
+  .drow p{margin:0;font-size:14px;line-height:1.45;color:var(--ink);}
+  .drow p .why{color:var(--ink-2);}
+
+  .note{background:#fef7e0;border-left:4px solid var(--g-yellow);border-radius:0 6px 6px 0;padding:12px 18px;font-size:14px;color:var(--ink);line-height:1.5;margin-top:14px;}
+  .note.blue{background:#e8f0fe;border-left-color:var(--g-blue);}
+  .note.red{background:#fce8e6;border-left-color:var(--g-red);}
+
+  /* agent tree diagram */
+  .tree{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .tnode{border:1.5px solid var(--g-blue);color:var(--ink);border-radius:8px;padding:8px 18px;font-size:13.5px;background:#e8f0fe;font-weight:500;}
+  .tnode.wf{border-color:var(--g-green);background:#e6f4ea;}
+  .tnode.leaf{background:#fff;border-color:var(--line);font-weight:400;}
+  .tkids{display:flex;gap:22px;margin-top:0;}
+  .tv{width:1px;height:18px;background:var(--ink-3);}
+  .tbranch{display:flex;flex-direction:column;align-items:center;}
+
+  /* diagram: absolute-positioned boxes over an SVG arrow layer */
+  .dia{position:relative;}
+  .dia .dbox{position:absolute;border:1.5px solid var(--g-blue);background:#e8f0fe;border-radius:8px;
+    padding:7px 14px;font-size:13px;font-weight:500;color:var(--ink);z-index:2;text-align:center;}
+  .dia .dbox small{display:block;font-weight:400;font-size:10.5px;color:var(--ink-2);}
+  .dia .dlbl{position:absolute;font-size:10.5px;color:var(--ink-2);z-index:2;background:#fff;padding:0 4px;border-radius:3px;white-space:nowrap;}
+  .dia svg{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+
+  /* era strip on hierarchy slide */
+  .eras{display:flex;gap:14px;margin-top:10px;}
+  .era{flex:1;background:var(--row);border:1px solid var(--line);border-radius:8px;padding:11px 14px;}
+  .era h5{margin:0 0 4px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:700;}
+  .era p{margin:0;font-size:12.5px;line-height:1.45;color:var(--ink);}
+
+  /* sequence diagram */
+  .seq{position:relative;background:var(--row);border:1px solid var(--line);border-radius:8px;}
+  .seq .lane{position:absolute;top:38px;bottom:12px;width:1px;background:var(--line);z-index:1;}
+  .seq .lh{position:absolute;top:9px;transform:translateX(-50%);background:#e8f0fe;border:1px solid #c6dafc;
+    border-radius:13px;padding:3px 11px;font-size:11px;color:var(--g-blue-deep);font-weight:600;z-index:3;white-space:nowrap;}
+  .seq .lh.task{background:#e6f4ea;border-color:#ceead6;color:#188038;}
+  .seq .msg{position:absolute;height:0;border-top:1.6px solid #5f6368;z-index:2;}
+  .seq .msg.dash{border-top-style:dashed;}
+  .seq .msg.r::after{content:"";position:absolute;right:-2px;top:-5px;border:4.5px solid transparent;border-left:8px solid #5f6368;}
+  .seq .msg.l::before{content:"";position:absolute;left:-2px;top:-5px;border:4.5px solid transparent;border-right:8px solid #5f6368;}
+  .seq .msg span{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);font-size:10.5px;color:var(--ink);white-space:nowrap;}
+  .seq .loop{position:absolute;border:1.6px solid #5f6368;border-left:none;border-radius:0 8px 8px 0;width:26px;z-index:2;}
+  .seq .loop::after{content:"";position:absolute;left:-2px;bottom:-5px;border:4.5px solid transparent;border-right:8px solid #5f6368;}
+  .seq .loop span{position:absolute;left:32px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--ink);white-space:nowrap;}
+
+  /* controls */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:46px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;box-sizing:border-box;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);
+    color:var(--page-ink);overflow:hidden;white-space:nowrap;}
+  .bar .name{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--page-ink);border-radius:6px;
+    width:32px;height:27px;font-size:14px;cursor:pointer;line-height:1;}
+  .bar button:hover{background:rgba(128,128,128,.12);}
+  .bar button:focus-visible{outline:2px solid var(--g-blue);outline-offset:1px;}
+  .bar .cnt{font-size:12px;font-variant-numeric:tabular-nums;min-width:8ch;text-align:center;}
+  .bar .hint{font-size:11px;color:var(--ink-3);}
+  @media (prefers-reduced-motion: no-preference){ .slide.on{animation:fade .18s ease;} }
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+</style>
+
+<div class="stage"><div class="frame" id="frame">
+
+<!-- 1 : AGENDA -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <div style="display:flex;height:100%;align-items:center;gap:70px;">
+    <div style="flex:0 0 330px;">
+      <div style="position:relative;height:120px;margin-bottom:30px;">
+        <div style="position:absolute;left:30px;top:26px;width:150px;height:34px;border-radius:17px;background:#4285f4;transform:rotate(-18deg);"></div>
+        <div style="position:absolute;left:78px;top:14px;width:52px;height:52px;border-radius:50%;background:#f1f3f4;border:5px solid #5f6368;"></div>
+        <div style="position:absolute;left:190px;top:0;width:70px;height:60px;background:#fbbc04;border-radius:6px;transform:rotate(9deg);"></div>
+      </div>
+      <h1 style="font-size:40px;font-weight:500;margin:0;color:var(--ink);">Agenda</h1>
+    </div>
+    <div class="numrows" style="flex:1;">
+      <div class="numrow plain dim"><div class="n">01</div><div class="body">Introducing Agent Development Kit</div></div>
+      <div class="numrow plain dim"><div class="n">02</div><div class="body">Develop agents with ADK</div></div>
+      <div class="numrow plain hot"><div class="n">03</div><div class="body" style="font-weight:600;">Build multi-agent systems with ADK</div></div>
+      <div class="numrow plain"><div class="n">04</div><div class="body">Deploy ADK agents to Agent Runtime</div></div>
+      <div class="numrow plain"><div class="n">05</div><div class="body">Evaluate ADK agent systems</div></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 2 : SECTION DIVIDER -->
+<section class="slide divider">
+  <div class="conf">Proprietary + Confidential</div>
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">03</div><div class="sh red"></div></div>
+    <div>
+      <h1>Build multi-agent<br>systems with ADK</h1>
+      <div class="dsub">Updated for the ADK 2.x era &mdash; validated against <b>google-adk 2.4.0</b> (July 2026). This module carries the largest 2.0 delta: the <b>Workflow graph engine</b> that supersedes the workflow-agent classes.</div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 3 : OBJECTIVES -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Module objectives</h1>
+  <div class="numrows" style="max-width:780px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Structure agents into hierarchical teams of parents and sub-agents.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Explain LLM-driven transfer and how descriptions route conversations.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Choose between delegation patterns: transfer, AgentTool, and task mode. <span class="bdg x2">2.x</span></div></div>
+    <div class="numrow"><div class="n">04</div><div class="body">Share information between agents with session state and typed outputs.</div></div>
+    <div class="numrow"><div class="n">05</div><div class="body">Orchestrate deterministic pipelines with the <b>Workflow</b> graph engine. <span class="bdg new">NEW</span></div></div>
+    <div class="numrow"><div class="n">06</div><div class="body">Map legacy workflow agents (Sequential, Loop, Parallel) to graph patterns.</div></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 4 : SECTION: MULTI-AGENT CONCEPTS -->
+<section class="slide divider">
+  <div class="conf">Proprietary + Confidential</div>
+  <div class="wrap">
+    <div class="shapes"><div class="sh green" style="top:200px;left:0;"></div><div class="sh yellow" style="width:200px;height:200px;left:60px;top:60px;border-radius:40px;transform:rotate(24deg);"></div><div class="sh red" style="left:210px;top:20px;"></div><div class="sh blue" style="width:96px;height:96px;left:200px;top:-30px;font-size:0;"></div></div>
+    <div><h1>Agent teams:<br>hierarchy and delegation</h1></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 5 : WHY MULTI-AGENT -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Why build multi-agent systems?</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Specialization:</b> each agent gets a focused instruction, its own model choice, and only the tools it needs &mdash; smaller prompts, better behavior.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Modularity and reuse:</b> a well-described specialist (a researcher, a critic, a search agent) can be dropped into many systems.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Control:</b> deterministic pipelines where order matters; LLM-driven routing where flexibility matters. ADK lets you mix both in one tree.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Scale:</b> independent sub-tasks run in parallel; iterative work runs in loops with explicit exit conditions.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 6 : HIERARCHY TREE -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">The hierarchical agent tree &mdash; and how control moves through it</h1>
+  <div class="dia" style="height:296px;">
+    <svg viewBox="0 0 1152 296" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <marker id="ab" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#1a73e8"/></marker>
+        <marker id="ag" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#188038"/></marker>
+        <marker id="agr" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#80868b"/></marker>
+        <marker id="agb" markerWidth="9" markerHeight="8" refX="1" refY="4" orient="auto"><path d="M9,0 L0,4 L9,8 z" fill="#188038"/></marker>
+      </defs>
+      <line x1="120" y1="148" x2="212" y2="148" stroke="#80868b" stroke-width="1.6" marker-end="url(#agr)"/>
+      <line x1="212" y1="158" x2="120" y2="158" stroke="#80868b" stroke-width="1.6" marker-end="url(#agr)"/>
+      <line x1="392" y1="138" x2="638" y2="72" stroke="#1a73e8" stroke-width="1.8" marker-end="url(#ab)"/>
+      <line x1="392" y1="166" x2="638" y2="238" stroke="#1a73e8" stroke-width="1.8" marker-end="url(#ab)"/>
+      <line x1="742" y1="100" x2="742" y2="222" stroke="#188038" stroke-width="1.8" marker-start="url(#agb)" marker-end="url(#ag)"/>
+      <path d="M652,266 Q450,320 312,182" fill="none" stroke="#80868b" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#agr)"/>
+    </svg>
+    <div class="dbox" style="left:26px;top:132px;border-color:var(--line);background:#fff;">User</div>
+    <div class="dbox" style="left:216px;top:126px;"><b>steering</b><small>root_agent &middot; parent</small></div>
+    <div class="dbox" style="left:642px;top:38px;"><b>travel_brainstormer</b><small>sub-agent</small></div>
+    <div class="dbox" style="left:642px;top:224px;"><b>attractions_planner</b><small>sub-agent &middot; peer of brainstormer</small></div>
+    <div class="dlbl" style="left:430px;top:78px;color:var(--g-blue-deep);">transfer to sub-agent</div>
+    <div class="dlbl" style="left:430px;top:212px;color:var(--g-blue-deep);">transfer to sub-agent</div>
+    <div class="dlbl" style="left:756px;top:152px;color:#188038;">peer transfer (allowed by default)</div>
+    <div class="dlbl" style="left:400px;top:270px;">transfer back to parent</div>
+    <div class="dlbl" style="left:112px;top:118px;">conversation</div>
+  </div>
+  <div class="eras">
+    <div class="era"><h5>Original course (early 1.x)</h5><p>The tree and LLM-driven transfer were the whole delegation story. Whoever holds the conversation talks to the user.</p></div>
+    <div class="era"><h5>Late 1.x best practice (the lab today)</h5><p>Same tree, sharpened: <code class="i">description</code> written for the router, <code class="i">disallow_transfer_to_peers</code> for control, <code class="i">AgentTool</code> when you want a call instead of a handoff.</p></div>
+    <div class="era"><h5>ADK 2.x</h5><p>The tree remains for conversational routing, and delegation gains <code class="i">task</code> / <code class="i">single_turn</code> modes with automatic return. Deterministic pipelines move out of the tree into <b>Workflow</b> graphs.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 7 : TRANSFER RULES -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">LLM-driven transfer: who can hand off to whom</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p>An agent can transfer the conversation to a <b>sub-agent</b>, back to its <b>parent</b>, or to a <b>peer</b> (an agent sharing the same parent).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Transfers are decided by the LLM based on each agent's <b>description</b> &mdash; write descriptions for the router, not for humans.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Disable peer handoffs per agent with <code class="i">disallow_transfer_to_peers=True</code>. <b>Why:</b> it forces a hub-and-spoke shape &mdash; specialists must return through the coordinator, which keeps routing decisions in one well-instructed place, prevents two similar specialists from ping-ponging the conversation between themselves, and stops a wrong-but-plausible peer (say, two different lookup agents) from being picked directly.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>A transfer is a <b>handoff, not a call</b>: the target becomes the active agent and owns subsequent user turns until something transfers control again. There is no automatic return.</p></div>
+  </div>
+  <div class="note blue">That last point is the classic multi-agent bug: a sub-agent finishes its job but nobody told it (in its instruction) to transfer back. ADK 2.x adds a structural fix &mdash; next slide.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 8 : COLLABORATION MODES -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Collaboration modes: the agent's <code class="i">mode</code> field <span class="bdg x2">NEW IN 2.x</span></h1>
+  <div class="cols c64">
+    <div>
+<div class="code">class PitchDoc(BaseModel):
+    title: str
+    logline: str
+
+screenwriter = Agent(
+    name="screenwriter",
+    instruction="Draft the pitch for the requested film.",
+    <b>mode</b>="task",              <span class="cm"># runs until it calls finish_task,</span>
+                              <span class="cm"># then control RETURNS to the parent</span>
+    <b>output_schema</b>=PitchDoc,   <span class="cm"># validated, retried on mismatch</span>
+)
+
+coordinator = Agent(name="greeter", instruction="...",
+                    sub_agents=[screenwriter])</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>chat</b> (default): 1.x behavior; conversational, valid transfer target.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>task</b>: delegated job exposed to the parent as a tool; may pause to ask the user; auto-returns via <code class="i">finish_task</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>single_turn</b>: stateless one-shot, also exposed as a tool.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Caveat: task mode is <b>disabled inside graph workflows</b> in 2.0; it works in the coordinator / sub-agent pattern.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 8b : TASK MODE IN ACTION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Task mode in action: "pitch me a film" <span class="bdg x2">2.x</span></h1>
+  <div class="cols">
+    <div>
+<div class="code sm">class PitchDoc(BaseModel):
+    title: str
+    logline: str
+
+screenwriter = Agent(
+    name="screenwriter",
+    instruction="Draft a film pitch for the requested figure.",
+    <b>mode</b>="task",
+    <b>output_schema</b>=PitchDoc,
+)
+
+greeter = Agent(
+    name="greeter",
+    instruction="Collect a subject, then delegate the pitch.",
+    <b>sub_agents</b>=[screenwriter],
+)</div>
+      <div class="checks" style="margin-top:6px;">
+        <div class="checkrow"><div class="cdot"></div><p>No <code class="i">AgentTool</code> wrapper, no "transfer back" instruction &mdash; the return is structural.</p></div>
+        <div class="checkrow"><div class="cdot"></div><p>Output failing <code class="i">PitchDoc</code> validation is fed back for a retry before returning.</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="seq" style="height:330px;">
+        <div class="lane" style="left:80px;"></div><div class="lh" style="left:80px;">User</div>
+        <div class="lane" style="left:280px;"></div><div class="lh" style="left:280px;">greeter (chat)</div>
+        <div class="lane" style="left:480px;"></div><div class="lh task" style="left:480px;">screenwriter (task)</div>
+        <div class="msg r" style="left:80px;top:64px;width:200px;"><span>"pitch a film about Ada Lovelace"</span></div>
+        <div class="msg r" style="left:280px;top:98px;width:200px;"><span>delegates &mdash; invoked like a tool</span></div>
+        <div class="loop" style="left:480px;top:118px;height:26px;"><span>drafts privately (own loop)</span></div>
+        <div class="msg l dash" style="left:80px;top:176px;width:400px;"><span>may pause to ask: "biopic or docudrama?"</span></div>
+        <div class="msg r" style="left:80px;top:204px;width:400px;"><span>"biopic" &mdash; task resumes automatically</span></div>
+        <div class="loop" style="left:480px;top:222px;height:24px;"><span>revises, validates PitchDoc</span></div>
+        <div class="msg l dash" style="left:280px;top:272px;width:200px;"><span>finish_task &rarr; PitchDoc</span></div>
+        <div class="msg l dash" style="left:80px;top:302px;width:200px;"><span>greeter presents the pitch</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 8c : SINGLE-TURN MODE IN ACTION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Single-turn mode in action: a stateless specialist <span class="bdg x2">2.x</span></h1>
+  <div class="cols">
+    <div>
+<div class="code sm">class Genre(BaseModel):
+    genre: str
+
+genre_classifier = Agent(
+    name="genre_classifier",
+    instruction="Classify the movie idea into a genre.",
+    <b>mode</b>="single_turn",   <span class="cm"># stateless one-shot</span>
+    <b>output_schema</b>=Genre,
+)
+
+greeter = Agent(
+    name="greeter",
+    instruction="Suggest a genre for each idea the user offers.",
+    <b>sub_agents</b>=[genre_classifier],
+)</div>
+      <div class="checks" style="margin-top:6px;">
+        <div class="checkrow"><div class="cdot"></div><p>One request in, one validated response out &mdash; never converses, never contacts the user.</p></div>
+        <div class="checkrow"><div class="cdot"></div><p><b>Stateless:</b> each call starts fresh; call two has no memory of call one.</p></div>
+        <div class="checkrow"><div class="cdot"></div><p>This is also the required mode for LLM agents used as <b>Workflow graph nodes</b>.</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="seq" style="height:300px;">
+        <div class="lane" style="left:80px;"></div><div class="lh" style="left:80px;">User</div>
+        <div class="lane" style="left:280px;"></div><div class="lh" style="left:280px;">greeter (chat)</div>
+        <div class="lane" style="left:480px;"></div><div class="lh task" style="left:480px;">genre_classifier (single_turn)</div>
+        <div class="msg r" style="left:80px;top:64px;width:200px;"><span>"a movie about an ancient doctor"</span></div>
+        <div class="msg r" style="left:280px;top:96px;width:200px;"><span>classify(idea 1)</span></div>
+        <div class="msg l dash" style="left:280px;top:126px;width:200px;"><span>Genre("historical drama")</span></div>
+        <div class="msg l dash" style="left:80px;top:156px;width:200px;"><span>suggestion to user</span></div>
+        <div class="msg r" style="left:80px;top:192px;width:200px;"><span>"ok&hellip; a heist in space?"</span></div>
+        <div class="msg r" style="left:280px;top:224px;width:200px;"><span>classify(idea 2) &mdash; fresh, no memory</span></div>
+        <div class="msg l dash" style="left:280px;top:254px;width:200px;"><span>Genre("sci-fi thriller")</span></div>
+        <div class="msg l dash" style="left:80px;top:282px;width:200px;"><span>suggestion to user</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 9 : DELEGATION COMPARISON -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Three ways to delegate</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Pattern</th><th>Control flow</th><th>Return to parent</th><th>Use when</th></tr>
+    <tr><td><b>Transfer</b> (<span class="m">sub_agents</span>, chat mode)</td><td>Handoff &mdash; sub-agent owns the conversation and talks to the user</td><td>Only if the sub-agent's LLM chooses to transfer back</td><td>The user should genuinely converse with the specialist</td></tr>
+    <tr><td><b>AgentTool</b> wrapper</td><td>Function call &mdash; one shot in / out, user not involved</td><td>Automatic, single-turn</td><td>A quick answer from a specialist mid-turn</td></tr>
+    <tr><td><b>Task mode</b> (<span class="m">mode="task"</span>) <span class="bdg x2">2.x</span></td><td>Delegated job &mdash; sub-agent loops privately, may consult the user</td><td>Automatic on <span class="m">finish_task</span>, schema-validated</td><td>Bounded jobs with a structured result</td></tr>
+  </table>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 10 : PASSING INFO 1 - OUTPUT_KEY -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Passing information (1 of 3): state via output_key</h1>
+  <div class="cols c64">
+    <div>
+<div class="code"><span class="cm"># The writer: its final response is saved automatically</span>
+screenwriter = Agent(
+    name="screenwriter",
+    instruction="Write a plot outline for: { PROMPT? }",
+    <b>output_key</b>="PLOT_OUTLINE",
+)
+
+<span class="cm"># The reader: templating pulls the value from state</span>
+critic = Agent(
+    name="critic",
+    instruction="""Give critical feedback on this
+    plot outline: <b>{ PLOT_OUTLINE? }</b>""",
+)</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>Zero code:</b> when the screenwriter's turn ends, its entire final response text is written to <code class="i">state["PLOT_OUTLINE"]</code> automatically.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Any later agent reads it with <code class="i">{ PLOT_OUTLINE? }</code>, resolved from session state at request time. The <code class="i">?</code> tolerates a key that doesn't exist yet.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>All-or-nothing:</b> it always saves the whole response. When an agent should save <i>selectively</i> or <i>accumulate</i> across turns, use a tool &mdash; next slide.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Works in 1.x and 2.x alike; if the agent has an <code class="i">output_schema</code>, the validated object is what gets saved.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 10a : PASSING INFO 2 - STATE TOOL -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Passing information (2 of 3): state via a tool and ToolContext</h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm"><span class="cm"># The researcher agent carries the tool…</span>
+researcher = Agent(
+    name="researcher",
+    instruction="Research the PROMPT. Use 'append_to_state'
+                 to save notes to the 'research' field.",
+    tools=[<b>append_to_state</b>],
+)
+
+<span class="cm"># …and the MODEL calls it during the researcher's turn</span>
+def append_to_state(tool_context: <b>ToolContext</b>,
+                    field: str, response: str) -&gt; dict[str, str]:
+    existing = tool_context.state.get(field, [])
+    <b>tool_context.state</b>[field] = existing + [response]
+    return {"status": "success"}
+
+<span class="cm"># A later agent reads it via instruction templating</span>
+screenwriter = Agent(..., instruction="""
+    Write an outline using this research.
+    RESEARCH: <b>{ research? }</b>
+""")</div>
+    </div>
+    <div>
+      <div class="numrows" style="max-width:100%;">
+        <div class="numrow"><div class="n">1</div><div class="body" style="font-size:13.5px;">The LLM decides to call <code class="i">append_to_state</code> as an ordinary <b>tool call</b> during the researcher's turn (its instruction tells it when).</div></div>
+        <div class="numrow"><div class="n">2</div><div class="body" style="font-size:13.5px;">Writes to <code class="i">tool_context.state</code> are recorded as the event's <b>state_delta</b> and committed by the Runner &mdash; <b>yes, this <i>is</i> session state</b>.</div></div>
+        <div class="numrow"><div class="n">3</div><div class="body" style="font-size:13.5px;">When the screenwriter runs, <code class="i">{ research? }</code> is resolved <b>from session state</b> at request time (the <code class="i">?</code> tolerates a missing key).</div></div>
+      </div>
+      <div class="note blue" style="margin-top:12px;">Appending to a list instead of overwriting is deliberate: each loop iteration adds to the record rather than clobbering it.</div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 10b : PASSING INFO 3 - EVENT OUTPUT -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Passing information (3 of 3): typed hand-offs with Event(output=...) <span class="bdg x2">2.x GRAPHS</span></h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm">class Outline(BaseModel):
+    title: str
+    acts: list[str]
+
+<span class="cm"># An agent node: its response is parsed into an Outline,</span>
+<span class="cm"># and that OBJECT becomes its output on the edge</span>
+screenwriter = Agent(
+    name="screenwriter",
+    instruction="Write a three-act outline for the user's idea.",
+    mode="single_turn",
+    <b>output_schema</b>=Outline,
+)
+
+<span class="cm"># A function node: the parameter named 'node_input'</span>
+<span class="cm"># receives the previous node's output</span>
+def save_pitch(<b>node_input</b>: Outline):
+    path = write_pitch_file(node_input.title, node_input.acts)
+    return <b>Event(</b>
+        <b>message</b>=f"Pitch saved to {path}",  <span class="cm"># for the user</span>
+        <b>output</b>=path,                       <span class="cm"># for the next consumer</span>
+    <b>)</b>
+
+pitch_pipeline = <b>Workflow</b>(
+    name="pitch_pipeline",
+    edges=[("START", screenwriter, save_pitch)],
+)</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>Graph-only.</b> Data rides the edge like a return value on a conveyor belt: each node's <code class="i">output</code> is the next node's input. State is not involved.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>The wrapping is automatic.</b> An agent node's response is parsed against its <code class="i">output_schema</code> and set as <code class="i">event.output</code> for you; a function node's plain return value is wrapped too. Write <code class="i">Event(...)</code> explicitly only when you need <code class="i">route</code> or <code class="i">message</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Function nodes:</b> the name matters &mdash; the parameter called <code class="i">node_input</code> gets the incoming output. Parameters with <i>other</i> names are bound from state keys, and <code class="i">ctx: Context</code> is also available.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Event fields, two audiences:</b> <code class="i">message</code> is text for the user; <code class="i">output</code> feeds the next node. A user-facing terminal node should set <code class="i">message</code>, or the user sees nothing from that step.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>At the end of the graph,</b> the terminal node's <code class="i">output</code> becomes the <i>workflow's own</i> output &mdash; a Workflow is itself a node, so nested graphs and Workflow-as-tool consume it the same way.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 11 : SECTION: ORCHESTRATION -->
+<section class="slide divider">
+  <div class="conf">Proprietary + Confidential</div>
+  <div class="wrap">
+    <div class="shapes"><div class="sh blue" style="font-size:0;width:170px;height:170px;left:30px;top:50px;"></div><div class="sh yellow" style="left:170px;top:10px;"></div><div class="sh green" style="left:80px;top:210px;width:200px;"></div><div class="sh red" style="left:230px;top:150px;width:90px;height:90px;"></div></div>
+    <div><h1>Orchestration: from workflow agents to Workflow graphs</h1><div class="dsub">The 1.x classes still run (with deprecation warnings). The 2.x graph engine is where new systems should start.</div></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 12 : LEGACY WORKFLOW AGENTS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Workflow agents (1.x) <span class="bdg dep">DEPRECATED IN 2.x</span></h1>
+  <table class="cmp" style="max-width:1060px;">
+    <tr><th>Class</th><th>Behavior</th><th>Typical use</th></tr>
+    <tr><td><span class="m">SequentialAgent</span></td><td>Runs sub-agents in a fixed order, no user turns between</td><td>Fixed pipelines: research &rarr; write &rarr; save</td></tr>
+    <tr><td><span class="m">LoopAgent</span></td><td>Repeats its sequence until <span class="m">max_iterations</span> or a sub-agent calls <span class="m">exit_loop</span></td><td>Iterative refinement with a critic</td></tr>
+    <tr><td><span class="m">ParallelAgent</span></td><td>Runs sub-agents concurrently in isolated branches</td><td>Fan out independent sub-tasks, gather after</td></tr>
+  </table>
+  <div class="checks" style="margin-top:16px;">
+    <div class="checkrow"><div class="cdot"></div><p>They are <b>directors, not thinkers</b>: no LLM attached, fully deterministic.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>All three carry <code class="i">@deprecated</code> warnings in 2.x, "in favor of Workflow" &mdash; still functional, and still what the current lab uses at its 1.30 pin.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 13 : WORKFLOW ENGINE -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">The Workflow graph engine <span class="bdg new">NEW IN 2.0</span></h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm"><span class="cm"># From the official quickstart: agent → function → agent</span>
+from google.adk import Agent, <b>Workflow</b>
+
+city_generator = Agent(name="city_generator",
+    instruction="Return the name of a random city, nothing else.",
+    mode="single_turn", output_schema=str)
+
+def lookup_time(node_input: str):          <span class="cm"># plain Python node</span>
+    return Event(output=CityTime(time_info="10:10 AM",
+                                 city=node_input))
+
+city_report = Agent(name="city_report",
+    input_schema=CityTime, mode="single_turn",
+    instruction="Report the current time in the city.")
+
+root_agent = <b>Workflow</b>(
+    name="city_time_report",
+    <b>edges</b>=[("START", city_generator, lookup_time, city_report)],
+)</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p>One primitive for sequence, parallelism, routing, and (conditional) cycles &mdash; edge syntax on the next slide.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Nodes can be <b>agents, plain Python functions, tools, or nested workflows</b> &mdash; AI steps and code steps alternate freely.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>LLM agents used as graph nodes must be <code class="i">mode="single_turn"</code> (or <code class="i">task</code>, currently disabled in graphs).</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>ADK now describes itself as built on <b>two main classes: Agent and Workflow</b>; in 2.0 every agent <i>is</i> a node on this engine.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 13b : EDGE SYNTAX -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:10px;">How to read an edge</h1>
+  <p style="font-size:14px;color:var(--ink-2);margin:0 0 14px;max-width:1050px;"><b>Nodes do the work</b> (agents, functions, joins); <b>edges are the arrows between them</b>. One entry draws a straight line; you write more entries wherever the flow forks, merges, or loops &mdash; together they define one graph. Entries come in two shapes: <b>tuple (sequence) edges</b> and <b>routing (dict) edges</b>.</p>
+  <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:14px;">
+    <div class="cell" style="padding:16px 18px;">
+      <h4>Tuple (sequence) edge</h4>
+<div class="code sm" style="margin:8px 0;">("START", a, b, c)</div>
+      <p style="font-size:12.5px;">Run <code class="i">a</code>, then <code class="i">b</code>, then <code class="i">c</code>, in order. The string <code class="i">"START"</code> marks the graph's entry point. Each node's <code class="i">event.output</code> feeds the next.</p>
+    </div>
+    <div class="cell" style="padding:16px 18px;">
+      <h4>Several tuple edges fan out and join</h4>
+<div class="code sm" style="margin:8px 0;">gather = <b>JoinNode</b>(name="gather")
+
+("START", b, gather)   <span class="cm"># b and c both start</span>
+("START", c, gather)   <span class="cm"># from START, in parallel</span>
+(gather, d)            <span class="cm"># d runs after both finish</span></div>
+      <p style="font-size:12.5px;"><code class="i">b</code> and <code class="i">c</code> both run from <code class="i">"START"</code> <b>in parallel</b>. <code class="i">gather</code> is an ordinary variable holding a <code class="i">JoinNode</code> object &mdash; not a keyword &mdash; that waits for every predecessor before <code class="i">d</code> runs.</p>
+    </div>
+    <div class="cell" style="padding:16px 18px;">
+      <h4>Routing (dict) edge</h4>
+<div class="code sm" style="margin:8px 0;">def router(<b>node_input</b>):
+    if is_urgent(node_input):
+        return Event(<b>route</b>="ESCALATE",
+                     <b>output</b>=node_input)
+    return Event(route="RESOLVE",
+                 output=node_input)
+
+(router, {"ESCALATE": human_queue,
+          "RESOLVE":  closer})</div>
+      <p style="font-size:12.5px;">The router returns <code class="i">Event(route="KEY")</code>; the dict edge sends execution to the node under that key. Re-emit <code class="i">output</code> so the chosen node still receives the payload &mdash; a route-only Event forwards <code class="i">None</code>.</p>
+    </div>
+  </div>
+  <div class="checks" style="margin-top:12px;">
+    <div class="checkrow"><div class="cdot"></div><p>A dict route pointing at an <b>earlier</b> node creates a cycle &mdash; that's how loops work (next slides). Unconditional cycles are rejected at build time.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 14 : SEQUENTIAL CONVERSION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Sequence: legacy vs. graph</h1>
+  <div class="cols">
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">1.x &mdash; the lab today <span class="bdg dep">DEPRECATED</span></div>
+<div class="code sm">film_concept_team = <b>SequentialAgent</b>(
+    name="film_concept_team",
+    sub_agents=[
+        researcher,
+        screenwriter,
+        file_writer,
+    ],
+)</div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">2.x &mdash; the same pipeline as a graph</div>
+<div class="code sm">film_concept_team = <b>Workflow</b>(
+    name="film_concept_team",
+    edges=[
+        ("START",
+         researcher,
+         screenwriter,
+         file_writer),
+    ],
+)</div>
+    </div>
+  </div>
+  <div class="note blue">Same agents, same order &mdash; the tuple edge <i>is</i> the sequence. One adjustment when converting: agents used as graph nodes are configured <code class="i">mode="single_turn"</code>. The real difference shows up when you need more than a straight line.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 14b : BRANCH VS LOOP -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:14px;">Branch vs. loop: it's all in where the route points</h1>
+  <div class="cols">
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">Branch &mdash; every route points forward</div>
+      <div class="dia" style="height:230px;">
+        <svg viewBox="0 0 545 230" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <marker id="mb2" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#1a73e8"/></marker>
+          </defs>
+          <line x1="150" y1="105" x2="335" y2="55" stroke="#1a73e8" stroke-width="1.8" marker-end="url(#mb2)"/>
+          <line x1="150" y1="125" x2="335" y2="180" stroke="#1a73e8" stroke-width="1.8" marker-end="url(#mb2)"/>
+        </svg>
+        <div class="dbox" style="left:28px;top:98px;">router</div>
+        <div class="dbox" style="left:340px;top:34px;">task_B</div>
+        <div class="dbox" style="left:340px;top:168px;">task_C</div>
+        <div class="dlbl" style="left:212px;top:52px;color:var(--g-blue-deep);">route="B"</div>
+        <div class="dlbl" style="left:212px;top:168px;color:var(--g-blue-deep);">route="C"</div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-2);margin:10px 0 0;">Both targets are <b>downstream</b>. One runs, execution continues forward, done &mdash; nothing repeats.</p>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">Loop &mdash; one route points backward</div>
+      <div class="dia" style="height:230px;">
+        <svg viewBox="0 0 545 230" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <marker id="mg2" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#188038"/></marker>
+            <marker id="mr2" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0,0 L9,4 L0,8 z" fill="#80868b"/></marker>
+          </defs>
+          <line x1="128" y1="122" x2="196" y2="122" stroke="#80868b" stroke-width="1.6" marker-end="url(#mr2)"/>
+          <line x1="278" y1="122" x2="350" y2="122" stroke="#80868b" stroke-width="1.6" marker-end="url(#mr2)"/>
+          <path d="M400,105 Q240,18 80,108" fill="none" stroke="#188038" stroke-width="2" marker-end="url(#mg2)"/>
+          <line x1="405" y1="145" x2="405" y2="188" stroke="#1a73e8" stroke-width="1.8" marker-end="url(#mb2)"/>
+        </svg>
+        <div class="dbox" style="left:20px;top:108px;">researcher</div>
+        <div class="dbox" style="left:200px;top:108px;">critic</div>
+        <div class="dbox" style="left:355px;top:108px;">router</div>
+        <div class="dbox" style="left:340px;top:192px;">file_writer</div>
+        <div class="dlbl" style="left:185px;top:32px;color:#188038;">route="REVISE" &mdash; back to a node that already ran</div>
+        <div class="dlbl" style="left:418px;top:158px;color:var(--g-blue-deep);">route="APPROVE"</div>
+      </div>
+      <p style="font-size:13px;color:var(--ink-2);margin:10px 0 0;">The <b>backward</b> route re-activates an earlier node &mdash; that re-activation <i>is</i> the loop. The forward route is the exit. There is no loop construct; a loop is just a branch aimed at the past.</p>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 15 : LOOP CONVERSION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Iteration: exit_loop vs. conditional cycles</h1>
+  <div class="cols">
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">1.x &mdash; the lab's writers_room <span class="bdg dep">DEPRECATED</span></div>
+<div class="code sm">from google.adk.tools import exit_loop
+
+critic = Agent(..., tools=[append_to_state, <b>exit_loop</b>],
+    instruction="If the outline is ready, call exit_loop.")
+
+writers_room = <b>LoopAgent</b>(
+    name="writers_room",
+    <b>max_iterations</b>=5,
+    sub_agents=[researcher, screenwriter, critic],
+)</div>
+      <div class="drow" style="margin-top:14px;"><div class="dtag x2">EXIT</div><p>The loop's condition lives in <code class="i">review_router</code>: <b>"REVISE"</b> points back to an earlier node (the cycle), <b>"APPROVE"</b> leaves it. Unconditional cycles are rejected at build time.</p></div>
+      <div class="drow"><div class="dtag x2">CAP</div><p>There is no <code class="i">max_iterations</code> parameter &mdash; count passes in state and force <b>"APPROVE"</b> at the limit (shown at right). Use a <code class="i">temp:</code>-scoped key or reset at entry so a later run in the same session doesn't inherit the count.</p></div>
+      <div class="drow"><div class="dtag x2">RETRIES</div><p>Separate concern: any node takes reliability knobs &mdash; <code class="i">node(critic, retry_config=RetryConfig(max_attempts=3), timeout=60.0)</code>. A timed-out node raises <code class="i">NodeTimeoutError</code>.</p></div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">2.x &mdash; a conditional cycle: critic verdict &rarr; router &rarr; back-edge</div>
+<div class="code sm">class Critique(BaseModel):
+    approved: bool
+    feedback: str
+
+<span class="cm"># the four nodes (agents abbreviated)</span>
+researcher   = Agent(..., mode="single_turn")
+screenwriter = Agent(..., mode="single_turn")
+critic       = Agent(..., mode="single_turn",
+                     <b>output_schema</b>=Critique)  <span class="cm"># typed verdict</span>
+file_writer  = Agent(..., mode="single_turn")
+
+def review_router(node_input: Critique, <b>ctx: Context</b>):
+    passes = ctx.state.get("passes", 0) + 1   <span class="cm"># count loops</span>
+    ctx.state["passes"] = passes
+    if node_input.approved <b>or passes &gt;= 5</b>:      <span class="cm"># short-circuit</span>
+        return Event(<b>route="APPROVE"</b>, output=node_input)
+    return Event(<b>route="REVISE"</b>, output=node_input)
+    <span class="cm"># always re-emit output: route-only Events forward None</span>
+
+writers_room = <b>Workflow</b>(edges=[
+    ("START", researcher, screenwriter, critic, review_router),
+    (review_router, {<b>"REVISE":  researcher</b>,  <span class="cm"># back-edge = the loop</span>
+                     <b>"APPROVE": file_writer</b>}),  <span class="cm"># the routed exit</span>
+])</div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 16 : PARALLEL CONVERSION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Fan out and gather: ParallelAgent vs. graph fan-out</h1>
+  <div class="cols">
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">1.x &mdash; the lab's preproduction_team <span class="bdg dep">DEPRECATED</span></div>
+<div class="code sm">preproduction_team = <b>ParallelAgent</b>(
+    name="preproduction_team",
+    sub_agents=[
+        casting_agent,
+        box_office_analyst,
+    ],
+)
+<span class="cm"># isolated branches; results gathered</span>
+<span class="cm"># into state, read by the next agent</span></div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">2.x &mdash; fan-out edge + JoinNode</div>
+<div class="code sm">from google.adk.workflow import <b>JoinNode</b>
+
+gather = JoinNode(name="gather")   <span class="cm"># an ordinary node object</span>
+
+preproduction = <b>Workflow</b>(
+    name="preproduction",
+    edges=[
+        ("START", casting_agent,      gather),  <span class="cm"># both run from</span>
+        ("START", box_office_analyst, gather),  <span class="cm"># START in parallel</span>
+        (gather, greenlight_report),            <span class="cm"># runs after both</span>
+    ],
+    <b>max_concurrency</b>=4,
+)</div>
+    </div>
+  </div>
+  <div class="note">A <code class="i">JoinNode</code> proceeds only after <b>every</b> predecessor emits output &mdash; one failed branch stalls the join. Give flaky branches a <code class="i">RetryConfig</code> and a failsafe output. The join passes the collected outputs (keyed by node) to the next node. <code class="i">max_concurrency</code> caps how many branches run at once &mdash; it's in the SDK but not yet on adk.dev, so students won't find it in the docs.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 17 : GRAPH EXTRAS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What else the graph engine gives you</h1>
+  <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:14px;">
+    <div class="cell"><h4>Function nodes</h4><p>Plain Python steps via <code class="i">FunctionNode</code> or the <code class="i">@node</code> decorator &mdash; no LLM call for mechanical work.</p></div>
+    <div class="cell"><h4>Typed data flow</h4><p>Nodes exchange values through <code class="i">event.output</code> instead of hand-plumbed state keys.</p></div>
+    <div class="cell"><h4>Dynamic nodes</h4><p><code class="i">ctx.run_node(node, input)</code> spawns work decided at runtime.</p></div>
+    <div class="cell"><h4>Resilience</h4><p>Per-node <code class="i">RetryConfig</code>; deterministic pause/resume and rehydration from session history.</p></div>
+    <div class="cell"><h4>Human input</h4><p>HITL interrupts (<code class="i">request_input</code>) pause the graph; resume continues exactly where it stopped.</p></div>
+    <div class="cell"><h4>Composition</h4><p>Nested workflows; Workflow-as-tool (2.4); <code class="i">to_a2a(workflow)</code> for remote exposure.</p></div>
+  </div>
+  <div class="note"><b>Current limits to teach honestly:</b> a Workflow cannot yet be a sub-agent of an LlmAgent (why the legacy classes remain); live/BiDi streaming is not supported inside workflows; task mode is disabled inside graphs in 2.0.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 18 : CUSTOM ORCHESTRATION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:14px;">Custom orchestration: custom agent &rarr; native Workflow</h1>
+  <div class="cols">
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">1.x &mdash; subclass BaseAgent, override the run method <span class="bdg dep">BYPASSED IN 2.0</span></div>
+<div class="code sm">class BudgetRouter(<b>BaseAgent</b>):
+    async def <b>_run_async_impl</b>(self, ctx):
+        pitch = ctx.session.state["PITCH"]
+
+        <span class="cm"># conditional orchestration in hand-written code</span>
+        if pitch["budget"] &gt; 100_000_000:
+            async for e in self.blockbuster.run_async(ctx):
+                yield e
+        else:
+            async for e in self.indie.run_async(ctx):
+                yield e
+
+writers_room = BudgetRouter(
+    name="writers_room",
+    sub_agents=[blockbuster, indie],
+)</div>
+    </div>
+    <div>
+      <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-bottom:8px;">2.x &mdash; a function router node + dict edge</div>
+<div class="code sm">def budget_router(<b>node_input</b>: Pitch):
+    if node_input.budget &gt; 100_000_000:
+        return Event(<b>route="BIG"</b>,   output=node_input)
+    return Event(<b>route="SMALL"</b>, output=node_input)
+
+writers_room = <b>Workflow</b>(edges=[
+    ("START", pitch_agent, budget_router),
+    (budget_router, {<b>"BIG":   blockbuster</b>,
+                     <b>"SMALL": indie</b>}),
+])</div>
+      <div class="checks" style="margin-top:12px;">
+        <div class="checkrow"><div class="cdot"></div><p>Conditional logic, dynamic selection, and unusual flow patterns are <b>native graph features</b> now &mdash; the docs say to reach for graph or dynamic Workflows <i>before</i> writing a custom agent.</p></div>
+        <div class="checkrow"><div class="cdot"></div><p>Callbacks are <b>not</b> the replacement for orchestration &mdash; <code class="i">before/after_agent_callback</code> are per-agent hooks, not a control-flow engine.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 18b : WHO DECIDES -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Who decides it runs? Tool call vs. graph step</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Approach</th><th>Who decides</th><th>Guarantees and cost</th><th>Reach for it when</th></tr>
+    <tr><td><b>Tool on an agent</b><br><span class="m">tools=[save_pitch]</span></td><td>The <b>model</b> &mdash; whether, when, and with what arguments</td><td>Can be skipped or mis-called; the result loops back through the model for another LLM pass</td><td>The agent should <i>choose</i> among capabilities mid-conversation</td></tr>
+    <tr><td><b>Agent as a graph node</b><br><span class="m">mode="single_turn"</span></td><td>The <b>graph</b> &mdash; always runs at its step</td><td>One LLM call; typed input/output via schemas</td><td>The step needs judgment or language</td></tr>
+    <tr><td><b>Function node</b><br><span class="m">def save_pitch(node_input)</span></td><td>The <b>graph</b> &mdash; always runs at its step</td><td>No LLM: deterministic, testable, fast; input validated at the edge</td><td>Mechanical steps: save, transform, route</td></tr>
+  </table>
+  <div class="note blue">Rule of thumb: <b>reasoning steps get agents, mechanical steps get code, and the graph &mdash; not the model &mdash; owns the ordering.</b> The <code class="i">save_pitch</code> example earlier is a tool-shaped job promoted to a graph step precisely so it cannot be skipped, mis-called, or double-billed through the model.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 19 : MIGRATION MAP -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Migration map: legacy class &rarr; graph pattern</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>You have (1.x)</th><th>You write (2.x)</th><th>Notes</th></tr>
+    <tr><td><span class="m">SequentialAgent(sub_agents=[a,b,c])</span></td><td><span class="m">edges=[("START", a, b, c)]</span></td><td>Tuple edge = fixed order</td></tr>
+    <tr><td><span class="m">ParallelAgent(sub_agents=[a,b])</span></td><td><span class="m">edges=[("START",a,join), ("START",b,join)]</span></td><td><span class="m">JoinNode</span> gathers; <span class="m">max_concurrency</span> throttles</td></tr>
+    <tr><td><span class="m">LoopAgent</span> + <span class="m">exit_loop</span> tool</td><td>Conditional cycle: <span class="m">(critic, {"revise": a, "done": next})</span></td><td>Exit becomes a route, not a tool call</td></tr>
+    <tr><td>Custom agent overriding <span class="m">_run_async_impl</span></td><td>Function router nodes + dict edges (graph / dynamic Workflows)</td><td>Override is bypassed by the 2.0 engine</td></tr>
+    <tr><td><span class="m">output_key</span> + state templating</td><td>Still works; graphs add typed <span class="m">event.output</span></td><td>State remains right for cross-cutting data</td></tr>
+    <tr><td><span class="m">AgentTool</span> delegation</td><td>Still works; consider <span class="m">mode="task"</span></td><td>Schema-validated, auto-return</td></tr>
+  </table>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 20 : SECTION LAB -->
+<section class="slide divider">
+  <div class="conf">Proprietary + Confidential</div>
+  <div class="wrap">
+    <div class="shapes"><div class="sh green" style="left:20px;top:60px;"></div><div class="sh blue" style="font-size:0;width:140px;height:140px;left:180px;top:120px;"></div><div class="sh yellow" style="left:40px;top:190px;width:90px;height:90px;"></div><div class="sh red" style="left:190px;top:20px;width:90px;height:90px;"></div></div>
+    <div><h1>Hands-on lab</h1><div class="dsub">Build a multi-agent movie-pitch system, then walk the delta slides: what the lab already does right, what to update on 1.x, and what moves in 2.x.</div></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 21 : LAB CARD -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Lab: Build multi-agent systems with ADK</h1>
+  <div class="labcard"><div class="flask">3</div><div><h3>Build multi-agent systems with ADK &nbsp;<span style="font-weight:400;color:var(--ink-2);">45 min &middot; currently pins google-adk[otel-gcp]==1.30.0</span></h3><p>A movie-pitch team: explore transfers, share state, then compose SequentialAgent, LoopAgent (writers_room with a critic), and ParallelAgent (preproduction fan-out).</p></div></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Task 2:</b> observe parent / sub-agent / peer transfers, and <code class="i">disallow_transfer_to_peers</code>.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Task 3:</b> store and retrieve shared data with <code class="i">append_to_state</code> (a ToolContext tool) and <code class="i">{ KEY? }</code> instruction templating.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Tasks 4&ndash;6:</b> build the pipeline as a <b>SequentialAgent</b>, add a <b>LoopAgent</b> with an <code class="i">exit_loop</code> critic and <code class="i">max_iterations</code>, then a <b>ParallelAgent</b> for casting and box-office analysis.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 22 : LAB DELTAS 1 -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Lab deltas: multi-agent lab &mdash; current state (1 of 2)</h1>
+  <div class="drow"><div class="dtag keep">CURRENT</div><p>Strong late-1.x patterns throughout: <b>App + plugins</b> (Graceful429Plugin), <code class="i">Gemini(retry_options=...)</code>, <b>ToolContext</b> state tools, <code class="i">{ KEY? }</code> templating, OTel flags. <span class="why">The transfer-rules and state teaching carries into 2.x unchanged.</span></p></div>
+  <div class="drow"><div class="dtag keep">CURRENT</div><p>The <code class="i">append_to_state</code> accumulate-don't-overwrite pattern is exactly right for loop iterations, and worth keeping even in a graph rewrite.</p></div>
+  <div class="drow"><div class="dtag fix">UPDATE 1.x</div><p>Pin drift: 1.30.0 vs the maintained 1.36.x line. <code class="i">LangchainTool</code> imports from the old <code class="i">google.adk.tools.langchain_tool</code> path (now a deprecation shim &mdash; current home is <code class="i">google.adk.integrations.langchain</code>).</p></div>
+  <div class="drow"><div class="dtag fix">UPDATE 1.x</div><p>Same environment hygiene as the other labs: <code class="i">GOOGLE_GENAI_USE_VERTEXAI</code> in <code class="i">.env</code> instructions, templated model ID resolved at lab-provision time, docs links to verify against <b>adk.dev</b>.</p></div>
+  <div class="drow"><div class="dtag fix">UPDATE 1.x</div><p>The <code class="i">write_file</code> tool takes no ToolContext and writes to the local disk &mdash; fine in Cloud Shell, but a natural place to teach <b>artifacts</b> (<code class="i">tool_context.save_artifact</code>) instead.</p></div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 23 : LAB DELTAS 2 -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Lab deltas: multi-agent lab &mdash; the 2.x picture (2 of 2)</h1>
+  <div class="drow"><div class="dtag risk">HEADS-UP</div><p>The lab's three core constructs &mdash; <code class="i">SequentialAgent</code>, <code class="i">LoopAgent</code>, <code class="i">ParallelAgent</code> &mdash; are all <b>deprecated in 2.x</b>. Under a 2.x pin, students see DeprecationWarnings on the lab's central lesson. They still run; the framing must change from "this is how" to "this is the legacy form."</p></div>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>Each task maps cleanly to the graph: Task 4's sequence becomes a tuple edge; Task 5's <code class="i">exit_loop</code> critic becomes a <b>conditional cycle</b> with routes; Task 6's fan-out becomes a tuple target plus <b>JoinNode</b>. A 2.x refresh could keep the same movie-pitch story and swap the orchestration layer.</p></div>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>The closing <b>CustomAgent</b> section needs a rewrite: <code class="i">_run_async_impl</code> overrides are bypassed by the 2.0 engine. The docs now say to reach for graph / dynamic Workflows <i>before</i> a custom agent &mdash; its use cases become function router nodes, dict-edge routing, and <code class="i">ctx.run_node()</code>.</p></div>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>The greeter&rarr;team handoff is a chat-mode transfer with no structural return; a 2.x version can make the team a <code class="i">mode="task"</code> delegate (auto-return with a validated pitch document) &mdash; noting task mode works in the coordinator pattern, not inside the graph itself.</p></div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 24 : RECAP -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What changed in this module vs. the previous deck</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Previous deck taught</th><th>This deck teaches</th><th>Why</th></tr>
+    <tr><td>Workflow agents as the orchestration story</td><td><b>Workflow graphs</b> first; the three classes as legacy with a migration map</td><td>All three deprecated in 2.0</td></tr>
+    <tr><td>Transfer rules only</td><td>Transfer rules <b>plus collaboration modes</b> (chat / task / single_turn)</td><td>Task mode fixes the no-return handoff problem</td></tr>
+    <tr><td>"Custom workflow agents" for conditional logic</td><td>Dict-edge routing, function nodes, conditional cycles</td><td>Custom run overrides are bypassed in 2.0</td></tr>
+    <tr><td>State-only data sharing</td><td>State <b>plus typed event.output</b> in graphs</td><td>Graph-native data flow</td></tr>
+    <tr><td>Lab slide: task list only</td><td>Lab slide + <b>delta slides</b></td><td>Lab pins 1.30; its core classes deprecate in 2.x</td></tr>
+  </table>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+</div></div>
+
+<div class="bar">
+  <div class="name">Agent Development Kit &middot; Module 3: Build multi-agent systems with ADK &middot; updated for ADK 2.x</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous slide">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next slide">&#8594;</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; F fullscreen &middot; Ctrl/Cmd &plusmn; zoom</div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, cnt = document.getElementById('cnt');
+  function clamp(n){ return Math.max(0, Math.min(slides.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    slides.forEach(function(s,k){ s.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + slides.length;
+    if (history.replaceState) history.replaceState(null,'','#'+(i+1));
+  }
+  // Scale is computed against the UNZOOMED viewport (approximated via the
+  // devicePixelRatio measured at load), so browser zoom genuinely enlarges
+  // the slide; the stage scrolls when the zoomed slide overflows.
+  var baseDPR = window.devicePixelRatio || 1;
+  var supportsZoom = ('zoom' in document.documentElement.style);
+  function fit(){
+    var f = document.getElementById('frame');
+    var z = (window.devicePixelRatio || 1) / baseDPR;
+    var availW = (window.innerWidth - 44) * z;
+    var availH = (window.innerHeight - 46 - 44) * z;
+    var s = Math.min(availW/1280, availH/720);
+    if (supportsZoom) { f.style.zoom = s; }
+    else { f.style.transformOrigin = 'top left'; f.style.transform = 'scale(' + s + ')'; }
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') show(0);
+    else if (e.key==='End') show(slides.length-1);
+    else if (e.key==='f'||e.key==='F'){
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    }
+  });
+  window.addEventListener('resize', fit);
+  var h = parseInt((location.hash||'').replace('#',''),10);
+  show(isNaN(h) ? 0 : h-1);
+  fit();
+})();
+</script>
+</body>
+</html>
