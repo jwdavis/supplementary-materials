@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supplementary Materials — Courses</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --card: #f6f7f9;
+    --border: #e2e4e8; --accent: #3056d3; --card-hover: #eef0f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e8eaed; --muted: #9aa0a6; --card: #1e2128;
+      --border: #2a2e37; --accent: #7f9cff; --card-hover: #252932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  .grid { display: grid; gap: .75rem; }
+  a.card {
+    display: block; padding: 1.25rem 1.5rem; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px; color: var(--fg);
+    text-decoration: none; transition: background .15s, border-color .15s;
+  }
+  a.card:hover { background: var(--card-hover); border-color: var(--accent); }
+  .card .name { font-weight: 600; font-size: 1.1rem; }
+  .card .desc { color: var(--muted); font-size: .9rem; margin-top: .2rem; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Supplementary Materials</h1>
+  <p class="sub">Course decks and reference material</p>
+  <div class="grid">
+    <!-- Add one <a class="card"> per course folder. href is the folder name; its index.html is served automatically. -->
+    <a class="card" href="MAS-ADKAE/">
+      <div class="name">Multi-agent Systems with ADK 2.x</div>
+      <div class="desc">5 modules &middot; introducing, developing, multi-agent, deploy, evaluate</div>
+    </a>
+  </div>
+  <footer>
+    Copyright &copy; 2026 Jeff Davis. All rights reserved. Proprietary &mdash; use requires written approval. See LICENSE.
+  </footer>
+</div>
+</body>
+</html>
