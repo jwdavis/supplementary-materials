@@ -1,0 +1,1580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module 3: IAM, Quotas &amp; Permissions</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code, div code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>IAM, Quotas &amp;<br>Permissions</h1>
+    <div class="sub">Module 3 &middot; Serverless Data Processing with Dataflow</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> the last module was about <em>what</em> Dataflow does with compute and storage. This module is about what happens the moment you press launch: <strong>who is allowed to do what</strong> (IAM) and <strong>what capacity the job draws on</strong> (quotas).</li>
+    <li>Two halves, cleanly split: the IAM half follows one job launch through <strong>three different credentials</strong>; the quotas half follows the same launch through the three Compute Engine quotas it must clear.</li>
+    <li>Frame the payoff up front: by the end, students should be able to look at any "permission denied" or "quota exceeded" error and know <em>which of the three identities or three quotas</em> to go inspect. That map is the module.</li>
+    <li>Rough timing: 40&ndash;50 minutes of lecture. No lab in this module; the IAM concepts get exercised implicitly in every later lab launch.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. AGENDA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Agenda</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:16px">
+        <li>Anatomy of a job launch — what actually gets sent where</li>
+        <li>Credential 1: <span class="blue">your user roles</span> — Viewer, Developer, Admin (and the <code>actAs</code> gotcha)</li>
+        <li>Credential 2: the <span class="blue">Dataflow service agent</span> — Google's identity in your project</li>
+        <li>Credential 3: the <span class="blue">worker service account</span> — the identity your data sees</li>
+        <li>Debugging "permission denied": a troubleshooting map</li>
+        <li>Quotas: CPUs, in-use IP addresses, persistent disks</li>
+        <li>Sizing a job against quota</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 260px;display:flex;align-items:center;justify-content:center">
+      <svg width="210" height="200" viewBox="0 0 210 200" aria-hidden="true">
+        <circle cx="70" cy="64" r="44" fill="#4285F4"/>
+        <circle cx="70" cy="50" r="14" fill="#fff"/>
+        <path d="M42 92 Q70 66 98 92 L98 104 Q70 116 42 104 Z" fill="#fff"/>
+        <rect x="124" y="30" width="60" height="76" rx="8" fill="none" stroke="#dadce0" stroke-width="3"/>
+        <rect x="138" y="52" width="32" height="26" rx="4" fill="#FBBC04"/>
+        <rect x="150" y="40" width="8" height="16" rx="4" fill="none" stroke="#FBBC04" stroke-width="3"/>
+        <rect x="30" y="140" width="150" height="14" rx="7" fill="#e8eaed"/>
+        <rect x="30" y="140" width="96" height="14" rx="7" fill="#34A853"/>
+        <text x="30" y="176" font-size="12" fill="#5f6368" font-family="Roboto,sans-serif">quota used</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agenda">
+  <summary>Speaker notes &mdash; Agenda</summary>
+  <div class="n-body"><ul>
+    <li>The ordering is deliberate: <strong>the launch mechanics come first</strong> so the three credentials have somewhere to live. Every IAM slide hangs off the same anchor diagram &mdash; you submit, the service builds, the workers run.</li>
+    <li>Terminology heads-up for anyone using older materials: what this module calls the <strong>worker service account</strong> appears as the "controller service account" in older decks and docs &mdash; same account, current name.</li>
+    <li>The quotas half is really one idea &mdash; Dataflow has almost no quota of its own; it spends your project's Compute Engine quota &mdash; applied three times: CPUs, IPs, disks.</li>
+    <li>What is deliberately <em>not</em> here: networking lockdown (private IPs how-to, CMEK, VPC-SC) is Module 4. This module plants the "internal IPs save quota" argument; Module 4 shows how.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. DIVIDER: LAUNCH PATH ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 5</div>
+    <h1>Anatomy of a Job Launch</h1>
+    <div class="sub">Before any IAM: follow the mechanics of one launch — what your machine sends, where your code actually goes, and who builds the worker VMs.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Launch path</span><span>User roles</span><span>Service agent</span><span>Worker SA</span><span>Quotas</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: Anatomy of a Job Launch">
+  <summary>Speaker notes &mdash; Section 1: Anatomy of a Job Launch</summary>
+  <div class="n-body"><ul>
+    <li>Why mechanics before IAM: permissions only make sense once you know <em>which component is doing the thing that needs permission</em>. Two slides of mechanics buy five slides of IAM clarity.</li>
+    <li>The section ends on the anchor diagram &mdash; one launch, three identities &mdash; that the next three sections walk through one credential at a time.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. WHAT SUBMISSION ACTUALLY IS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Launching a job: two payloads, two destinations</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: you run <code>python3 pipeline.py --runner=DataflowRunner …</code>. Before anything executes in the cloud, the SDK does exactly two things.</p>
+  <div class="figure">
+    <svg width="820" height="268" viewBox="0 0 820 268">
+      <defs>
+        <marker id="arrL" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/>
+        </marker>
+      </defs>
+      <!-- your machine -->
+      <rect x="8" y="86" width="150" height="86" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="83" y="118" text-anchor="middle" font-size="13" font-weight="600" fill="#1a73e8">Your machine</text>
+      <text x="83" y="137" text-anchor="middle" font-size="11" fill="#5f6368">SDK builds the</text>
+      <text x="83" y="152" text-anchor="middle" font-size="11" fill="#5f6368">pipeline graph</text>
+
+      <!-- google-managed project -->
+      <rect x="330" y="10" width="220" height="104" rx="10" fill="none" stroke="#9aa0a6" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="440" y="30" text-anchor="middle" font-size="10.5" fill="#5f6368">Google-managed project</text>
+      <rect x="352" y="42" width="176" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="440" y="66" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1a73e8">Dataflow service</text>
+      <text x="440" y="84" text-anchor="middle" font-size="10.5" fill="#5f6368">validates &amp; optimizes the graph</text>
+
+      <!-- your project -->
+      <rect x="330" y="132" width="482" height="128" rx="10" fill="none" stroke="#9aa0a6" stroke-width="1" stroke-dasharray="4 3"/>
+      <text x="571" y="152" text-anchor="middle" font-size="10.5" fill="#5f6368">Your project</text>
+      <rect x="352" y="166" width="176" height="76" rx="8" fill="#f1f3f4"/>
+      <text x="440" y="192" text-anchor="middle" font-size="12.5" font-weight="600" fill="#202124">Staging bucket</text>
+      <text x="440" y="210" text-anchor="middle" font-size="10.5" fill="#5f6368">Cloud Storage</text>
+      <text x="440" y="226" text-anchor="middle" font-size="10.5" fill="#5f6368">JARs / Python packages</text>
+      <rect x="612" y="166" width="176" height="76" rx="8" fill="#f1f3f4"/>
+      <text x="700" y="192" text-anchor="middle" font-size="12.5" font-weight="600" fill="#202124">Worker VMs</text>
+      <text x="700" y="210" text-anchor="middle" font-size="10.5" fill="#5f6368">created by the service,</text>
+      <text x="700" y="226" text-anchor="middle" font-size="10.5" fill="#5f6368">run your code</text>
+
+      <!-- arrows -->
+      <line x1="158" y1="106" x2="346" y2="74" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrL)"/>
+      <text x="240" y="66" text-anchor="middle" font-size="10.5" fill="#1a73e8" font-weight="600">1. jobs.create API call</text>
+      <text x="240" y="80" text-anchor="middle" font-size="10" fill="#5f6368">the graph + environment</text>
+
+      <line x1="158" y1="152" x2="346" y2="196" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrL)"/>
+      <text x="235" y="192" text-anchor="middle" font-size="10.5" fill="#1a73e8" font-weight="600">2. stage artifacts</text>
+      <text x="235" y="206" text-anchor="middle" font-size="10" fill="#5f6368">the code itself</text>
+
+      <line x1="470" y1="114" x2="660" y2="162" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrL)"/>
+      <text x="596" y="122" text-anchor="middle" font-size="10" fill="#5f6368">creates &amp; manages VMs</text>
+
+      <line x1="528" y1="204" x2="608" y2="204" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrL)"/>
+      <text x="568" y="196" text-anchor="middle" font-size="10" fill="#5f6368">download</text>
+      <text x="568" y="220" text-anchor="middle" font-size="10" fill="#5f6368">at startup</text>
+    </svg>
+  </div>
+  <div style="height:4px"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">The service receives the <strong>graph</strong>; the workers fetch the <strong>code</strong>. The Dataflow service never touches your staged artifacts — and the worker VMs are deleted when the job completes, whether it succeeds or fails.</div>
+</section>
+<details class="notes" data-title="Two payloads, two destinations">
+  <summary>Speaker notes &mdash; Two payloads, two destinations</summary>
+  <div class="n-body"><ul>
+    <li><strong>Precision matters here because the IAM half depends on it.</strong> Older materials say "the SDK uploads your code and sends it to the Dataflow service" &mdash; that blurs two different payloads with two different permission checks:
+      <ul>
+        <li>Payload 1: an API call &mdash; <code>projects.locations.jobs.create</code>. The request body is a <code>Job</code> resource: its <code>steps</code> field is the execution graph (built locally, serialized to JSON) and its <code>environment</code> field carries region, machine type, staging/temp locations, and the worker service account. Gated by <code>dataflow.jobs.create</code>.</li>
+        <li>Payload 2: the code artifacts (JARs, Python dependencies), uploaded to the Cloud Storage staging location. Gated by <em>storage</em> permissions. The workers download these at VM startup; the service never reads them.</li>
+      </ul>
+    </li>
+    <li>One launch therefore touches <strong>up to three permission surfaces</strong>: the Dataflow API call, the staging upload, and (coming in Section 2) <code>actAs</code> on the worker service account named in <code>environment</code>. That's the whole IAM half in one sentence.</li>
+    <li>Evidence students may meet in the wild: the "job graph too large" launch error &mdash; the <code>--experiments=upload_graph</code> workaround moves the graph out of the request body into GCS, which only makes sense once you know the graph normally travels <em>in the API request</em>.</li>
+    <li>The two-box split (Google-managed project vs. your project) is the same split Module 4 builds on for data locality &mdash; worth pointing at it now.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. THREE IDENTITIES (ANCHOR) ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">One launch, three identities</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Every stage of the launch runs as a <strong>different credential</strong> — and each is checked independently, so a launch can fail at any of the three.</p>
+  <div class="figure">
+    <svg width="830" height="216" viewBox="0 0 830 216">
+      <defs>
+        <marker id="arrI" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/>
+        </marker>
+      </defs>
+      <line x1="238" y1="96" x2="288" y2="96" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrI)"/>
+      <line x1="530" y1="96" x2="580" y2="96" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrI)"/>
+
+      <!-- 1 you -->
+      <rect x="10" y="26" width="228" height="140" rx="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <circle cx="40" cy="54" r="14" fill="#4285F4"/>
+      <text x="40" y="59" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">1</text>
+      <text x="64" y="50" font-size="13.5" font-weight="600" fill="#1a73e8">You submit</text>
+      <text x="64" y="66" font-size="10.5" fill="#5f6368">your user account</text>
+      <text x="24" y="96" font-size="11" fill="#3c4043">• calls the Dataflow API</text>
+      <text x="24" y="114" font-size="11" fill="#3c4043">• stages the artifacts</text>
+      <text x="24" y="132" font-size="11" fill="#3c4043">• names the worker SA</text>
+      <text x="24" y="156" font-size="10" fill="#c5221f">checked: your IAM roles</text>
+
+      <!-- 2 service agent -->
+      <rect x="292" y="26" width="228" height="140" rx="10" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+      <circle cx="322" cy="54" r="14" fill="#EA4335"/>
+      <text x="322" y="59" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">2</text>
+      <text x="346" y="50" font-size="13.5" font-weight="600" fill="#c5221f">Dataflow builds</text>
+      <text x="346" y="66" font-size="10.5" fill="#5f6368">Dataflow service agent</text>
+      <text x="306" y="96" font-size="11" fill="#3c4043">• checks project quota</text>
+      <text x="306" y="114" font-size="11" fill="#3c4043">• creates the worker VMs</text>
+      <text x="306" y="132" font-size="11" fill="#3c4043">• manages the running job</text>
+      <text x="306" y="156" font-size="10" fill="#c5221f">checked: the agent's role</text>
+
+      <!-- 3 worker SA -->
+      <rect x="584" y="26" width="228" height="140" rx="10" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+      <circle cx="614" cy="54" r="14" fill="#34A853"/>
+      <text x="614" y="59" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">3</text>
+      <text x="638" y="50" font-size="13.5" font-weight="600" fill="#188038">Workers run</text>
+      <text x="638" y="66" font-size="10.5" fill="#5f6368">worker service account</text>
+      <text x="598" y="96" font-size="11" fill="#3c4043">• executes your pipeline code</text>
+      <text x="598" y="114" font-size="11" fill="#3c4043">• reads the sources</text>
+      <text x="598" y="132" font-size="11" fill="#3c4043">• writes the sinks</text>
+      <text x="598" y="156" font-size="10" fill="#c5221f">checked: the worker SA's roles</text>
+
+      <text x="415" y="200" text-anchor="middle" font-size="11.5" fill="#5f6368">submit &nbsp;→&nbsp; build &nbsp;→&nbsp; run &nbsp;·&nbsp; three credentials, three independent checks</text>
+    </svg>
+  </div>
+  <div style="height:2px"></div>
+  <div class="callout" style="font-size:13.5px;padding:9px 14px">This is the map for the next three sections — one credential at a time, in launch order.</div>
+</section>
+<details class="notes" data-title="One launch, three identities">
+  <summary>Speaker notes &mdash; One launch, three identities</summary>
+  <div class="n-body"><ul>
+    <li><strong>This is the anchor slide of the module</strong> &mdash; everything in the IAM half is a zoom-in on one of these three boxes. Say the sequence out loud: <em>you</em> submit, the <em>Dataflow service agent</em> builds and manages the infrastructure, the <em>worker service account</em> runs the code and touches your data.</li>
+    <li>Stress <strong>"checked independently."</strong> Passing check 1 says nothing about check 3: you can be fully entitled to submit a job whose workers then can't read the source table. Different identity, different policy, different failure.</li>
+    <li>Useful mental shorthand to plant now and repeat all module: <strong>the worker SA is the identity your data sees</strong>. Sources and sinks never see <em>you</em>.</li>
+    <li>Vocabulary: "service agent" and "worker service account" are the current documented names. Students with older materials will know box 3 as the "controller service account" &mdash; flag the rename once here and again in Section 4.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. DIVIDER: USER ROLES ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 5</div>
+    <h1>Credential 1: Your User Roles</h1>
+    <div class="sub">Whether you may watch, operate, or launch jobs is decided by IAM roles granted to your account — plus one permission that lives outside every Dataflow role.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Launch path</span><span class="current">User roles</span><span>Service agent</span><span>Worker SA</span><span>Quotas</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Your User Roles">
+  <summary>Speaker notes &mdash; Section 2: Your User Roles</summary>
+  <div class="n-body"><ul>
+    <li>Arc of the section: the three grantable roles as <strong>personas</strong> (watcher, operator, launcher) &rarr; what a launch actually requires &rarr; why Developer alone can't launch &rarr; the <code>actAs</code> requirement that completes the production launcher.</li>
+    <li>The teaser in the subtitle is <code>iam.serviceAccounts.actAs</code> &mdash; the permission most demo projects hide (Owner/Editor include it) and most production projects trip over.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. THREE PEOPLE, THREE ROLES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Scenario: three people, three roles</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15px">A data engineering team runs pipelines in one project. Each person gets the role that matches their <strong>job function</strong>.</p>
+  <table class="tbl" style="font-size:14px">
+    <tr><th>Person</th><th>Role</th><th>Can</th><th>Cannot</th></tr>
+    <tr>
+      <td><strong>Sam</strong><br><span class="muted" style="font-size:12px">auditor</span></td>
+      <td><code>roles/dataflow.viewer</code></td>
+      <td>See jobs, job messages, and metrics — read-only on all Dataflow resources</td>
+      <td>Submit, update, or cancel anything</td>
+    </tr>
+    <tr>
+      <td><strong>Dana</strong><br><span class="muted" style="font-size:12px">on-call operator</span></td>
+      <td><code>roles/dataflow.developer</code></td>
+      <td>Everything Sam can, plus <strong>cancel, drain, and update</strong> running jobs</td>
+      <td>Launch new jobs (next slide shows why)</td>
+    </tr>
+    <tr class="hl">
+      <td><strong>Priya</strong><br><span class="muted" style="font-size:12px">pipeline author</span></td>
+      <td><code>roles/dataflow.admin</code></td>
+      <td>The minimum set to <strong>create and manage</strong> jobs: Dataflow API + staging bucket access</td>
+      <td>Impersonate a worker service account — that's a separate grant</td>
+    </tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13.5px">Map roles to <strong>job functions</strong>, not seniority. The on-call person who answers the pager needs job control (Developer) — not read access to the data (which none of these roles grant).</div>
+</section>
+<details class="notes" data-title="Three people, three roles">
+  <summary>Speaker notes &mdash; Three people, three roles</summary>
+  <div class="n-body"><ul>
+    <li>Two more Dataflow roles exist that are <strong>not</strong> for humans, and students should never confuse them with these three: <code>roles/dataflow.worker</code> (for the worker service account, Section 4) and <code>roles/dataflow.serviceAgent</code> (Google-managed only &mdash; the docs warn never to grant service agent roles to ordinary principals).</li>
+    <li><strong>What Developer is actually for</strong> &mdash; the role name misleads. People who <em>develop</em> pipelines need to launch them (that's Admin). Developer fits the <strong>operator</strong>: whoever answers the pager can stop, cancel, drain, or update a job, and gets job messages and metrics &mdash; while holding no read access to the staging or data buckets. Job control without data access.</li>
+    <li>Honest scoping: drain, in-place update, and snapshots are <em>streaming-only</em> operations. A batch job just runs to completion &mdash; the only lifecycle action is cancel. In a batch-only shop, Developer-as-operator collapses to "can cancel jobs."</li>
+    <li>One thing no Dataflow role buys: <strong>per-job separation</strong>. All Dataflow roles are grantable only at project level &mdash; any Developer in the project can cancel <em>any</em> job in it. Real separation between teams means separate projects.</li>
+    <li>Why these gaps never show up in class demos: project Owner/Editor are supersets of all of this (including impersonation). The distinctions on this slide only bite in locked-down, least-privilege projects &mdash; which is exactly what production looks like.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. WHAT A LAUNCH NEEDS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">What a launch actually needs: three gates</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Section 1 showed the launch touching three surfaces. Each is a separate permission check on <strong>you</strong>, the submitter.</p>
+  <table class="tbl" style="font-size:13.5px">
+    <tr><th style="width:34%">Gate</th><th style="width:34%">Permission(s)</th><th>Developer</th><th>Admin</th></tr>
+    <tr>
+      <td><strong>1 &middot; Call the Dataflow API</strong><br><span class="muted" style="font-size:12px">jobs.create request</span></td>
+      <td><code>dataflow.jobs.create</code></td>
+      <td class="yes">✓</td><td class="yes">✓</td>
+    </tr>
+    <tr>
+      <td><strong>2 &middot; Stage the artifacts</strong><br><span class="muted" style="font-size:12px">upload code to the staging bucket</span></td>
+      <td><code>storage.objects.create / get / list</code>,<br><code>storage.buckets.get</code></td>
+      <td class="no">✗</td><td class="yes">✓</td>
+    </tr>
+    <tr>
+      <td><strong>3 &middot; Act as the worker SA</strong><br><span class="muted" style="font-size:12px">when the job names a user-managed SA</span></td>
+      <td><code>iam.serviceAccounts.actAs</code></td>
+      <td class="no">✗</td><td class="no">✗</td>
+    </tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:13.5px"><strong>Failure signature:</strong> a Developer-only launch passes gate 1 and dies at gate 2 — a <em>storage</em> permission error, not a Dataflow one. Gate 3 is in <strong>no Dataflow role at all</strong>; it comes from <code>roles/iam.serviceAccountUser</code> on the worker SA.</div>
+</section>
+<details class="notes" data-title="Three gates">
+  <summary>Speaker notes &mdash; Three gates</summary>
+  <div class="n-body"><ul>
+    <li><strong>Nuance students trip on: Developer <em>does</em> hold <code>dataflow.jobs.create</code></strong> (it's in the role's <code>dataflow.jobs.*</code> bundle). "Developer can't create jobs" doesn't mean the API refuses the call &mdash; it means a real launch needs more than that one call. The actual diff (Admin minus Developer) is small: the four storage permissions on the slide plus <code>compute.machineTypes.get</code>.</li>
+    <li><strong>Outdated rationale to retire:</strong> older decks say Developer can't launch because it "can't view Compute Engine quota." Quota viewing rides on <code>compute.projects.get</code> (+ regions/zones list), and the current Developer role <em>includes</em> all three. Today the substantive gap is staging access, full stop. When a slide and the live permission list disagree, the permission list wins.</li>
+    <li>Gate 3 is scoped precisely: the docs require <code>actAs</code> in the <em>user-managed</em> worker SA section; the default-SA path imposes no such requirement (verified empirically: a launcher holding only <code>roles/dataflow.admin</code>, with <code>actAs</code> absence confirmed via Policy Troubleshooter, launches fine on the default compute SA).</li>
+    <li>Since no Dataflow role contains any <code>iam.*</code> permission, following the user-managed-SA best practice (Section 4) <em>always</em> means a second grant for launchers: <code>roles/iam.serviceAccountUser</code> on that specific SA &mdash; per-SA, not project-wide, per IAM best practice.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. DEVELOPER = OPERATOR + QUICK CHECK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Quick check: the on-call page</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: 3 a.m. — a streaming job is misbehaving and burning money. Dana holds only <code>roles/dataflow.developer</code>. Does this work?</p>
+  <pre class="term">gcloud dataflow jobs cancel $JOB_ID <span class="flag">--region</span>=$REGION</pre>
+  <div class="vgap"></div>
+  <div class="callout good" style="font-size:14.5px"><strong>Yes.</strong> Developer holds <code>dataflow.jobs.cancel</code> (and <code>.updateContents</code> for drain and in-place update). Job control is exactly what the role is for.</div>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14.5px">
+    <li>Dana can also <strong>drain</strong> the job (finish in-flight data, stop reading new data) — the gentler stop for streaming pipelines</li>
+    <li>What Dana still cannot do: launch a replacement job, or read the pipeline's data — cancel-and-fix-at-3-a.m. stays within job control</li>
+  </ul>
+</section>
+<details class="notes" data-title="Quick check: cancel">
+  <summary>Speaker notes &mdash; Quick check: cancel</summary>
+  <div class="n-body"><ul>
+    <li>Run this as an actual question &mdash; ask for a show of hands before revealing. The instinct after the last slide is "Developer can't do anything real"; the correction is that Developer is precisely the <em>operate</em> role.</li>
+    <li>Good follow-up discussion: cancel vs. drain. Cancel stops now and discards in-flight data; drain stops the sources and lets in-flight elements finish. Drain (like update and snapshots) exists only for streaming jobs &mdash; a batch job's only lifecycle action is cancel.</li>
+    <li>Second follow-up if the group is sharp: "could Dana <em>update</em> the running job in place?" Yes on permissions (streaming only) &mdash; but a replacement job launch is a <em>create</em>, which walks straight into the previous slide's gates 2 and 3.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. ROLE + ACTAS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Launching as someone else: role <span class="accent">+ actAs</span></h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: the production job must run as a dedicated worker SA, <code>etl-worker@…</code>. Priya names it at launch — which makes her <strong>impersonate</strong> it.</p>
+  <pre class="term" style="font-size:12px">python3 pipeline.py <span class="flag">--runner</span>=DataflowRunner \
+  <span class="flag">--project</span>=$PROJECT_ID <span class="flag">--region</span>=$REGION \
+  <span class="flag">--service_account_email</span>=etl-worker@$PROJECT_ID.iam.gserviceaccount.com</pre>
+  <div class="vgap-s"></div>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="term" style="font-size:11.5px"><span class="lbl">Grant Priya actAs — on this SA only, not project-wide:</span>gcloud iam service-accounts add-iam-policy-binding \
+    etl-worker@$PROJECT_ID.iam.gserviceaccount.com \
+    <span class="flag">--member</span>="user:priya@example.com" \
+    <span class="flag">--role</span>="roles/iam.serviceAccountUser"</pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Naming a worker SA requires <code>iam.serviceAccounts.actAs</code> on it — in <strong>no</strong> Dataflow role</li>
+        <li>So the production launcher formula is <strong>role + actAs</strong>: <code>roles/dataflow.admin</code> <em>plus</em> Service Account User on that SA</li>
+        <li>Omit the flag and the job runs as the <strong>Compute Engine default SA</strong> — no actAs needed, but broad access</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:13px">Demo projects hide this: Owner and Editor carry impersonation permissions. The missing <code>actAs</code> surfaces exactly where least-privilege roles are used — production.</div>
+</section>
+<details class="notes" data-title="Role + actAs">
+  <summary>Speaker notes &mdash; Role + actAs</summary>
+  <div class="n-body"><ul>
+    <li><strong>Why impersonation, conceptually:</strong> the job will hold and use that SA's credentials for its whole lifetime. Letting anyone attach any SA to a job would let them borrow that SA's powers &mdash; so IAM requires the launcher to be allowed to "act as" the SA first. Same rule as attaching an SA to a GCE VM or a Cloud Run service.</li>
+    <li>Java spelling of the flag: <code>--serviceAccount=…</code>. Python: <code>--service_account_email</code>.</li>
+    <li><strong>Scope the grant per-SA</strong> (as on the slide), not project-wide &mdash; project-level Service Account User means "can impersonate every SA in the project," which quietly includes powerful ones. This is straight from the service-account best-practices docs.</li>
+    <li>The empirical note behind the third bullet: default-SA launches were verified to need only the Dataflow role &mdash; a launcher with only <code>roles/dataflow.admin</code> and demonstrably no <code>actAs</code> launched successfully. The docs state the <code>actAs</code> requirement only in the user-managed-SA section.</li>
+    <li>Flip side worth telling: the <code>actAs</code> requirement is also a <strong>control</strong>. Once the job runs as <code>etl-worker</code>, only people with <code>actAs</code> on <code>etl-worker</code> can launch it &mdash; switching to a user-managed SA is how you <em>narrow</em> who can launch production jobs.</li>
+    <li>If asked whether Admin is required: no &mdash; the security-and-permissions docs also compose an equivalent launcher from <strong>Developer</strong> plus <code>roles/storage.objectAdmin</code> scoped to the staging bucket plus the same Service Account User grant. Worth reaching for when the launcher shouldn't hold read access to every bucket in a shared project (Admin grants that), and for CI/CD launcher service accounts; in a workload-scoped project, plain Admin over-grants little.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. DIVIDER: SERVICE AGENT ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 5</div>
+    <h1>Credential 2: The Dataflow Service Agent</h1>
+    <div class="sub">Google's identity in your project. It checks quota, creates the worker VMs, and manages the job — and the right amount for you to manage it is zero.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Launch path</span><span>User roles</span><span class="current">Service agent</span><span>Worker SA</span><span>Quotas</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: The Dataflow Service Agent">
+  <summary>Speaker notes &mdash; Section 3: The Dataflow Service Agent</summary>
+  <div class="n-body"><ul>
+    <li>Shortest section on purpose &mdash; the whole lesson is "know it exists, recognize its failure mode, and leave it alone."</li>
+    <li>"Service agent" is the current umbrella term for Google-managed per-service accounts; every GCP service that acts in your project has one. Dataflow's is simply the one this course cares about.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. SERVICE AGENT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The Dataflow service agent</h1>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Created and managed by Google; assigned to your project automatically the first time you run a Dataflow job. Holds <code>roles/dataflow.serviceAgent</code></li>
+        <li>It is the credential behind stage <strong>2</strong> of the launch:
+          <ul>
+            <li>checks your project's Compute Engine quota</li>
+            <li>creates and deletes the worker VMs</li>
+            <li>manages the job while it runs</li>
+          </ul>
+        </li>
+        <li>You never authenticate as it, and it lives in a Google-managed project — not yours to configure</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small" style="font-size:11.5px">service-<span class="fn">PROJECT_NUMBER</span>@dataflow-service-producer-prod
+    .iam.gserviceaccount.com</pre>
+    </div>
+    <div>
+      <div class="callout warn" style="font-size:13.5px"><strong>Hands off — twice over.</strong><br>Don't modify its default grants: revoke its role and jobs stop launching (VM creation and quota checks fail).<br><br>And never grant <code>roles/dataflow.serviceAgent</code> to users or your own service accounts — it exists only for the agent.</div>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13px"><strong>Diagnostic value:</strong> if a launch fails while <em>creating workers</em> or <em>checking quota</em> — and user roles check out — the service agent's role is the next thing to inspect.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The Dataflow service agent">
+  <summary>Speaker notes &mdash; The Dataflow service agent</summary>
+  <div class="n-body"><ul>
+    <li>Place it on the anchor diagram: this is credential <strong>2</strong> &mdash; the arrow from the Dataflow box into your project. It acts <em>on</em> your project (creating VMs) without being <em>of</em> your project.</li>
+    <li>The failure-mode discussion is worth two minutes: an org-policy sweep or an overzealous "clean up unused IAM bindings" pass that strips the agent's role produces launches that fail at VM creation with compute errors &mdash; baffling, because <em>nobody's</em> personal permissions changed. The docs explicitly recommend not modifying its default grants.</li>
+    <li>Terminology: current docs and the console say <strong>service agent</strong>. Older materials called this the "Dataflow service account" &mdash; ambiguous, since the worker SA is also loosely called that. Teaching "agent" vs. "worker SA" keeps the two unambiguous for the rest of the module.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. DIVIDER: WORKER SA ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 5</div>
+    <h1>Credential 3: The Worker Service Account</h1>
+    <div class="sub">The identity your pipeline code runs as — and therefore the identity every source and sink actually authorizes. Your data never sees you; it sees this account.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Launch path</span><span>User roles</span><span>Service agent</span><span class="current">Worker SA</span><span>Quotas</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: The Worker Service Account">
+  <summary>Speaker notes &mdash; Section 4: The Worker Service Account</summary>
+  <div class="n-body"><ul>
+    <li><strong>Naming, once and clearly:</strong> current docs say <em>worker service account</em>. The legacy name &mdash; still in older decks and even a Module 4 slide &mdash; is "controller service account." Same account. Teach "worker SA" so students can find it in today's docs.</li>
+    <li>Arc: what it is and the default &rarr; the production posture (dedicated SA, least privilege) &rarr; where its failures surface (mid-job, not at launch) &rarr; the troubleshooting map that closes the IAM half.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. WORKER SA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The identity your data sees</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Every worker VM runs as the worker service account. All reads and writes your pipeline performs are authorized against <strong>its</strong> roles — not yours.</p>
+  <div class="figure">
+    <svg width="780" height="212" viewBox="0 0 780 212">
+      <defs>
+        <marker id="arrW" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/>
+        </marker>
+      </defs>
+      <!-- workers -->
+      <rect x="10" y="40" width="230" height="140" rx="10" fill="#f1f3f4"/>
+      <text x="125" y="64" text-anchor="middle" font-size="12.5" font-weight="600" fill="#202124">Worker VMs</text>
+      <rect x="30" y="78" width="56" height="40" rx="6" fill="#fff" stroke="#9aa0a6"/>
+      <rect x="97" y="78" width="56" height="40" rx="6" fill="#fff" stroke="#9aa0a6"/>
+      <rect x="164" y="78" width="56" height="40" rx="6" fill="#fff" stroke="#9aa0a6"/>
+      <rect x="30" y="130" width="190" height="34" rx="17" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+      <circle cx="52" cy="147" r="10" fill="#34A853"/>
+      <text x="52" y="151" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">3</text>
+      <text x="70" y="151" font-size="11" font-weight="600" fill="#188038">worker service account</text>
+
+      <!-- services -->
+      <rect x="560" y="10" width="200" height="52" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+      <text x="660" y="32" text-anchor="middle" font-size="12" font-weight="600" fill="#202124">Pub/Sub</text>
+      <text x="660" y="49" text-anchor="middle" font-size="10.5" fill="#5f6368">read the subscription</text>
+      <rect x="560" y="80" width="200" height="52" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+      <text x="660" y="102" text-anchor="middle" font-size="12" font-weight="600" fill="#202124">BigQuery</text>
+      <text x="660" y="119" text-anchor="middle" font-size="10.5" fill="#5f6368">write the results</text>
+      <rect x="560" y="150" width="200" height="52" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+      <text x="660" y="172" text-anchor="middle" font-size="12" font-weight="600" fill="#202124">Cloud Storage</text>
+      <text x="660" y="189" text-anchor="middle" font-size="10.5" fill="#5f6368">staging + temp files</text>
+
+      <line x1="240" y1="90" x2="556" y2="36" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrW)"/>
+      <line x1="240" y1="110" x2="556" y2="106" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrW)"/>
+      <line x1="240" y1="130" x2="556" y2="176" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrW)"/>
+      <text x="398" y="86" text-anchor="middle" font-size="10.5" fill="#188038" font-weight="600">every call authenticates as the worker SA</text>
+    </svg>
+  </div>
+  <div style="height:2px"></div>
+  <div class="callout warn" style="font-size:13px;padding:9px 14px"><strong>The default:</strong> the Compute Engine default SA, <code>PROJECT_NUMBER-compute@developer.gserviceaccount.com</code> — broad project access. Easy for demos; not what you want running production data.</div>
+</section>
+<details class="notes" data-title="The identity your data sees">
+  <summary>Speaker notes &mdash; The identity your data sees</summary>
+  <div class="n-body"><ul>
+    <li>This is the module's most practically useful sentence: <strong>sources and sinks authorize the worker SA, not the human who launched the job</strong>. A pipeline Priya can launch may still fail to read a table Priya can read &mdash; and vice versa.</li>
+    <li>The default (Compute Engine default SA) is auto-created when the Compute Engine API is enabled and historically carries broad project access &mdash; which is exactly why demos "just work" and why production shouldn't use it.</li>
+    <li>Legacy name reminder: older materials call this the <em>controller</em> service account. Same thing.</li>
+    <li>If asked: a worker SA from a <em>different</em> project is possible but gated &mdash; both service agents (Dataflow and Compute Engine) in the job's project need Token Creator + Service Account User in the SA's project, and the <code>iam.disableCrossProjectServiceAccountUsage</code> org constraint must not be enforced. Know it exists; don't teach the mechanics.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. DEDICATED WORKER SA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Production posture: a dedicated worker SA</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: the pipeline reads a Pub/Sub subscription and writes one BigQuery dataset. Give it an identity that can do exactly that.</p>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <table class="tbl" style="font-size:13px">
+        <tr><th>Role</th><th>Scope</th><th>Why</th></tr>
+        <tr class="hl"><td><code>roles/dataflow.worker</code></td><td>project</td><td>the minimum to execute Dataflow work units — always required</td></tr>
+        <tr><td><code>roles/pubsub.subscriber</code></td><td>the subscription</td><td>read the source</td></tr>
+        <tr><td><code>roles/bigquery.dataEditor</code></td><td>the dataset</td><td>write the sink</td></tr>
+        <tr><td><code>roles/storage.objectAdmin</code></td><td>staging bucket</td><td>read staged code, write temp files</td></tr>
+      </table>
+    </div>
+    <div>
+      <pre class="term" style="font-size:11.5px"><span class="lbl">Create it, then launch with it:</span>gcloud iam service-accounts create etl-worker
+
+python3 pipeline.py \
+  <span class="flag">--runner</span>=DataflowRunner \
+  <span class="flag">--service_account_email</span>=etl-worker@\
+$PROJECT_ID.iam.gserviceaccount.com …</pre>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:12.5px;padding:9px 14px"><strong>Bonus control:</strong> once the job runs as <code>etl-worker</code>, only people holding <code>actAs</code> on <code>etl-worker</code> can launch it. The SA choice also narrows the launcher list.</div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:12.5px;padding:8px 14px">Scope resource roles to the <strong>specific</strong> subscription, dataset, and bucket where possible — not the project.</div>
+</section>
+<details class="notes" data-title="A dedicated worker SA">
+  <summary>Speaker notes &mdash; A dedicated worker SA</summary>
+  <div class="n-body"><ul>
+    <li>Read the table as a recipe: <code>roles/dataflow.worker</code> is the floor ("permissions necessary for a Compute Engine service account to execute work units") &mdash; then one role per source/sink, scoped as tightly as the resource allows.</li>
+    <li>Add <code>roles/dataflow.admin</code> to a <em>worker</em> SA only if the pipeline itself creates or inspects Dataflow jobs &mdash; e.g. template / Flex Template launcher patterns. Don't hand it out by default.</li>
+    <li>Java flag spelling again: <code>--serviceAccount</code>. Same semantics.</li>
+    <li>Tie back to Section 2: naming this SA at launch is what triggered the <code>actAs</code> requirement on the launcher. The two sections are one design: <em>the worker SA defines what the pipeline can touch; <code>actAs</code> defines who can wield the worker SA.</em></li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. TROUBLESHOOTING MAP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Debugging "permission denied": the map</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15px"><strong>When</strong> the failure happens tells you <strong>whose</strong> permission is missing.</p>
+  <table class="tbl" style="font-size:14px">
+    <tr><th>Symptom</th><th>Credential to inspect</th><th>Typical fix</th></tr>
+    <tr>
+      <td><strong>Rejected at submit</strong> — no job ever created<br><span class="muted" style="font-size:12px">Dataflow API or staging-upload error</span></td>
+      <td><span style="color:#1a73e8;font-weight:600">1 · Your roles</span> (+ <code>actAs</code>)</td>
+      <td>Grant <code>roles/dataflow.admin</code>; add Service Account User on the worker SA</td>
+    </tr>
+    <tr>
+      <td><strong>Job created, workers never start</strong><br><span class="muted" style="font-size:12px">fails creating VMs / checking quota</span></td>
+      <td><span style="color:#c5221f;font-weight:600">2 · Service agent</span></td>
+      <td>Restore the agent's default <code>roles/dataflow.serviceAgent</code> grant</td>
+    </tr>
+    <tr>
+      <td><strong>Job runs, then a source or sink denies access</strong><br><span class="muted" style="font-size:12px">mid-pipeline read/write error</span></td>
+      <td><span style="color:#188038;font-weight:600">3 · Worker SA</span></td>
+      <td>Add the missing resource role (e.g. <code>bigquery.dataEditor</code>) to the worker SA</td>
+    </tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:14px">Same three identities, in launch order. If you remember one slide from the IAM half, make it this one.</div>
+</section>
+<details class="notes" data-title="Troubleshooting map">
+  <summary>Speaker notes &mdash; Troubleshooting map</summary>
+  <div class="n-body"><ul>
+    <li>This slide is the IAM half, compressed. Walk each row back to its section: row 1 is the three gates (Section 2), row 2 is hands-off-but-inspect (Section 3), row 3 is the-identity-your-data-sees (Section 4).</li>
+    <li>Sharpen row 1 vs. row 3 &mdash; the confusion that actually costs teams time: "permission denied" <em>at launch</em> is about the human (or CI/CD launcher); "permission denied" <em>mid-pipeline</em> is about the worker SA. Different principal, different policy, different fix &mdash; and nothing you grant yourself will ever fix a row-3 error.</li>
+    <li>Worth a slow beat on row 2's rarity: it usually appears after someone "tidied up" IAM bindings or an org policy changed &mdash; nobody's personal access changed, yet every launch in the project breaks at VM creation.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. DIVIDER: QUOTAS ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 5</div>
+    <h1>Quotas</h1>
+    <div class="sub">Dataflow has almost no quota of its own — it spends your project's regional Compute Engine quota: CPUs, in-use IP addresses, and persistent disks. Every launch must clear all three.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Launch path</span><span>User roles</span><span>Service agent</span><span>Worker SA</span><span class="current">Quotas</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: Quotas">
+  <summary>Speaker notes &mdash; Section 5: Quotas</summary>
+  <div class="n-body"><ul>
+    <li>Connect to Section 3: the identity that <em>performs</em> the quota check at launch is the Dataflow service agent. The IAM and quota halves meet in that one moment.</li>
+    <li>Arc: where quota comes from &rarr; the three quotas one at a time (CPUs, IPs, disks) &rarr; sizing a job against all three at once.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. QUOTA POOL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Where Dataflow's capacity comes from</h1>
+  <div class="cols">
+    <div style="flex:0 0 46%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Workers are ordinary Compute Engine VMs — so a job consumes <strong>Compute Engine regional quota</strong></li>
+        <li>The pool is <strong>shared</strong>: Dataproc clusters, GKE nodes, notebooks, and plain VMs all draw from the same regional limits</li>
+        <li>Checked <strong>at launch</strong> by the service agent — and it caps how far autoscaling can grow</li>
+        <li>Dataflow's own quota is thin: <strong>25 concurrent jobs per project</strong> by default, plus API request rates</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="380" height="240" viewBox="0 0 380 240">
+        <rect x="10" y="10" width="360" height="150" rx="12" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="190" y="34" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1a73e8">Regional Compute Engine quota — one pool</text>
+        <rect x="30" y="48" width="100" height="44" rx="8" fill="#fff" stroke="#dadce0"/>
+        <text x="80" y="67" text-anchor="middle" font-size="11.5" font-weight="600" fill="#202124">CPUs</text>
+        <text x="80" y="83" text-anchor="middle" font-size="9.5" fill="#5f6368">vCPUs across VMs</text>
+        <rect x="140" y="48" width="100" height="44" rx="8" fill="#fff" stroke="#dadce0"/>
+        <text x="190" y="67" text-anchor="middle" font-size="11.5" font-weight="600" fill="#202124">In-use IPs</text>
+        <text x="190" y="83" text-anchor="middle" font-size="9.5" fill="#5f6368">external only</text>
+        <rect x="250" y="48" width="100" height="44" rx="8" fill="#fff" stroke="#dadce0"/>
+        <text x="300" y="67" text-anchor="middle" font-size="11.5" font-weight="600" fill="#202124">Disks</text>
+        <text x="300" y="83" text-anchor="middle" font-size="9.5" fill="#5f6368">HDD / SSD GB</text>
+        <text x="190" y="128" text-anchor="middle" font-size="10.5" fill="#5f6368">a launch must clear all three at once</text>
+
+        <line x1="70" y1="206" x2="110" y2="164" stroke="#9aa0a6" stroke-width="1.5"/>
+        <line x1="190" y1="206" x2="190" y2="164" stroke="#9aa0a6" stroke-width="1.5"/>
+        <line x1="310" y1="206" x2="270" y2="164" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="70" y="224" text-anchor="middle" font-size="11" fill="#3c4043">Dataflow</text>
+        <text x="190" y="224" text-anchor="middle" font-size="11" fill="#3c4043">GKE · Dataproc</text>
+        <text x="310" y="224" text-anchor="middle" font-size="11" fill="#3c4043">other VMs</text>
+      </svg>
+      <div class="figcap">Other workloads in the region compete with your pipelines.</div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">View and request increases on the console's <strong>Quotas</strong> page (CPU metric: <code>compute.googleapis.com/cpus</code>). Increases aren't instant — capacity planning belongs <em>before</em> launch day.</div>
+</section>
+<details class="notes" data-title="Where capacity comes from">
+  <summary>Speaker notes &mdash; Where capacity comes from</summary>
+  <div class="n-body"><ul>
+    <li>The one idea of the quota half: <strong>Dataflow spends shared Compute Engine quota</strong>. A busy GKE cluster in the same region genuinely shrinks the headroom your pipeline can autoscale into.</li>
+    <li>The 25-concurrent-jobs default rarely bites in class but does in real orchestration &mdash; a scheduler fanning out many small jobs hits it long before any CPU limit. It's a support-request increase like the rest.</li>
+    <li>"Checked at launch, constrains autoscaling": the launch check is done by the service agent (Section 3); after that, quota is the hard ceiling autoscaling saturates against &mdash; foreshadowing the sizing slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. CPUS ============ -->
+<section class="slide">
+  <span class="brick b-blue" style="position:absolute;top:44px;right:64px">CPUs</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">CPU quota: workers × machine size</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: your region has a <strong>600 CPU</strong> quota. The job requests 100 workers.</p>
+  <table class="tbl" style="font-size:14.5px">
+    <tr><th>Machine type</th><th>Workers</th><th>vCPUs each</th><th>CPUs consumed</th><th>vs. 600 quota</th></tr>
+    <tr><td><code>n1-standard-1</code></td><td>100</td><td>1</td><td>100</td><td class="yes">✓ launches</td></tr>
+    <tr class="hl"><td><code>n1-standard-8</code></td><td>100</td><td>8</td><td><strong>800</strong></td><td class="no">✗ fails at launch</td></tr>
+  </table>
+  <div class="vgap"></div>
+  <ul class="body" style="font-size:15px">
+    <li>CPUs consumed = <strong>workers × vCPUs per machine type</strong> — the machine type multiplies quietly</li>
+    <li>Autoscaling makes it worse: budget for <code>--max_num_workers</code> × machine size, <strong>not</strong> the starting worker count</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:13.5px">A job that launches fine at 10 workers can still starve at scale: quota is the ceiling <strong>autoscaling</strong> hits, months after the launch test passed.</div>
+</section>
+<details class="notes" data-title="CPU quota">
+  <summary>Speaker notes &mdash; CPU quota</summary>
+  <div class="n-body"><ul>
+    <li>The arithmetic is trivial &mdash; the teaching point is <em>which numbers to multiply</em>: the autoscaling maximum, not the initial count; and the machine type's vCPUs, which people forget when they bump <code>--machine_type</code> for memory reasons and octuple their CPU draw.</li>
+    <li>Where to look: IAM &amp; Admin &rarr; Quotas, metric <code>compute.googleapis.com/cpus</code>, filtered to the job's region. Same page handles increase requests.</li>
+    <li>Failure shape: the launch error is explicit about the quota exceeded; the subtler case is a running job pinned below its <code>max_num_workers</code> because the region has no headroom left &mdash; the job doesn't fail, it just stops scaling.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. IPS ============ -->
+<section class="slide">
+  <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">In-use IPs</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">In-use IP addresses: the quota you forgot</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Counts VMs with <strong>external</strong> IP addresses, per region, shared across products</li>
+        <li>Independent of machine size: 150 one-vCPU workers and 150 eight-vCPU workers both consume <strong>150 IPs</strong></li>
+        <li>Default: Dataflow workers get external IPs — and spend this quota</li>
+        <li>Pipelines that only touch Google APIs and services don't need them:
+          <ul><li><code>--no_use_public_ips</code> — saves quota, money, and attack surface (how-to: Module 4)</li></ul>
+        </li>
+      </ul>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:13.5px">
+        <tr><th></th><th>Quota</th><th>Binds at</th></tr>
+        <tr><td>CPUs (1-vCPU workers)</td><td>600</td><td>600 workers</td></tr>
+        <tr class="hl"><td>In-use IPs</td><td>575</td><td><strong>575 workers</strong></td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:13.5px"><strong>The most restrictive quota wins.</strong> With 600 CPUs but 575 IPs, the job tops out at 575 external-IP workers — the CPU headroom is unreachable.</div>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13px">Internal-only workers consume <strong>zero</strong> of this quota — the whole limit disappears from the equation.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="In-use IP addresses">
+  <summary>Speaker notes &mdash; In-use IP addresses</summary>
+  <div class="n-body"><ul>
+    <li>Full console name: <strong>In-use IP addresses</strong>; it counts <em>external</em> IPs only. Internal-only workers don't appear in it at all.</li>
+    <li>This is the quota-side argument for the Module 4 default posture: <code>--no_use_public_ips</code> plus Private Google Access on the subnet. Plant the flag here, teach the networking there.</li>
+    <li>"Most restrictive wins" generalizes to all three quotas &mdash; a launch must clear CPUs, IPs, <em>and</em> disks simultaneously. The sizing slide at the end of the section makes that a formula.</li>
+    <li>If asked why workers would need external IPs at all: reaching non-Google endpoints &mdash; third-party APIs, SaaS webhooks, external databases &mdash; without Cloud NAT. If everything the pipeline touches is a Google API, external IPs buy nothing.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. DISKS: BATCH ============ -->
+<section class="slide">
+  <span class="brick b-green" style="position:absolute;top:44px;right:64px">Disks · batch</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Persistent disks: batch jobs</h1>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Batch: <strong>one disk per worker</strong> (1:1), drawn from regional HDD or SSD quota</li>
+        <li>Today's default — <strong>Dataflow Shuffle</strong> runs shuffle in the service backend, in all supported regions:
+          <ul>
+            <li>workers need only boot image + logs → <strong>25 GB</strong> disks</li>
+          </ul>
+        </li>
+        <li>Legacy fallback — shuffle on the worker VMs: <strong>250 GB</strong> disks</li>
+        <li>Overrides: <code>--disk_size_gb</code>, <code>--worker_disk_type</code> (suffix <code>pd-standard</code> or <code>pd-ssd</code>)</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="320" height="216" viewBox="0 0 320 216">
+        <rect x="10" y="26" width="130" height="120" rx="10" fill="#f1f3f4"/>
+        <text x="75" y="50" text-anchor="middle" font-size="11.5" font-weight="600" fill="#202124">Worker VM</text>
+        <rect x="34" y="66" width="82" height="34" rx="6" fill="#fff" stroke="#9aa0a6"/>
+        <text x="75" y="87" text-anchor="middle" font-size="10.5" fill="#3c4043">code</text>
+        <rect x="34" y="108" width="82" height="26" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="75" y="125" text-anchor="middle" font-size="10" fill="#188038">25 GB boot disk</text>
+        <rect x="180" y="26" width="130" height="120" rx="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="245" y="50" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1a73e8">Shuffle service</text>
+        <text x="245" y="70" text-anchor="middle" font-size="10" fill="#5f6368">shuffle state lives</text>
+        <text x="245" y="85" text-anchor="middle" font-size="10" fill="#5f6368">in the backend,</text>
+        <text x="245" y="100" text-anchor="middle" font-size="10" fill="#5f6368">not on workers</text>
+        <line x1="140" y1="86" x2="176" y2="86" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="160" y="180" text-anchor="middle" font-size="10.5" fill="#5f6368">less disk per worker · faster scaling ·</text>
+        <text x="160" y="196" text-anchor="middle" font-size="10.5" fill="#5f6368">disk quota mostly stops mattering</text>
+      </svg>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Teach the service-based world as the default: <strong>25 GB is the batch number</strong>; 250 GB is the fallback story.</div>
+</section>
+<details class="notes" data-title="Disks: batch">
+  <summary>Speaker notes &mdash; Disks: batch</summary>
+  <div class="n-body"><ul>
+    <li><strong>The defaults flipped since older materials were written:</strong> service-based Dataflow Shuffle is now the batch default in all supported regions. Decks that lead with 250 GB describe the fallback, not the norm.</li>
+    <li>The boot-disk framing makes the number stick: with shuffle off-worker, the disk "only needs space for the worker boot image and local logs" &mdash; hence 25 GB.</li>
+    <li><code>--worker_disk_type</code> (Java: <code>--workerDiskType</code>) technically takes a full resource URL, but the part that matters is the suffix: <code>pd-standard</code> (HDD pool) vs. <code>pd-ssd</code> (SSD pool) &mdash; separate regional quotas.</li>
+    <li>Java flag spellings: <code>--diskSizeGb</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. DISKS: STREAMING ============ -->
+<section class="slide">
+  <span class="brick b-green" style="position:absolute;top:44px;right:64px">Disks · streaming</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Persistent disks: streaming jobs</h1>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <ul class="body" style="font-size:14px">
+        <li>Streaming deploys a <strong>fixed pool of disks</strong> — one per <code>max_num_workers</code>, allocated up front
+          <ul><li>launch with 3 workers, max 25 → <strong>25 disks</strong> count against quota from minute one</li></ul>
+        </li>
+        <li>Disks are redistributed as workers scale: <strong>1 to 15 disks per worker</strong>
+          <ul><li>the 15:1 cap bounds scale-<em>down</em>: min workers ≈ max ÷ 15</li></ul>
+        </li>
+        <li><strong>Streaming Engine</strong> moves state to the backend → <strong>30 GB</strong> disks
+          <ul>
+            <li>default for Python ≥ 2.21.0 and Go ≥ 2.33.0</li>
+            <li>Java: opt in with <code>--enableStreamingEngine</code></li>
+          </ul>
+        </li>
+        <li>Without it: <strong>400 GB</strong> disks, and <code>--max_num_workers</code> is required</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="320" height="230" viewBox="0 0 320 230">
+        <text x="160" y="16" text-anchor="middle" font-size="11" font-weight="600" fill="#5f6368">max_num_workers = 4 → 4 disks, always</text>
+        <rect x="30" y="30" width="120" height="88" rx="8" fill="#f1f3f4"/>
+        <text x="90" y="50" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">4 workers</text>
+        <rect x="44" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <rect x="70" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <rect x="96" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <rect x="122" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="90" y="106" text-anchor="middle" font-size="9.5" fill="#5f6368">1 disk each</text>
+        <rect x="170" y="30" width="120" height="88" rx="8" fill="#f1f3f4"/>
+        <text x="230" y="50" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">scaled to 2 workers</text>
+        <rect x="186" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <rect x="210" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <rect x="248" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <rect x="272" y="60" width="20" height="26" rx="3" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="230" y="106" text-anchor="middle" font-size="9.5" fill="#5f6368">2 disks each — same 4 disks</text>
+        <text x="160" y="150" text-anchor="middle" font-size="10.5" fill="#5f6368">the pool never shrinks; disks just move</text>
+        <rect x="40" y="168" width="240" height="46" rx="8" fill="#fef7e0" stroke="#FBBC04"/>
+        <text x="160" y="187" text-anchor="middle" font-size="10.5" fill="#3c2f00" font-weight="600">quota charged for max_num_workers disks</text>
+        <text x="160" y="203" text-anchor="middle" font-size="10.5" fill="#3c2f00">— not for current workers</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Disks: streaming">
+  <summary>Speaker notes &mdash; Disks: streaming</summary>
+  <div class="n-body"><ul>
+    <li>The fixed pool is the surprise: disk quota is consumed by the <em>ceiling</em>, not the current size. Set <code>--max_num_workers</code> deliberately &mdash; an absent-minded "1000, why not" charges 1000 disks against quota for the job's lifetime (without Streaming Engine, at 400 GB each).</li>
+    <li>The 15:1 ratio explains a behavior students otherwise attribute to a bug: a streaming job (without Streaming Engine) with max 60 can't scale below 4 workers &mdash; each worker tops out at 15 disks.</li>
+    <li><strong>Streaming Engine changed the defaults:</strong> on by default for Python ≥ 2.21.0 (Python 3) and Go ≥ 2.33.0 &mdash; so a current Python streaming job is the 30 GB small-disk story out of the box. The 400 GB fixed-pool mechanics now mainly apply to Java jobs that haven't opted in. <code>--max_num_workers</code> is required only <em>without</em> Streaming Engine (it's what enables autoscaling there); with it, optional.</li>
+    <li>Worker ceilings, current numbers: <strong>2,000 workers per job</strong> by default (batch and streaming), up to <strong>4,000</strong> for batch with service Shuffle / streaming with Streaming Engine. The old "cannot exceed 1,000" figure is outdated &mdash; retire it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. SIZING CHECKLIST ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Sizing a job against quota</h1>
+  <pre class="code" style="font-size:13px;line-height:1.6">effective max workers = min( <span class="kw">CPU quota</span> ÷ vCPUs per worker,
+                             <span class="kw">in-use IP quota</span>,          <span class="cm">— only if using external IPs</span>
+                             <span class="kw">disk quota</span> ÷ disk GB per worker,
+                             <span class="kw">per-job cap</span> )             <span class="cm">— 2,000 default · 4,000 with Shuffle/SE</span></pre>
+  <div class="vgap-s"></div>
+  <ol class="steps" style="font-size:14.5px">
+    <li>Compute the job's draw at <strong><code>max_num_workers</code></strong>, not the starting size — CPUs, IPs, disk GB</li>
+    <li>Check each against the <strong>regional</strong> quota page, minus what other workloads already use</li>
+    <li>The <strong>most restrictive quota wins</strong> — 575 IPs beats 600 CPUs every time</li>
+    <li>Buy headroom early: quota increases are per-region requests and not instant</li>
+  </ol>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13.5px"><strong>Cheap wins first:</strong> internal-only IPs remove one term from the formula entirely; Shuffle / Streaming Engine shrink the disk term to 25–30 GB per worker.</div>
+</section>
+<details class="notes" data-title="Sizing a job">
+  <summary>Speaker notes &mdash; Sizing a job</summary>
+  <div class="n-body"><ul>
+    <li>Run the worked example live: quota 600 CPUs, 575 IPs, 1-vCPU workers with external IPs &rarr; the job tops out at 575. Switch to internal-only IPs and the same job reaches 600. One flag, 25 more workers.</li>
+    <li>Don't forget the two non-Compute limits: <strong>25 concurrent Dataflow jobs per project</strong> and the per-job worker cap (2,000 / 4,000). Orchestrators with many small jobs hit the first; genuinely huge jobs hit the second.</li>
+    <li>Step 2's subtlety &mdash; "minus what other workloads already use" &mdash; is the shared-pool point from the section opener coming home: your quota is not your pipeline's quota; it's the region's.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. SUMMARY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Module summary: the whole launch on one slide</h1>
+  <table class="tbl" style="font-size:12px">
+    <tr><th>Checkpoint</th><th>Identity / quota</th><th>Fails like</th><th>Fix</th></tr>
+    <tr>
+      <td><strong>Submitting</strong></td>
+      <td>Your roles (+ <code>actAs</code> for a user-managed worker SA)</td>
+      <td>Launch rejected: permission denied</td>
+      <td><code>dataflow.admin</code> + Service Account User on the SA</td>
+    </tr>
+    <tr>
+      <td><strong>Building</strong></td>
+      <td>Dataflow service agent</td>
+      <td>Fails creating VMs / checking quota</td>
+      <td>Restore the agent's default role</td>
+    </tr>
+    <tr>
+      <td><strong>Running</strong></td>
+      <td>Worker service account</td>
+      <td>Job runs, then source/sink denied</td>
+      <td><code>dataflow.worker</code> + per-resource roles</td>
+    </tr>
+    <tr>
+      <td><strong>CPUs</strong></td>
+      <td>Regional CE quota, shared</td>
+      <td>Launch error, or won't scale up</td>
+      <td>Size <code>max_num_workers</code> × machine type</td>
+    </tr>
+    <tr>
+      <td><strong>In-use IPs</strong></td>
+      <td>Regional external-IP quota</td>
+      <td>Most-restrictive-quota launch failure</td>
+      <td>Internal IPs only (Module 4)</td>
+    </tr>
+    <tr>
+      <td><strong>Disks</strong></td>
+      <td>Regional HDD/SSD quota; streaming charges <code>max_num_workers</code> disks</td>
+      <td>Streaming launch fails at scale</td>
+      <td>Shuffle (25 GB) / Streaming Engine (30 GB); set max deliberately</td>
+    </tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Three identities in launch order, three quotas cleared at once — that's the whole module.</div>
+</section>
+<details class="notes" data-title="Module summary">
+  <summary>Speaker notes &mdash; Module summary</summary>
+  <div class="n-body"><ul>
+    <li>Close by reading the table as a story, top to bottom: it's the anchor diagram from Section 1 with the quota half appended.</li>
+    <li>Exit questions that check the module landed:
+      <ul>
+        <li>"A job fails reading BigQuery twenty minutes in &mdash; whose permissions?" (worker SA &mdash; row 3, never the launcher's)</li>
+        <li>"Developer can't launch &mdash; what actually fails first?" (the staging upload &mdash; a storage error)</li>
+        <li>"Streaming job, max 100 workers, currently running 10 &mdash; how many disks against quota?" (100)</li>
+      </ul>
+    </li>
+    <li>Bridge to Module 4: two threads carry forward &mdash; the internal-IP posture (planted by the IP quota) and the Google-managed vs. your-project split (planted by the launch mechanics), which becomes the data-locality story.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. ADDITIONAL MATERIAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">IAM</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://cloud.google.com/dataflow/docs/concepts/security-and-permissions" style="color:#1a73e8">Dataflow security and permissions</a> — the three-credential story, canonically</li>
+        <li><a href="https://cloud.google.com/dataflow/docs/concepts/access-control" style="color:#1a73e8">Dataflow access control with IAM</a></li>
+        <li><a href="https://cloud.google.com/iam/docs/roles-permissions/dataflow" style="color:#1a73e8">Dataflow IAM role permission listings</a> — the ground truth per role</li>
+        <li><a href="https://cloud.google.com/iam/docs/best-practices-service-accounts" style="color:#1a73e8">Service account best practices</a></li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Quotas &amp; services</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://cloud.google.com/dataflow/quotas" style="color:#1a73e8">Dataflow quotas and limits</a> — current worker caps and defaults</li>
+        <li><a href="https://cloud.google.com/dataflow/docs/shuffle-for-batch" style="color:#1a73e8">Dataflow Shuffle (batch)</a></li>
+        <li><a href="https://cloud.google.com/dataflow/docs/streaming-engine" style="color:#1a73e8">Streaming Engine</a></li>
+        <li><a href="https://cloud.google.com/dataflow/docs/guides/stopping-a-pipeline" style="color:#1a73e8">Stopping a pipeline</a> — cancel vs. drain</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li>The <strong>role permission listings</strong> are the reference to teach students to reach for: role <em>descriptions</em> are one-liners, not contracts &mdash; when a slide, a description, and the permission list disagree, the list wins.</li>
+    <li>The security-and-permissions page is this module's IAM half in doc form, including the composed least-privilege launcher walkthrough.</li>
+    <li>The quotas page is where the current worker caps (2,000 / 4,000) and the 25-concurrent-jobs limit live &mdash; numbers that drift, so link rather than memorize.</li>
+  </ul></div>
+</details>
+
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

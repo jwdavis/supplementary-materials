@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module 9: State and Timers</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* use-case tiles (slide 20) */
+  .tiles { display: flex; flex-wrap: wrap; gap: 14px; }
+  .tile {
+    flex: 1 1 240px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .tile .t-title { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .tile .t-line  { font-size: 12.5px; color: var(--ink-soft); line-height: 1.45; }
+  .tile .t-line b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>State and Timers</h1>
+    <div class="sub">Module 9 &middot; Serverless Data Processing with Dataflow</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> Module 8 gave you windows, watermarks, and triggers &mdash; declarative control over <em>when</em> grouped results are produced. This module is the escape hatch for logic those tools can't express: custom, per-key logic with your own rules for what to remember and when to emit.</li>
+    <li>One scenario carries the whole module: a retail order stream, keyed by customer. We count per customer, then buffer per customer to call an enrichment API in batches, then fix the stuck-buffer problem with timers &mdash; and then discover Beam already ships the finished pattern as <code>GroupIntoBatches</code>.</li>
+    <li>Rough timing: 35&ndash;45 minutes across the five sections. There is no lab attached to this module; the knowledge pays off in the Best Practices module and in any streaming pipeline students design afterwards.</li>
+    <li>Everything is Python-first (verified against Beam 2.70); Java spellings (<code>@StateId</code>, <code>@TimerId</code>, <code>@OnTimer</code>) appear in speaker notes, not on slides &mdash; same convention as Modules 5 and 8.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. COURSE AGENDA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Agenda</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:16px">
+        <li class="muted">Beam Concepts Review + Lab</li>
+        <li class="muted">Sources and Sinks</li>
+        <li class="muted">Schemas + Lab</li>
+        <li class="muted">Windows, Watermarks, and Triggers + Lab</li>
+        <li><span class="blue" style="font-weight:600">State and Timers</span></li>
+        <li class="muted">SQL and DataFrames + Lab</li>
+        <li class="muted">Best Practices + Lab</li>
+        <li class="muted">Beam Notebooks</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 260px;display:flex;align-items:center;justify-content:center">
+      <svg width="210" height="200" viewBox="0 0 210 200" aria-hidden="true">
+        <ellipse cx="80" cy="52" rx="52" ry="14" fill="#4285F4"/>
+        <path d="M28 52 L28 128 A52 14 0 0 0 132 128 L132 52" fill="#e8f0fe" stroke="#4285F4" stroke-width="2"/>
+        <ellipse cx="80" cy="128" rx="52" ry="14" fill="none" stroke="#4285F4" stroke-width="2"/>
+        <rect x="46" y="72" width="68" height="9" rx="4" fill="#4285F4" opacity=".55"/>
+        <rect x="46" y="90" width="68" height="9" rx="4" fill="#4285F4" opacity=".4"/>
+        <rect x="46" y="108" width="44" height="9" rx="4" fill="#4285F4" opacity=".25"/>
+        <text x="80" y="168" text-anchor="middle" font-size="10.5" fill="#5f6368">state</text>
+        <circle cx="162" cy="96" r="30" fill="#fff" stroke="#EA4335" stroke-width="3"/>
+        <rect x="156" y="56" width="12" height="8" rx="2" fill="#EA4335"/>
+        <line x1="162" y1="96" x2="162" y2="76" stroke="#EA4335" stroke-width="3" stroke-linecap="round"/>
+        <line x1="162" y1="96" x2="176" y2="102" stroke="#EA4335" stroke-width="3" stroke-linecap="round"/>
+        <text x="162" y="168" text-anchor="middle" font-size="10.5" fill="#5f6368">timers</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agenda">
+  <summary>Speaker notes &mdash; Agenda</summary>
+  <div class="n-body"><ul>
+    <li>Position in the course: Module 5 taught the <em>what</em> (transforms and aggregations), Module 8 the <em>where in time</em> and <em>when to emit</em>. This module is the last piece of the streaming toolkit &mdash; per-key memory and per-key clocks, for when the declarative tools run out.</li>
+    <li>No lab is attached to this module. If a cohort wants hands-on practice, the Tour of Beam has interactive state-and-timers units (linked on the final slide).</li>
+    <li>Expect this module to draw the most questions from students with production streaming problems &mdash; "how do I dedup?", "how do I batch calls to my API?", "how do I time out a session?". All three are answered explicitly by the end.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. MODULE ROADMAP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>This module, in five stops</h1>
+  <p class="lede">Module 8 gave you windows, watermarks, and triggers: <em>when</em> grouped results are produced. This module is about logic those tools can't express &mdash; custom, per-key logic with your own rules for what to remember and when to emit.</p>
+  <div class="progress">
+    <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+    <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+    <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+    <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+    <div class="p-step"><span class="p-dot"></span></div>
+  </div>
+  <div class="progress-labels">
+    <span class="current">Why stateful?</span><span>State API</span><span>Timer API</span><span>The full pattern</span><span>Best practices</span>
+  </div>
+  <div class="vgap-l"></div>
+  <ul class="body" style="font-size:15px">
+    <li><strong>Why stateful processing?</strong> &mdash; a problem the module 5 + 8 toolkit cannot solve</li>
+    <li><strong>The State API</strong> &mdash; durable per-key memory the runner owns</li>
+    <li><strong>The Timer API</strong> &mdash; scheduled callbacks with access to that memory</li>
+    <li><strong>The full pattern</strong> &mdash; and the built-in transform that replaces it</li>
+    <li><strong>Best practices</strong> &mdash; cleanup, key choice, performance, runner support</li>
+  </ul>
+</section>
+<details class="notes" data-title="Module roadmap">
+  <summary>Speaker notes &mdash; Module roadmap</summary>
+  <div class="n-body"><ul>
+    <li>The module is a ladder, and each rung reuses the previous one: a running count &rarr; a better count &rarr; a buffer &rarr; timers to fix the buffer's bug &rarr; the complete batched-RPC DoFn &rarr; <code>GroupIntoBatches</code>, which ships that exact pattern.</li>
+    <li>Worth saying out loud: sections 1&ndash;3 build the mechanism so that section 4 can make the honest point &mdash; <em>most</em> teams should end up using the built-in. Learning the mechanism is what makes the built-in's knobs meaningful.</li>
+    <li>Continuity hooks you'll lean on: bundles and retries (Module 5), CombineFn (Module 5), watermark and window end (Module 8), hot keys and shuffle (Module 5).</li>
+  </ul></div>
+</details>
+
+<!-- ============ D1. DIVIDER: WHY STATEFUL PROCESSING? ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 5</div>
+    <h1>Why Stateful Processing?</h1>
+    <div class="sub">Your toolkit ends at "group and combine." This section shows a problem those tools can't express &mdash; and why the fix has to come from the runner, not from cleverer Python.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Why stateful?</span><span>State API</span><span>Timer API</span><span>The full pattern</span><span>Best practices</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: Why Stateful Processing?">
+  <summary>Speaker notes &mdash; Section 1: Why Stateful Processing?</summary>
+  <div class="n-body"><ul>
+    <li>The goal of this short section is a <em>felt need</em>: by its end, students should agree that (a) the existing tools can't solve the buffering problem, and (b) the obvious instance-variable hack is broken for three independent reasons. Only then does the API feel inevitable rather than arbitrary.</li>
+    <li>The "why the runner must own the state" argument (workers, bundles, retries) is the whole reason the API exists &mdash; it gets its own slide here rather than a footnote.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. THE TOOLKIT SO FAR, AND THE GAP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The toolkit so far &mdash; and the gap</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <table class="tbl" style="font-size:13px">
+        <tr><th>Tool</th><th>Shape</th></tr>
+        <tr><td><code>Map</code> / <code>FlatMap</code> / <code>ParDo</code></td><td>one element at a time, remembers nothing</td></tr>
+        <tr><td><code>GroupByKey</code> / <code>CombinePerKey</code></td><td>all elements per key &mdash; but the <strong>runner</strong> decides the grouping boundary (the window)</td></tr>
+        <tr><td>Windows + triggers</td><td>control <em>when</em> results emerge; the aggregation itself is still a grouping shape</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13px"><strong>Scenario:</strong> each order event needs data from a customer-profile service. Calling it once per element at Dataflow scale means thousands of requests per second from hundreds of workers &mdash; but the service allows <strong>batch lookups of up to 100 IDs</strong>. Goal: buffer up to 100 orders per customer region, call once per batch.</div>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="360" height="248" viewBox="0 0 360 248">
+          <defs><marker id="arrG" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker>
+          <marker id="arrGr" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#EA4335"/></marker>
+          <marker id="arrGg" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#34A853"/></marker></defs>
+          <text x="10" y="14" font-size="10.5" fill="#c5221f" font-weight="600">today: one call per element</text>
+          <rect x="10" y="24" width="66" height="76" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+          <rect x="22" y="34" width="12" height="12" fill="#4285F4"/>
+          <rect x="42" y="34" width="12" height="12" fill="#FBBC04"/>
+          <rect x="22" y="54" width="12" height="12" fill="#34A853"/>
+          <rect x="42" y="54" width="12" height="12" fill="#4285F4"/>
+          <rect x="22" y="74" width="12" height="12" fill="#EA4335"/>
+          <rect x="42" y="74" width="12" height="12" fill="#4285F4"/>
+          <line x1="78" y1="40" x2="228" y2="52" stroke="#EA4335" stroke-width="1" marker-end="url(#arrGr)"/>
+          <line x1="78" y1="52" x2="228" y2="58" stroke="#EA4335" stroke-width="1" marker-end="url(#arrGr)"/>
+          <line x1="78" y1="62" x2="228" y2="64" stroke="#EA4335" stroke-width="1" marker-end="url(#arrGr)"/>
+          <line x1="78" y1="72" x2="228" y2="70" stroke="#EA4335" stroke-width="1" marker-end="url(#arrGr)"/>
+          <line x1="78" y1="82" x2="228" y2="76" stroke="#EA4335" stroke-width="1" marker-end="url(#arrGr)"/>
+          <text x="152" y="34" text-anchor="middle" font-size="9" fill="#c5221f">1000s of requests / s</text>
+          <ellipse cx="286" cy="64" rx="56" ry="30" fill="#fce8e6" stroke="#EA4335" stroke-width="1.6"/>
+          <text x="286" y="60" text-anchor="middle" font-size="10" font-weight="600" fill="#c5221f">Enrichment</text>
+          <text x="286" y="74" text-anchor="middle" font-size="10" font-weight="600" fill="#c5221f">API 🔥</text>
+
+          <text x="10" y="136" font-size="10.5" fill="#188038" font-weight="600">goal: pool per key, one call per 100</text>
+          <rect x="10" y="146" width="66" height="76" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+          <rect x="22" y="156" width="12" height="12" fill="#4285F4"/>
+          <rect x="42" y="156" width="12" height="12" fill="#FBBC04"/>
+          <rect x="22" y="176" width="12" height="12" fill="#34A853"/>
+          <rect x="42" y="176" width="12" height="12" fill="#4285F4"/>
+          <rect x="22" y="196" width="12" height="12" fill="#EA4335"/>
+          <line x1="78" y1="184" x2="106" y2="184" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrG)"/>
+          <rect x="110" y="156" width="92" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="156" y="174" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1a73e8">buffer per key</text>
+          <rect x="120" y="182" width="60" height="10" rx="3" fill="#dadce0"/>
+          <rect x="120" y="182" width="52" height="10" rx="3" fill="#4285F4"/>
+          <text x="156" y="204" text-anchor="middle" font-size="8.5" fill="#5f6368">fills to 100</text>
+          <line x1="204" y1="184" x2="242" y2="184" stroke="#34A853" stroke-width="3.5" marker-end="url(#arrGg)"/>
+          <text x="222" y="166" text-anchor="middle" font-size="9" fill="#188038">1 call / 100</text>
+          <ellipse cx="296" cy="184" rx="50" ry="28" fill="#e6f4ea" stroke="#34A853" stroke-width="1.6"/>
+          <text x="296" y="180" text-anchor="middle" font-size="10" font-weight="600" fill="#188038">Enrichment</text>
+          <text x="296" y="194" text-anchor="middle" font-size="10" font-weight="600" fill="#188038">API</text>
+        </svg>
+      </div>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li>None of the tools above fit: this needs memory <strong>across elements</strong> ("what have I buffered so far?") and a custom emit rule ("flush at 100")</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The toolkit so far, and the gap">
+  <summary>Speaker notes &mdash; The toolkit so far, and the gap</summary>
+  <div class="n-body"><ul>
+    <li>Walk the table as a recap, then let students try to solve the scenario with it &mdash; each attempt fails instructively:
+      <ul>
+        <li><em>ParDo?</em> Stateless: by the time element 2 arrives, element 1 is gone. There's nothing to accumulate a batch in.</li>
+        <li><em>GroupByKey / CombinePerKey?</em> They group per window &mdash; the <em>runner's</em> boundary. "Every 100 elements" is not a window; count-based batches with a size cap aren't expressible as windowing.</li>
+        <li><em>Triggers (Module 8)?</em> <code>AfterCount(100)</code> gets close &mdash; but triggers control when a <em>grouping</em> emits; they can't run arbitrary code like "issue one RPC per batch, then reset," and trigger firing is a runner hint, not a contract.</li>
+      </ul>
+    </li>
+    <li>The two missing capabilities, stated precisely because the two API sections mirror them: memory across elements (&rarr; State API) and custom emit rules (&rarr; Timer API + your own flush logic).</li>
+    <li>Why "customer region" and not "customer" as the key: batch lookups accept up to 100 <em>different</em> IDs, so batching per customer would mostly make batches of one. Key granularity matters and comes back in Section 5 (parallelism).</li>
+    <li>Real-world variants of the same shape: writing to a database in bulk, calling an ML model with a batch of inputs, any rate-limited external service.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. WHY NOT AN INSTANCE VARIABLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Why not just a Python instance variable?</h1>
+  <div class="cols">
+    <div style="flex:0 0 47%">
+      <pre class="code small" style="font-size:12px;line-height:1.5"><span class="lang">Python</span><span class="kw">class</span> <span class="fn">EnrichFn</span>(beam.DoFn):          <span class="cm"># DON'T</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.buffer = []            <span class="cm"># looks like it should work</span>
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, element):
+        self.buffer.append(element)
+        <span class="kw">if</span> <span class="fn">len</span>(self.buffer) &gt;= 100:
+            <span class="kw">yield</span> call_api(self.buffer)
+            self.buffer = []</pre>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:13px">The fix is not cleverer Python. It's asking the runner to <strong>own the memory</strong>: durable, scoped per key, and rolled back with failed bundles.</div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Many workers:</strong> each worker (and each thread) has its <em>own</em> copy &mdash; dozens of half-full buffers, none of which sees all elements for a key</li>
+        <li><strong>Retries:</strong> module 5 showed bundles are retried on failure; a retry replays elements into a buffer that already holds them &mdash; duplicates</li>
+        <li><strong>No durability:</strong> autoscaling down or a worker crash simply deletes the list</li>
+      </ul>
+      <div class="figure">
+        <svg width="360" height="140" viewBox="0 0 360 140">
+          <defs><marker id="arrIV" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#EA4335"/></marker></defs>
+          <g font-family="Google Sans,Roboto,sans-serif">
+            <rect x="6" y="10" width="104" height="66" rx="7" fill="#fff" stroke="#5f6368"/>
+            <text x="58" y="26" text-anchor="middle" font-size="10" font-weight="600" fill="#202124">Worker 1</text>
+            <text x="58" y="41" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Roboto Mono,monospace">cust-17: 3 buffered</text>
+            <rect x="20" y="50" width="76" height="9" rx="3" fill="#e8eaed"/>
+            <rect x="20" y="50" width="24" height="9" rx="3" fill="#4285F4"/>
+            <rect x="128" y="10" width="104" height="66" rx="7" fill="#fff" stroke="#5f6368"/>
+            <text x="180" y="26" text-anchor="middle" font-size="10" font-weight="600" fill="#202124">Worker 2</text>
+            <text x="180" y="41" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Roboto Mono,monospace">cust-17: 2 buffered</text>
+            <rect x="142" y="50" width="76" height="9" rx="3" fill="#e8eaed"/>
+            <rect x="142" y="50" width="16" height="9" rx="3" fill="#4285F4"/>
+            <rect x="250" y="10" width="104" height="66" rx="7" fill="#fff" stroke="#5f6368"/>
+            <text x="302" y="26" text-anchor="middle" font-size="10" font-weight="600" fill="#202124">Worker 3</text>
+            <text x="302" y="41" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Roboto Mono,monospace">cust-17: 4 buffered</text>
+            <rect x="264" y="50" width="76" height="9" rx="3" fill="#e8eaed"/>
+            <rect x="264" y="50" width="32" height="9" rx="3" fill="#4285F4"/>
+          </g>
+          <text x="180" y="96" text-anchor="middle" font-size="11" fill="#c5221f" font-weight="600">✗ same key, three private half-full buffers</text>
+          <path d="M 40 76 Q 20 116 58 112 Q 84 110 76 84" fill="none" stroke="#EA4335" stroke-width="1.4" marker-end="url(#arrIV)"/>
+          <text x="130" y="126" font-size="9.5" fill="#c5221f">bundle retry: same two elements arrive twice</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Why not an instance variable?">
+  <summary>Speaker notes &mdash; Why not an instance variable?</summary>
+  <div class="n-body"><ul>
+    <li>Let the code sit on screen for a moment &mdash; it <em>looks</em> completely reasonable, and most students have written exactly this somewhere. The three failures are independent: fixing one doesn't fix the others.</li>
+    <li><strong>Many workers:</strong> recall Module 5's execution model &mdash; the DoFn is serialized and instantiated on every worker, often several instances per worker. "self" is per-instance, so there is no single buffer; there are dozens, each seeing an arbitrary slice of the key's elements.</li>
+    <li><strong>Retries:</strong> Module 5's contract is that a failed bundle is retried <em>wholesale</em> and its outputs discarded &mdash; but <code>self.buffer</code> isn't an output, so nothing rolls it back. The retried elements append a second time. Exactly-once output requires state the runner can roll back with the bundle.</li>
+    <li><strong>Durability:</strong> autoscaling (Module 2) removes workers on purpose; the buffered elements vanish silently. No error, just missing enrichments downstream.</li>
+    <li>If asked "what about <code>setup()</code>/instance caches?" &mdash; per-instance state is fine for <em>read-only</em> resources (clients, lookup tables). What's broken here is <em>accumulating input data</em> in it. That distinction is worth stating crisply.</li>
+    <li>The callout is the thesis of the module: durable, per-key, retry-consistent memory can only come from the runner. The next slide names the contract.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. STATEFUL DOFN: THE IDEA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Stateful DoFn: the idea</h1>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <ul class="body" style="font-size:14.5px">
+        <li>A ParDo can declare <strong>state cells</strong>; the runner stores them durably and hands them to <code>process()</code> alongside each element</li>
+        <li>The contract that makes it safe:
+          <ul>
+            <li>Input must be key&ndash;value pairs; state is <strong>scoped per key and per window</strong> &mdash; every element for a key is routed to where that key's state lives</li>
+            <li>Reads and writes are <strong>consistent with retries</strong>: a failed bundle's state writes are discarded with it</li>
+            <li>State is invisible across keys &mdash; two customers never share a cell</li>
+          </ul>
+        </li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13.5px"><strong>Mental model:</strong> a little durable dictionary the runner keeps for you &mdash; one entry per key + window.</div>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="380" height="280" viewBox="0 0 380 280">
+          <defs><marker id="arrSD" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker>
+          <marker id="arrSDb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#4285F4"/></marker></defs>
+          <g font-family="Roboto Mono,monospace" font-size="9.5">
+            <rect x="4" y="14" width="152" height="66" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+            <text x="14" y="30" fill="#1a73e8" font-weight="600">orders (keyed)</text>
+            <text x="14" y="47" fill="#202124">('cust-17', order)</text>
+            <text x="14" y="63" fill="#202124">('cust-42', order)</text>
+          </g>
+          <line x1="156" y1="47" x2="196" y2="47" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrSD)"/>
+          <rect x="200" y="27" width="120" height="40" rx="20" fill="#4285F4"/>
+          <text x="260" y="52" text-anchor="middle" font-size="12.5" font-weight="600" fill="#fff">ParDo</text>
+          <line x1="320" y1="47" x2="368" y2="47" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrSD)"/>
+
+          <line x1="242" y1="67" x2="222" y2="118" stroke="#4285F4" stroke-width="1.5" marker-end="url(#arrSDb)"/>
+          <line x1="262" y1="120" x2="280" y2="69" stroke="#4285F4" stroke-width="1.5" marker-end="url(#arrSDb)"/>
+          <text x="212" y="98" text-anchor="end" font-size="9.5" fill="#1a73e8">write</text>
+          <text x="286" y="100" font-size="9.5" fill="#1a73e8">read</text>
+
+          <ellipse cx="242" cy="132" rx="118" ry="14" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+          <path d="M124 132 L124 236 A118 14 0 0 0 360 236 L360 132" fill="#f8f9fa" stroke="#4285F4" stroke-width="1.5"/>
+          <ellipse cx="242" cy="236" rx="118" ry="14" fill="none" stroke="#4285F4" stroke-width="1.5"/>
+          <g font-family="Roboto Mono,monospace" font-size="9.5">
+            <rect x="140" y="152" width="204" height="30" rx="5" fill="#fff" stroke="#dadce0"/>
+            <text x="150" y="164" fill="#5f6368">cust-17:</text>
+            <text x="150" y="177" fill="#202124">buffer=[o1,o2]  count=2</text>
+            <rect x="140" y="190" width="204" height="30" rx="5" fill="#fff" stroke="#dadce0"/>
+            <text x="150" y="202" fill="#5f6368">cust-42:</text>
+            <text x="150" y="215" fill="#202124">buffer=[o3]     count=1</text>
+          </g>
+          <text x="242" y="268" text-anchor="middle" font-size="10" fill="#5f6368">durable state, partitioned by key + window</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Stateful DoFn: the idea">
+  <summary>Speaker notes &mdash; Stateful DoFn: the idea</summary>
+  <div class="n-body"><ul>
+    <li>Map each contract line to a failure from the previous slide: per-key routing fixes "many private buffers"; roll-back-with-the-bundle fixes the retry duplicates; durable storage fixes the crash/autoscaling loss. The contract is exactly the three fixes, nothing more.</li>
+    <li><strong>"Per key and per window" &mdash; say it twice.</strong> With the default global window, "per window" disappears and it reads as plain per-key state. But window a stream into 10-minute fixed windows and each key gets a <em>fresh</em> set of cells per window. This becomes load-bearing for garbage collection in Section 5.</li>
+    <li>Consequence students should predict: because every element for a key must be routed to where that key's state lives, elements for one key are processed <strong>serially</strong> &mdash; state introduces the same key-based parallelism physics as GroupByKey (Section 5 returns to this).</li>
+    <li>Where the state physically lives on Dataflow: in streaming with Streaming Engine (Module 2), state lives in the service, off the workers &mdash; which is exactly what makes it survive autoscaling. The mental model "a durable dictionary the runner keeps" is accurate.</li>
+    <li>Java spelling of the same idea, for mixed cohorts: state is declared with <code>@StateId</code> annotations and <code>StateSpecs</code>; the mechanics slide in the next section gives the mapping.</li>
+  </ul></div>
+</details>
+
+<!-- ============ D2. DIVIDER: THE STATE API ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 5</div>
+    <h1>The State API</h1>
+    <div class="sub">Durable per-key cells you declare, read, write, and clear. From a one-line running count to the buffer our scenario needs &mdash; and how to choose the right cell type.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why stateful?</span><span class="current">State API</span><span>Timer API</span><span>The full pattern</span><span>Best practices</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: The State API">
+  <summary>Speaker notes &mdash; Section 2: The State API</summary>
+  <div class="n-body"><ul>
+    <li>Deliberate ladder in this section: start with a problem <em>smaller</em> than the buffering scenario (a running count) so the API surface is visible without distraction, then upgrade it (Combining state), then reach the real buffer (Bag state), then generalize (the cell-type table).</li>
+    <li>Each rung introduces exactly one new spec type: <code>ReadModifyWriteStateSpec</code> &rarr; <code>CombiningValueStateSpec</code> &rarr; <code>BagStateSpec</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. FIRST STATEFUL DOFN: RUNNING COUNT ============ -->
+<section class="slide">
+  <span class="brick b-blue" style="position:absolute;top:44px;right:64px">ValueState</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">First stateful DoFn: a running count per key</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">Scenario: tag each order with that customer's order number &mdash; 1st, 2nd, 3rd&hellip; Impossible for a stateless ParDo; overkill for GroupByKey (we want per-element output, immediately).</p>
+  <div class="cols">
+    <div style="flex:0 0 58%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python</span><span class="kw">from</span> apache_beam.coders <span class="kw">import</span> VarIntCoder
+<span class="kw">from</span> apache_beam.transforms.userstate <span class="kw">import</span> ReadModifyWriteStateSpec
+
+<span class="kw">class</span> <span class="fn">OrderNumberFn</span>(beam.DoFn):
+    COUNT = ReadModifyWriteStateSpec(<span class="st">'count'</span>, VarIntCoder())
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv, count=beam.DoFn.StateParam(COUNT)):
+        customer, order = kv
+        n = (count.read() <span class="kw">or</span> 0) + 1
+        count.write(n)
+        <span class="kw">yield</span> customer, order, n
+
+<span class="cm"># ('cust-17', 'order-A')  →  ('cust-17', 'order-A', 1)</span>
+<span class="cm"># ('cust-42', 'order-B')  →  ('cust-42', 'order-B', 1)</span>
+<span class="cm"># ('cust-17', 'order-C')  →  ('cust-17', 'order-C', 2)</span></pre>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="252" viewBox="0 0 330 252">
+          <defs><marker id="arrRC" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="4" y="6" width="120" height="62" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+            <text x="12" y="20" fill="#1a73e8" font-weight="600">orders</text>
+            <text x="12" y="34" fill="#202124">(cust-17, A)</text>
+            <text x="12" y="47" fill="#202124">(cust-42, B)</text>
+            <text x="12" y="60" fill="#202124">(cust-17, C)</text>
+          </g>
+          <line x1="124" y1="37" x2="152" y2="37" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrRC)"/>
+          <rect x="156" y="20" width="64" height="34" rx="17" fill="#4285F4"/>
+          <text x="188" y="42" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">ParDo</text>
+          <line x1="220" y1="37" x2="248" y2="37" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrRC)"/>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="200" y="66" width="126" height="62" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+            <text x="208" y="80" fill="#1a73e8" font-weight="600">numbered</text>
+            <text x="208" y="94" fill="#202124">(cust-17, A, 1)</text>
+            <text x="208" y="107" fill="#202124">(cust-42, B, 1)</text>
+            <text x="208" y="120" fill="#202124">(cust-17, C, 2)</text>
+          </g>
+          <line x1="188" y1="54" x2="150" y2="152" stroke="#4285F4" stroke-width="1.4" stroke-dasharray="4 3"/>
+          <ellipse cx="150" cy="166" rx="104" ry="12" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+          <path d="M46 166 L46 226 A104 12 0 0 0 254 226 L254 166" fill="#f8f9fa" stroke="#4285F4" stroke-width="1.4"/>
+          <ellipse cx="150" cy="226" rx="104" ry="12" fill="none" stroke="#4285F4" stroke-width="1.4"/>
+          <g font-family="Roboto Mono,monospace" font-size="9.5">
+            <text x="70" y="192" fill="#202124">count: cust-17 → 2</text>
+            <text x="70" y="210" fill="#202124">count: cust-42 → 1</text>
+          </g>
+          <text x="150" y="250" text-anchor="middle" font-size="9.5" fill="#5f6368">state after the three elements</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="First stateful DoFn: running count">
+  <summary>Speaker notes &mdash; First stateful DoFn: running count</summary>
+  <div class="n-body"><ul>
+    <li>Why this scenario before the buffer: it's the smallest possible stateful problem &mdash; one integer per key &mdash; so every line of boilerplate is visible and explainable. The next slide dissects the anatomy; this one is just "watch it work."</li>
+    <li>Trace the comments against the state cylinder: cust-17's second order reads 1, writes 2, emits 2. cust-42 is untouched by cust-17's elements &mdash; the isolation from the contract slide, now concrete.</li>
+    <li>Contrast with the alternatives from the scenario line: <code>CombinePerKey(Count...)</code> would give final counts per window, not a number <em>on each element as it passes</em>; a GroupByKey would wait for the window boundary. Stateful ParDo emits per element, immediately, with memory.</li>
+    <li>Note the input is already keyed &mdash; stateful DoFns <em>require</em> KV input; running this on an unkeyed PCollection is an error. The keying step (Module 5's <code>WithKeys</code>/Map) is assumed done upstream.</li>
+    <li>In batch the same code runs fine &mdash; but the numbering within a key depends on processing order, which batch runners don't guarantee. Fine for this teaching example; order-sensitive logic in production wants OrderedListState or explicit sorting.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. ANATOMY OF A STATEFUL DOFN ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Anatomy of a stateful DoFn</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.6"><span class="lang">Python</span><span class="cm">#            ① declaration: name + coder</span>
+COUNT = ReadModifyWriteStateSpec(<span class="st">'count'</span>,
+                                 VarIntCoder())
+
+<span class="cm">#            ② injection: runner passes a handle</span>
+<span class="kw">def</span> <span class="fn">process</span>(self, kv,
+            count=beam.DoFn.StateParam(COUNT)):
+
+    <span class="cm">#        ③ the whole surface of a value cell</span>
+    n = (count.read() <span class="kw">or</span> 0) + 1
+    count.write(n)
+    <span class="cm"># … and count.clear() when done with it</span></pre>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13px">First read of a never-written cell returns <code>None</code> &mdash; hence the <code>or 0</code>.</div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>① The declaration</strong> &mdash; a class attribute naming the cell and its <strong>coder</strong>: state is serialized to durable storage, and the coder is how</li>
+        <li><strong>② The injection</strong> &mdash; the runner passes a handle scoped to <em>this element's key and window</em></li>
+        <li><strong>③ The operations</strong> &mdash; <code>read()</code>, <code>write()</code>, <code>clear()</code>: the entire surface of a value cell</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>Python</th><th>Java</th></tr>
+        <tr><td><code>ReadModifyWriteStateSpec('count', …)</code></td><td><code>@StateId("count")</code> + <code>StateSpecs.value()</code></td></tr>
+        <tr><td><code>beam.DoFn.StateParam(COUNT)</code></td><td><code>ValueState&lt;Integer&gt;</code> param on <code>@ProcessElement</code></td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Anatomy of a stateful DoFn">
+  <summary>Speaker notes &mdash; Anatomy of a stateful DoFn</summary>
+  <div class="n-body"><ul>
+    <li><strong>Why the coder is mandatory here</strong> when Beam usually infers coders: state crosses a process boundary on every access &mdash; it's written to durable storage between elements, possibly read back on a different worker after autoscaling. The declaration pins down the byte format up front. Compact, deterministic coders matter (Section 5 returns to this).</li>
+    <li><strong>The injection is per-element scoping in disguise:</strong> the same <code>process()</code> call signature serves every key, but the handle the runner passes resolves to <em>this</em> element's key+window cell. Students never route anything themselves &mdash; routing is the runner's half of the contract.</li>
+    <li>The default-argument idiom (<code>count=beam.DoFn.StateParam(COUNT)</code>) is how Beam Python does dependency injection throughout &mdash; same pattern students saw with <code>beam.DoFn.WindowParam</code> in Module 8. The "default value" is a marker the runner replaces, not a real default.</li>
+    <li>Java mapping, one sentence each: <code>@StateId("count")</code> ties a field to the cell name; <code>StateSpecs.value(VarIntCoder.of())</code> is the declaration; the <code>@ProcessElement</code> method takes a <code>@StateId("count") ValueState&lt;Integer&gt;</code> parameter. Same three parts, different spelling.</li>
+    <li>Naming: the string <code>'count'</code> identifies the cell in the runner &mdash; it must be unique within the DoFn, and it's what you'd see in state-size metrics.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. COMBINING STATE ============ -->
+<section class="slide">
+  <span class="brick b-red" style="position:absolute;top:44px;right:64px">CombiningState</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">Upgrade the count: Combining state</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The read-modify-write round trip is the slow way to add 1. If the update is a <strong>combine</strong> &mdash; sum, min, max: module 5's CombineFn idea again &mdash; declare that, and the runner merges <em>blind writes</em> without reading.</p>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python</span><span class="kw">from</span> apache_beam.transforms.userstate <span class="kw">import</span> CombiningValueStateSpec
+
+<span class="kw">class</span> <span class="fn">OrderNumberFn</span>(beam.DoFn):
+    COUNT = CombiningValueStateSpec(<span class="st">'count'</span>, combine_fn=<span class="fn">sum</span>)
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv, count=beam.DoFn.StateParam(COUNT)):
+        customer, order = kv
+        count.add(1)            <span class="cm"># no read needed to update</span>
+        <span class="kw">yield</span> customer, order, count.read()</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><code>add()</code> is cheap; the runner can compact many adds lazily</li>
+        <li>Best practice: <strong>if the state is an aggregation, use Combining state</strong> &mdash; same rule of thumb as module 5's "prefer Combine over GroupByKey"</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="170" viewBox="0 0 330 170">
+          <defs><marker id="arrCS" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9aa0a6"/></marker></defs>
+          <text x="6" y="16" font-size="10.5" fill="#c5221f" font-weight="600">read-modify-write: a round trip per element</text>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="6"   y="24" width="92" height="20" rx="4" fill="#fce8e6" stroke="#EA4335"/><text x="12" y="38" fill="#202124">read→+1→write</text>
+            <rect x="104" y="24" width="92" height="20" rx="4" fill="#fce8e6" stroke="#EA4335"/><text x="110" y="38" fill="#202124">read→+1→write</text>
+            <rect x="202" y="24" width="92" height="20" rx="4" fill="#fce8e6" stroke="#EA4335"/><text x="208" y="38" fill="#202124">read→+1→write</text>
+          </g>
+          <text x="6" y="82" font-size="10.5" fill="#188038" font-weight="600">Combining: blind adds, compacted lazily</text>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="6"   y="90" width="44" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="18" y="104" fill="#202124">+1</text>
+            <rect x="56"  y="90" width="44" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="68" y="104" fill="#202124">+1</text>
+            <rect x="106" y="90" width="44" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="118" y="104" fill="#202124">+1</text>
+          </g>
+          <line x1="152" y1="100" x2="196" y2="100" stroke="#34A853" stroke-width="1.5" marker-end="url(#arrCS)"/>
+          <text x="174" y="92" text-anchor="middle" font-size="8.5" fill="#188038">compact once</text>
+          <g font-family="Roboto Mono,monospace" font-size="9.5">
+            <rect x="200" y="88" width="94" height="24" rx="12" fill="#e6f4ea" stroke="#34A853"/>
+            <text x="247" y="104" text-anchor="middle" fill="#202124">count = 3</text>
+          </g>
+          <text x="165" y="146" text-anchor="middle" font-size="9.5" fill="#5f6368">legal because sum is associative &amp; commutative —</text>
+          <text x="165" y="160" text-anchor="middle" font-size="9.5" fill="#5f6368">the same reason combiner lifting worked in module 5</text>
+        </svg>
+      </div>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:12.5px">The <code>combine_fn</code> is the same kind of object as in <code>CombinePerKey</code> &mdash; the knowledge transfers.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Combining state">
+  <summary>Speaker notes &mdash; Combining state</summary>
+  <div class="n-body"><ul>
+    <li>The performance intuition: a value cell makes every update a read-modify-write round trip against durable state. A combining cell accepts <code>add()</code>s <em>blind</em> &mdash; the runner queues and merges them when convenient, exactly like combiner lifting in Module 5 merged partial sums before the shuffle. Same legality argument, too: only associative &amp; commutative updates may be reordered and batched.</li>
+    <li>Here the code still calls <code>count.read()</code> to emit the running number &mdash; so this particular DoFn doesn't get the full blind-write benefit. The win is real when updates vastly outnumber reads (e.g., add per element, read only at flush time &mdash; which is exactly the shape of the next slide's buffer counter).</li>
+    <li><code>CombiningValueStateSpec('count', combine_fn=sum)</code> infers the accumulator coder from the combine_fn; you can pass a full <code>CombineFn</code> object (like Module 5's <code>MeanFn</code>) for state-&ne;-answer aggregations.</li>
+    <li>Java: <code>StateSpecs.combining(Sum.ofIntegers())</code> with a <code>CombiningState&lt;Integer, int[], Integer&gt;</code> parameter.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. BAGSTATE ============ -->
+<section class="slide">
+  <span class="brick b-green" style="position:absolute;top:44px;right:64px">BagState</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:5px">BagState: buffering elements</h1>
+  <p class="lede" style="margin-bottom:5px;font-size:12.5px">Back to the real problem: buffer orders per key, flush at 100. A value cell holding a list would re-serialize the whole list on every element &mdash; <strong>BagState</strong> is append-only and cheap to add to.</p>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code small" style="font-size:10.5px;line-height:1.45"><span class="lang">Python</span><span class="kw">from</span> apache_beam.transforms.userstate <span class="kw">import</span> (
+    BagStateSpec, CombiningValueStateSpec)
+
+<span class="kw">class</span> <span class="fn">BatchEnrichFn</span>(beam.DoFn):
+    MAX_BATCH = 100
+    BUFFER = BagStateSpec(<span class="st">'buffer'</span>, OrderCoder())
+    COUNT = CombiningValueStateSpec(<span class="st">'count'</span>, combine_fn=<span class="fn">sum</span>)
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv,
+                buffer=beam.DoFn.StateParam(BUFFER),
+                count=beam.DoFn.StateParam(COUNT)):
+        _, order = kv
+        buffer.add(order)
+        count.add(1)
+        <span class="kw">if</span> count.read() &gt;= self.MAX_BATCH:
+            <span class="kw">yield from</span> enrich_batch(buffer.read())  <span class="cm"># one API call</span>
+            buffer.clear()
+            count.clear()</pre>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="340" height="150" viewBox="0 0 340 150">
+          <defs><marker id="arrBG" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker>
+          <marker id="arrBGg" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#34A853"/></marker></defs>
+          <rect x="4" y="34" width="12" height="12" fill="#4285F4"/>
+          <rect x="22" y="34" width="12" height="12" fill="#FBBC04"/>
+          <rect x="40" y="34" width="12" height="12" fill="#34A853"/>
+          <line x1="56" y1="40" x2="82" y2="40" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrBG)"/>
+          <rect x="86" y="22" width="70" height="36" rx="18" fill="#4285F4"/>
+          <text x="121" y="45" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">ParDo</text>
+          <line x1="121" y1="58" x2="121" y2="80" stroke="#4285F4" stroke-width="1.3" stroke-dasharray="4 3"/>
+          <ellipse cx="121" cy="92" rx="76" ry="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.3"/>
+          <path d="M45 92 L45 128 A76 10 0 0 0 197 128 L197 92" fill="#f8f9fa" stroke="#4285F4" stroke-width="1.3"/>
+          <ellipse cx="121" cy="128" rx="76" ry="10" fill="none" stroke="#4285F4" stroke-width="1.3"/>
+          <text x="121" y="112" text-anchor="middle" font-size="9" font-family="Roboto Mono,monospace" fill="#202124">buffer · count</text>
+          <rect x="63" y="118" width="116" height="8" rx="3" fill="#e8eaed"/>
+          <rect x="63" y="118" width="43" height="8" rx="3" fill="#EA4335"/>
+          <rect x="216" y="104" width="58" height="20" rx="10" fill="#fce8e6" stroke="#EA4335"/>
+          <text x="245" y="118" text-anchor="middle" font-size="9" font-weight="600" fill="#c5221f">37 / 100</text>
+          <line x1="156" y1="40" x2="252" y2="40" stroke="#34A853" stroke-width="3.5" marker-end="url(#arrBGg)"/>
+          <text x="196" y="24" text-anchor="middle" font-size="9" fill="#188038">1 call / 100</text>
+          <rect x="256" y="20" width="80" height="40" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="296" y="37" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">Enrichment</text>
+          <text x="296" y="51" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">API</text>
+        </svg>
+      </div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Why the separate <code>count</code>: reading the bag to check its size would defeat the cheap-append property</li>
+        <li><code>clear()</code> after flushing &mdash; the cell survives forever otherwise</li>
+      </ul>
+      <div class="callout warn" style="font-size:12px;padding:9px 14px"><strong>Bug in this code:</strong> a key stuck at 37 buffered orders never reaches 100 &mdash; those orders are trapped forever. State alone can't say "flush after a while." <strong>That's what timers are for.</strong></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="BagState: buffering elements">
+  <summary>Speaker notes &mdash; BagState: buffering elements</summary>
+  <div class="n-body"><ul>
+    <li>Why not a value cell holding a Python list: every element would read the whole list, append one item, and re-serialize the whole list back &mdash; O(n&sup2;) serialization over a batch. <code>BagState.add()</code> appends without reading; the read happens once, at flush time. Unordered, duplicates allowed &mdash; a bag, not a list.</li>
+    <li>The two-cell pattern (bag + combining counter) is idiomatic, not an optimization hack &mdash; you'll see it in Beam's own <code>GroupIntoBatches</code> implementation. The counter takes blind <code>add(1)</code>s; its <code>read()</code> at the top of the flush check is the only read per element, and it's against a small compacted value.</li>
+    <li><code>OrderCoder()</code> stands in for whatever coder fits the element type &mdash; a registered custom coder, or commonly <code>beam.coders.registry.get_coder(Order)</code>. The point is the same as slide 8: bags serialize their elements to durable storage.</li>
+    <li><strong>Give the bug a beat.</strong> Ask "what's wrong with this code?" before revealing the callout &mdash; someone will find it. Quiet key at 37: no more elements, no more <code>process()</code> calls, no flush, orders never enriched. Any threshold rule has this failure mode; it's not a corner case, it's guaranteed at 3 a.m. traffic levels.</li>
+    <li>Java: <code>@StateId("buffer") StateSpecs.bag(OrderCoder.of())</code> with a <code>BagState&lt;Order&gt;</code> parameter.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. CHOOSING A STATE TYPE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Choosing a state type</h1>
+  <table class="tbl" style="font-size:12.5px">
+    <tr><th>Type &mdash; Python spec / Java</th><th>Strength</th><th>Notes</th></tr>
+    <tr><td><strong>Value</strong> &mdash; <code>ReadModifyWriteStateSpec</code> / <code>ValueState</code></td><td>any single value</td><td>reads + writes the whole value</td></tr>
+    <tr class="hl"><td><strong>Bag</strong> &mdash; <code>BagStateSpec</code> / <code>BagState</code></td><td>cheap append, unordered read</td><td>the buffering workhorse</td></tr>
+    <tr class="hl"><td><strong>Combining</strong> &mdash; <code>CombiningValueStateSpec</code> / <code>CombiningState</code></td><td>blind adds, runner compacts</td><td>use for sums / counts / min / max</td></tr>
+    <tr><td><strong>Set</strong> &mdash; <code>SetStateSpec</code> / <code>SetState</code></td><td>membership / dedup</td><td>runner-dependent support</td></tr>
+    <tr><td><strong>Ordered list</strong> &mdash; <code>OrderedListStateSpec</code> / <code>OrderedListState</code></td><td>timestamp-sorted reads, range reads</td><td>runner-dependent support</td></tr>
+    <tr><td><strong>Map</strong> &mdash; <em>(no Python spec through 2.70)</em> / <code>MapState</code></td><td>random access by sub-key</td><td><span class="no">Java only</span>; runner-dependent</td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14px">
+    <li>Default choices: aggregations &rarr; <strong>Combining</strong> &middot; buffers &rarr; <strong>Bag</strong> &middot; everything else &rarr; <strong>Value</strong>, until profiling says otherwise</li>
+    <li>Check the <a href="https://beam.apache.org/documentation/runners/capability-matrix/" style="color:#1a73e8">runner capability matrix</a> before designing around Set / OrderedList / Map</li>
+  </ul>
+</section>
+<details class="notes" data-title="Choosing a state type">
+  <summary>Speaker notes &mdash; Choosing a state type</summary>
+  <div class="n-body"><ul>
+    <li>The highlighted rows are the two the module has already used &mdash; and honestly the two that cover the large majority of production stateful DoFns. The bottom three are worth knowing exist, not worth designing around by default.</li>
+    <li><strong>Set state:</strong> membership testing without reading a whole bag &mdash; the natural cell for dedup ("have I seen this ID?"). <strong>OrderedList:</strong> reads come back sorted by timestamp and support range deletes &mdash; the natural cell for sessionization and sort-order logic. <strong>Map:</strong> random access by sub-key without deserializing everything.</li>
+    <li><strong>The language caveat is real and current:</strong> the Python SDK (through 2.70) has no <code>MapStateSpec</code> &mdash; Map state is Java-only today. If a design leans on per-sub-key random access from Python, restructure the key instead (make the sub-key part of the element key).</li>
+    <li>"Runner-dependent" is not hand-waving: the capability matrix is the authoritative check, and support genuinely differs across Dataflow, Flink, and the portable runners for the newer cell types. Value/Bag/Combining are the safe core everywhere state is supported at all.</li>
+    <li>If asked "why is Value called ReadModifyWriteStateSpec in Python?" &mdash; the Python name describes its access pattern honestly; Java's <code>ValueState</code> is the same cell.</li>
+  </ul></div>
+</details>
+
+<!-- ============ D3. DIVIDER: THE TIMER API ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 5</div>
+    <h1>The Timer API</h1>
+    <div class="sub">Scheduled callbacks with access to the same key's state. Event-time timers fire on data completeness; processing-time timers fire on the wall clock &mdash; and our stuck buffer needs them.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why stateful?</span><span>State API</span><span class="current">Timer API</span><span>The full pattern</span><span>Best practices</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: The Timer API">
+  <summary>Speaker notes &mdash; Section 3: The Timer API</summary>
+  <div class="n-body"><ul>
+    <li>The section opens by replaying the stuck-buffer bug as a picture, then introduces the mechanics, then solves the bug twice &mdash; once per time domain &mdash; and closes with a decision slide and the mechanics worth knowing (overwrite-on-set, looping timers).</li>
+    <li>Module 8 vocabulary (watermark, window end, event vs. processing time) is assumed and reused without re-derivation &mdash; if it didn't stick, this section will surface that quickly.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. THE STUCK-BUFFER PROBLEM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The stuck-buffer problem</h1>
+  <div class="figure">
+    <svg width="720" height="212" viewBox="0 0 720 212">
+      <defs><marker id="arrSB" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+      <line x1="30" y1="160" x2="700" y2="160" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrSB)"/>
+      <text x="700" y="178" text-anchor="end" font-size="10.5" fill="#5f6368">time</text>
+      <text x="30" y="24" font-size="10.5" fill="#5f6368">buffered orders for key <tspan font-family="Roboto Mono,monospace" fill="#1a73e8">cust-region-EU</tspan></text>
+      <rect x="60"  y="140" width="26" height="20"  fill="#aecbfa"/>
+      <rect x="100" y="124" width="26" height="36"  fill="#aecbfa"/>
+      <rect x="140" y="108" width="26" height="52"  fill="#aecbfa"/>
+      <rect x="180" y="96"  width="26" height="64"  fill="#aecbfa"/>
+      <rect x="220" y="84"  width="26" height="76"  fill="#4285F4"/>
+      <text x="233" y="76" text-anchor="middle" font-size="10" font-weight="600" fill="#1a73e8">37</text>
+      <rect x="260" y="84" width="410" height="76" fill="#f1f3f4"/>
+      <line x1="260" y1="84" x2="670" y2="84" stroke="#c5221f" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="460" y="76" text-anchor="middle" font-size="10.5" fill="#c5221f" font-weight="600">input goes quiet — buffer sits at 37 indefinitely</text>
+      <text x="460" y="126" text-anchor="middle" font-size="10" fill="#80868b">the API call that would deliver these orders never happens</text>
+      <line x1="420" y1="160" x2="420" y2="34" stroke="#4285F4" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <rect x="330" y="14" width="180" height="22" rx="11" fill="#e8f0fe" stroke="#4285F4"/>
+      <text x="420" y="29" text-anchor="middle" font-size="10" fill="#1a73e8" font-weight="600">watermark passes window end → flush!</text>
+      <line x1="600" y1="160" x2="600" y2="34" stroke="#EA4335" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <rect x="512" y="14" width="176" height="22" rx="11" fill="#fce8e6" stroke="#EA4335"/>
+      <text x="600" y="29" text-anchor="middle" font-size="10" fill="#c5221f" font-weight="600">60 s wall clock, no arrivals → flush!</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14.5px">
+    <li>Two distinct "too long" clocks we might want:
+      <ul>
+        <li>"the <strong>window</strong> is over &mdash; the data is complete, flush what's left" (event time, watermark-driven &mdash; module 8 vocabulary)</li>
+        <li>"nothing has arrived for 60 real seconds &mdash; stop waiting" (processing time, wall clock)</li>
+      </ul>
+    </li>
+    <li>A <strong>timer</strong> is a callback you schedule from <code>process()</code>; the runner calls back <strong>with access to the same key's state</strong></li>
+  </ul>
+</section>
+<details class="notes" data-title="The stuck-buffer problem">
+  <summary>Speaker notes &mdash; The stuck-buffer problem</summary>
+  <div class="n-body"><ul>
+    <li>No code on this slide on purpose &mdash; the picture <em>is</em> the argument. The buffer climbs, input stops, and nothing in the State API can ever run again for this key: no elements &rarr; no <code>process()</code> calls &rarr; no flush check.</li>
+    <li>The two vertical lines preview the section's two solutions, and they are genuinely different policies, not two spellings of one idea: the blue line fires when the <em>data</em> says the window is complete (whenever that turns out to be); the red line fires when the <em>clock</em> says we've waited long enough (regardless of data).</li>
+    <li>The last bullet is the API's key property, easy to miss: a timer callback is not a detached cron job &mdash; it runs <em>for a specific key and window</em>, with that key's state cells injected, so flush logic can read and clear the same buffer. Timer + state is one machine, not two features.</li>
+    <li>Ask which clock the class would pick for the enrichment scenario before moving on &mdash; the honest answer ("both") is exactly where the capstone lands.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. TIMERS: THE MOVING PARTS ============ -->
+<section class="slide">
+  <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">TimerSpec</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Timers: the moving parts</h1>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code small" style="font-size:11px;line-height:1.5"><span class="lang">Python</span><span class="kw">from</span> apache_beam.transforms.userstate <span class="kw">import</span> TimerSpec, on_timer
+<span class="kw">from</span> apache_beam.transforms.timeutil <span class="kw">import</span> TimeDomain
+
+<span class="kw">class</span> <span class="fn">BatchEnrichFn</span>(beam.DoFn):
+    FLUSH = TimerSpec(<span class="st">'flush'</span>, TimeDomain.WATERMARK)  <span class="cm"># or REAL_TIME</span>
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv, ..., flush=beam.DoFn.TimerParam(FLUSH)):
+        flush.set(when)      <span class="cm"># schedule (overwrites previous set)</span>
+
+    <span class="kw">@on_timer</span>(FLUSH)
+    <span class="kw">def</span> <span class="fn">on_flush</span>(self, ...): <span class="cm"># runs when 'when' is reached</span>
+        ...</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li><code>TimeDomain.WATERMARK</code> = event time &middot; <code>TimeDomain.REAL_TIME</code> = processing time</li>
+        <li>One timer per spec per key + window: <strong><code>set()</code> overwrites</strong> the earlier deadline &mdash; re-setting <em>is</em> how you push a deadline back</li>
+        <li>The <code>@on_timer</code> method can take <code>StateParam</code>s &mdash; and even set timers again (the "looping timer" pattern, later)</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="252" viewBox="0 0 330 252">
+          <defs><marker id="arrTM" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker>
+          <marker id="arrTMy" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#F9AB00"/></marker>
+          <marker id="arrTMb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#4285F4"/></marker></defs>
+          <rect x="14" y="14" width="200" height="150" rx="10" fill="#fff" stroke="#4285F4" stroke-width="1.6"/>
+          <text x="26" y="34" font-size="11" font-weight="600" fill="#1a73e8">BatchEnrichFn</text>
+          <rect x="26" y="46" width="176" height="42" rx="6" fill="#e8f0fe"/>
+          <text x="36" y="64" font-size="10.5" font-family="Roboto Mono,monospace" fill="#202124">process()</text>
+          <text x="36" y="79" font-size="9" fill="#5f6368">per element</text>
+          <rect x="26" y="102" width="176" height="42" rx="6" fill="#fef7e0"/>
+          <text x="36" y="120" font-size="10.5" font-family="Roboto Mono,monospace" fill="#202124">on_flush()</text>
+          <text x="36" y="135" font-size="9" fill="#5f6368">per timer firing</text>
+          <circle cx="270" cy="94" r="26" fill="#fff" stroke="#F9AB00" stroke-width="3"/>
+          <rect x="264" y="58" width="12" height="7" rx="2" fill="#F9AB00"/>
+          <line x1="270" y1="94" x2="270" y2="78" stroke="#F9AB00" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="270" y1="94" x2="281" y2="99" stroke="#F9AB00" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 202 64 Q 240 62 258 74" fill="none" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrTM)"/>
+          <text x="234" y="52" text-anchor="middle" font-size="9" fill="#5f6368">set(when)</text>
+          <path d="M 258 116 Q 240 128 206 124" fill="none" stroke="#F9AB00" stroke-width="1.6" marker-end="url(#arrTMy)"/>
+          <text x="252" y="140" text-anchor="middle" font-size="9" fill="#b06000">fires → callback</text>
+          <ellipse cx="114" cy="196" rx="86" ry="11" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+          <path d="M28 196 L28 232 A86 11 0 0 0 200 232 L200 196" fill="#f8f9fa" stroke="#4285F4" stroke-width="1.4"/>
+          <ellipse cx="114" cy="232" rx="86" ry="11" fill="none" stroke="#4285F4" stroke-width="1.4"/>
+          <text x="114" y="218" text-anchor="middle" font-size="9.5" font-family="Roboto Mono,monospace" fill="#202124">buffer · count</text>
+          <line x1="80" y1="164" x2="94" y2="186" stroke="#4285F4" stroke-width="1.4" marker-end="url(#arrTMb)"/>
+          <line x1="134" y1="186" x2="148" y2="164" stroke="#4285F4" stroke-width="1.4" marker-end="url(#arrTMb)"/>
+          <text x="114" y="180" text-anchor="middle" font-size="8.5" fill="#1a73e8">both lanes share the key's state</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Timers: the moving parts">
+  <summary>Speaker notes &mdash; Timers: the moving parts</summary>
+  <div class="n-body"><ul>
+    <li>Point out the symmetry with state &mdash; the API is deliberately parallel: declare a spec as a class attribute, inject a handle with <code>TimerParam</code>, operate on it. One genuinely new part: the <code>@on_timer(SPEC)</code> decorator marks the callback method.</li>
+    <li>The overwrite semantics deserve emphasis now (and get their own slide later): a spec holds at most <em>one</em> pending deadline per key+window. <code>set()</code> is idempotent-friendly &mdash; calling it on every element with the same deadline is harmless, and calling it with a new deadline <em>moves</em> the timer. There is no "list of pending timers" per spec.</li>
+    <li>The diagram's real content is the shared cylinder: <code>process()</code> and <code>on_flush()</code> are two entry points into one per-key machine. That's what makes "flush whatever is buffered" expressible in the callback at all.</li>
+    <li>Java mapping: <code>@TimerId("flush")</code> + <code>TimerSpecs.timer(TimeDomain.EVENT_TIME)</code> (note: Java says <code>EVENT_TIME</code>/<code>PROCESSING_TIME</code> where Python says <code>WATERMARK</code>/<code>REAL_TIME</code>), callback annotated <code>@OnTimer("flush")</code>.</li>
+    <li>Timers, like state, require keyed input and fire per key+window &mdash; a timer set while processing cust-17 can never invoke logic for cust-42.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. EVENT-TIME TIMER ============ -->
+<section class="slide">
+  <span class="brick b-blue" style="position:absolute;top:44px;right:64px">WATERMARK</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">Event-time timer: flush when the window closes</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:13.5px">Scenario: the pipeline uses 10-minute fixed windows (module 8). Whatever is still buffered when the watermark passes the end of the window is complete &mdash; and must go out.</p>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code small" style="font-size:10.5px;line-height:1.45"><span class="lang">Python</span><span class="kw">class</span> <span class="fn">BatchEnrichFn</span>(beam.DoFn):
+    EXPIRY = TimerSpec(<span class="st">'expiry'</span>, TimeDomain.WATERMARK)
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv,
+                w=beam.DoFn.WindowParam,
+                buffer=beam.DoFn.StateParam(BUFFER),
+                count=beam.DoFn.StateParam(COUNT),
+                expiry=beam.DoFn.TimerParam(EXPIRY)):
+        expiry.set(w.end)   <span class="cm"># idempotent: same deadline every time</span>
+        ...                 <span class="cm"># buffering logic from the BagState slide</span>
+
+    <span class="kw">@on_timer</span>(EXPIRY)
+    <span class="kw">def</span> <span class="fn">on_expiry</span>(self,
+                  buffer=beam.DoFn.StateParam(BUFFER),
+                  count=beam.DoFn.StateParam(COUNT)):
+        <span class="kw">if</span> count.read():
+            <span class="kw">yield from</span> enrich_batch(buffer.read())
+        buffer.clear()
+        count.clear()</pre>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="190" viewBox="0 0 330 190">
+          <defs><marker id="arrET" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker>
+          <marker id="arrETg" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#34A853"/></marker></defs>
+          <rect x="20" y="30" width="240" height="34" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+          <text x="140" y="51" text-anchor="middle" font-size="10" fill="#1a73e8">window [10:00, 10:10)</text>
+          <line x1="20" y1="84" x2="230" y2="84" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrET)"/>
+          <text x="112" y="99" text-anchor="middle" font-size="9" fill="#5f6368">watermark advances</text>
+          <line x1="260" y1="20" x2="260" y2="110" stroke="#EA4335" stroke-width="1.8" stroke-dasharray="5 3"/>
+          <circle cx="260" cy="20" r="5" fill="#EA4335"/>
+          <text x="268" y="18" font-size="9" fill="#c5221f" font-weight="600">timer pin: w.end</text>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="180" y="112" width="88" height="20" rx="10" fill="#fce8e6" stroke="#EA4335"/>
+            <text x="224" y="126" text-anchor="middle" fill="#c5221f">buffer: 37</text>
+          </g>
+          <line x1="268" y1="122" x2="308" y2="122" stroke="#34A853" stroke-width="4" marker-end="url(#arrETg)"/>
+          <text x="290" y="110" text-anchor="middle" font-size="8.5" fill="#188038">API</text>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="180" y="144" width="130" height="20" rx="10" fill="#e6f4ea" stroke="#34A853"/>
+            <text x="245" y="158" text-anchor="middle" fill="#188038">buffer ∅ · count ∅</text>
+          </g>
+          <text x="165" y="184" text-anchor="middle" font-size="9.5" fill="#5f6368">at the pin: drain the partial batch, then clear the cells</text>
+        </svg>
+      </div>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li>Fires when the <strong>watermark</strong> passes <code>w.end</code> &mdash; when the runner believes the window's data is complete</li>
+        <li>Clearing state in the callback is not optional &mdash; this <em>is</em> the garbage collection for the window (Section 5 returns to it)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Event-time timer">
+  <summary>Speaker notes &mdash; Event-time timer</summary>
+  <div class="n-body"><ul>
+    <li><code>w.end</code> comes from <code>beam.DoFn.WindowParam</code> &mdash; the same injected parameter students met in Module 8. Setting the timer to the window end on <em>every</em> element is deliberately idempotent: same deadline each time, and overwrite-on-set makes the repeats free.</li>
+    <li>Connect to Module 8 precisely: "watermark passes the end of the window" is the same moment the default trigger would fire a windowed aggregation. This DoFn is hand-rolling what triggers gave declaratively &mdash; which is the point: state+timers is the general mechanism underneath.</li>
+    <li>The <code>if count.read():</code> guard: the timer fires even for keys whose buffer flushed at exactly 100 just before window end &mdash; an empty flush should not call the API with zero IDs.</li>
+    <li>Late data (Module 8's allowed lateness): elements arriving after the watermark passes the window end land in an expired window's state lifecycle &mdash; with default allowed lateness of zero they're dropped. The interplay is subtle; the honest classroom answer is "with defaults, the flush at w.end is final."</li>
+    <li>Java: <code>@OnWindowExpiration</code> is a related-but-different hook &mdash; a guaranteed last-callback-before-GC. Worth mentioning to Java cohorts as the belt-and-suspenders companion to an explicit expiry timer.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. PROCESSING-TIME TIMER ============ -->
+<section class="slide" style="padding-top:40px">
+  <span class="brick b-red" style="position:absolute;top:32px;right:64px">REAL_TIME</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:5px;font-size:27px">Processing-time timer: flush on inactivity</h1>
+  <p class="lede" style="margin-bottom:5px;font-size:12.5px">Scenario: latency matters more than batch fullness &mdash; "no order should wait more than 60 real seconds for enrichment, even at 3 a.m. traffic levels."</p>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code small" style="font-size:10px;line-height:1.45;padding:10px 14px"><span class="lang">Python</span><span class="kw">from</span> apache_beam.utils.timestamp <span class="kw">import</span> Duration, Timestamp
+
+<span class="kw">class</span> <span class="fn">BatchEnrichFn</span>(beam.DoFn):
+    STALE = TimerSpec(<span class="st">'stale'</span>, TimeDomain.REAL_TIME)
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv, ...,
+                stale=beam.DoFn.TimerParam(STALE)):
+        <span class="kw">if not</span> count.read():          <span class="cm"># first element of a batch</span>
+            stale.set(Timestamp.now() + Duration(seconds=60))
+        ...                           <span class="cm"># buffering logic</span>
+
+    <span class="kw">@on_timer</span>(STALE)
+    <span class="kw">def</span> <span class="fn">on_stale</span>(self, ...):          <span class="cm"># same flush-and-clear body</span>
+        ...</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:11.5px">
+        <li style="margin-bottom:5px">Wall clock: fires 60 s after <code>set()</code>, regardless of watermarks or data flow</li>
+        <li style="margin-bottom:5px">Setting only on the <strong>first</strong> element of a batch bounds each element's wait at ~60 s &mdash; and avoids re-setting the timer on every element</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="156" viewBox="0 0 330 156">
+          <defs><marker id="arrPT" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker>
+          <marker id="arrPTg" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#34A853"/></marker></defs>
+          <line x1="16" y1="96" x2="316" y2="96" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrPT)"/>
+          <text x="16" y="114" font-size="9" fill="#5f6368">t=0 · batch opens, timer set</text>
+          <line x1="30" y1="96" x2="30" y2="56" stroke="#4285F4" stroke-width="2"/>
+          <circle cx="30" cy="50" r="5" fill="#4285F4"/>
+          <line x1="74" y1="96" x2="74" y2="70" stroke="#4285F4" stroke-width="2"/>
+          <line x1="112" y1="96" x2="112" y2="70" stroke="#4285F4" stroke-width="2"/>
+          <line x1="138" y1="96" x2="138" y2="70" stroke="#4285F4" stroke-width="2"/>
+          <text x="92" y="128" text-anchor="middle" font-size="9" fill="#5f6368">4 elements trickle in — far short of 100</text>
+          <line x1="252" y1="96" x2="252" y2="30" stroke="#EA4335" stroke-width="1.8" stroke-dasharray="5 3"/>
+          <circle cx="252" cy="26" r="5" fill="#EA4335"/>
+          <text x="252" y="16" text-anchor="middle" font-size="9.5" fill="#c5221f" font-weight="600">t=60 s: timer fires</text>
+          <line x1="262" y1="66" x2="306" y2="66" stroke="#34A853" stroke-width="3.5" marker-end="url(#arrPTg)"/>
+          <text x="292" y="52" text-anchor="middle" font-size="8.5" fill="#188038">flush partial batch (4)</text>
+          <text x="166" y="152" text-anchor="middle" font-size="9.5" fill="#5f6368">deadline is fixed at batch open — arrivals don't push it back</text>
+        </svg>
+      </div>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:11.5px;padding:7px 14px">Alternative semantics &mdash; "60 s of <em>silence</em>" &mdash; would re-set on every element; both are one-line policies. Deadline-since-first is what <code>GroupIntoBatches(max_buffering_duration_secs=…)</code> implements.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Processing-time timer">
+  <summary>Speaker notes &mdash; Processing-time timer</summary>
+  <div class="n-body"><ul>
+    <li>The <code>if not count.read():</code> line is the policy decision, and it's worth slowing down for. Set-on-first gives a hard bound: the <em>first</em> order in a batch waits at most 60 s, later ones less. Set-on-every (sliding deadline) means "flush after 60 s of silence" &mdash; under a steady trickle of one order per 59 s, that batch <em>never</em> flushes. Same API, one line apart, very different latency guarantees.</li>
+    <li>Why <code>Timestamp.now()</code> here when the module keeps warning about wall clocks: processing-time timers are <em>defined</em> by the wall clock; this is the one place it belongs. The deadline is absolute, so set = now + duration.</li>
+    <li>Processing-time timers fire on a best-effort schedule &mdash; "no earlier than the deadline, as soon after as the runner gets to it." For latency bounds that's exactly the right contract; for correctness bounds (completeness) it's the wrong tool &mdash; that's the previous slide's timer.</li>
+    <li>In batch pipelines, processing-time timers are largely meaningless (the job just runs to completion); this pattern is streaming-specific. Section 5's support slide makes that explicit.</li>
+    <li>Java: <code>TimerSpecs.timer(TimeDomain.PROCESSING_TIME)</code>, and the offset idiom is <code>timer.offset(Duration.standardSeconds(60)).setRelative()</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. EVENT TIME OR PROCESSING TIME? ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:14px">Event time or processing time?</h1>
+  <div class="cols">
+    <div>
+      <div style="background:#e8f0fe;border-radius:8px;padding:16px 20px;height:100%">
+        <p style="font-weight:600;font-size:16px;color:#1a73e8;margin-bottom:4px">Event time &mdash; <code style="background:#fff">WATERMARK</code></p>
+        <p style="font-size:13.5px;color:#5f6368;margin-bottom:10px">"fire when the <em>data</em> is ready"</p>
+        <ul class="body" style="font-size:13.5px">
+          <li>Completeness-driven: flush / emit when a window's input is complete</li>
+          <li>The final, authoritative per-window result</li>
+          <li>Pace follows the data: a stalled source stalls the timer too</li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div style="background:#fce8e6;border-radius:8px;padding:16px 20px;height:100%">
+        <p style="font-weight:600;font-size:16px;color:#c5221f;margin-bottom:4px">Processing time &mdash; <code style="background:#fff">REAL_TIME</code></p>
+        <p style="font-size:13.5px;color:#5f6368;margin-bottom:10px">"fire when the <em>clock</em> says so"</p>
+        <ul class="body" style="font-size:13.5px">
+          <li>Latency-driven: timeouts, "at most N seconds in the buffer"</li>
+          <li>Periodic output regardless of data flow</li>
+          <li>Results may be incomplete <strong>by design</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="vgap"></div>
+  <div class="callout good" style="font-size:14.5px"><strong>They compose.</strong> The capstone on the next section's first slide uses <em>both</em> on one DoFn: an event-time timer for completeness, a processing-time timer for latency.</div>
+</section>
+<details class="notes" data-title="Event time or processing time?">
+  <summary>Speaker notes &mdash; Event time or processing time?</summary>
+  <div class="n-body"><ul>
+    <li>Concrete prompts to run the class through, answers in parentheses:
+      <ul>
+        <li>"Flush the session's events once the session window is complete" &mdash; (event time: completeness).</li>
+        <li>"Emit a heartbeat per device every minute even if it sent nothing" &mdash; (processing time: periodic regardless of data).</li>
+        <li>"Time out a signup flow after 24 h of no activity" &mdash; (processing time: a real-world clock promise).</li>
+        <li>"Produce the definitive hourly total" &mdash; (event time: the watermark defines 'definitive').</li>
+      </ul>
+    </li>
+    <li>The third bullet on each side is the sharp edge: an event-time timer on a stalled source may fire arbitrarily late (the watermark isn't advancing) &mdash; correct but not timely. A processing-time timer always fires &mdash; timely but possibly incomplete. That's not a flaw in either; it's the definition of the two clocks, and it mirrors Module 8's completeness-vs-latency trade-off exactly.</li>
+    <li>This is also Module 8's watermark material paying rent: if students can't say why "the watermark passed w.end" differs from "10 minutes of wall clock elapsed," revisit that before the capstone.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. TIMER MECHANICS WORTH KNOWING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Timer mechanics worth knowing</h1>
+  <div class="cols">
+    <div style="flex:0 0 62%">
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Overwrite on set:</strong> one pending deadline per spec per key + window; <code>set()</code> replaces it. To "extend," just set again</li>
+        <li><strong>Looping timers:</strong> an <code>@on_timer</code> callback may set its own timer again &mdash; periodic per-key output, e.g. "emit each key's running total every minute even if nothing arrived"</li>
+        <li><strong>Callbacks see state:</strong> flush logic lives once, called from both <code>process()</code> and timer callbacks</li>
+        <li><strong>Timers are per key + window</strong>, like state: a timer for <code>cust-17</code> never fires logic for <code>cust-42</code></li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="270" height="220" viewBox="0 0 270 220">
+          <defs><marker id="arrLP" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#F9AB00"/></marker></defs>
+          <circle cx="135" cy="86" r="44" fill="#fff" stroke="#F9AB00" stroke-width="4"/>
+          <rect x="125" y="26" width="20" height="10" rx="3" fill="#F9AB00"/>
+          <line x1="135" y1="86" x2="135" y2="58" stroke="#F9AB00" stroke-width="3.5" stroke-linecap="round"/>
+          <line x1="135" y1="86" x2="154" y2="94" stroke="#F9AB00" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M 176 110 Q 216 150 176 178 Q 135 200 96 178 Q 56 150 94 111" fill="none" stroke="#F9AB00" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrLP)"/>
+          <text x="135" y="196" text-anchor="middle" font-size="10" fill="#b06000" font-weight="600">on_timer sets itself again</text>
+          <text x="135" y="214" text-anchor="middle" font-size="9.5" fill="#5f6368">a looping timer: periodic per-key output</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px">Java only: <code>@TimerFamily</code> allows dynamically-tagged timers when a fixed set of <code>TimerSpec</code>s isn't enough.</div>
+</section>
+<details class="notes" data-title="Timer mechanics worth knowing">
+  <summary>Speaker notes &mdash; Timer mechanics worth knowing</summary>
+  <div class="n-body"><ul>
+    <li><strong>Overwrite-on-set is a feature, not a limitation.</strong> "One deadline per spec" sounds restrictive until you notice both idioms it enables: idempotent setting (the event-time slide set <code>w.end</code> on every element, free) and deadline extension (a session-timeout timer re-set on each activity <em>is</em> the sliding window). Wanting several concurrent deadlines usually means you want several specs &mdash; exactly what the capstone does with EXPIRY + STALE.</li>
+    <li><strong>Looping timers</strong> solve "emit even when no data arrives" &mdash; something no element-driven code can do, because no elements means no <code>process()</code> calls. Uses: per-key heartbeats, slowly-refreshing caches (slide 20), periodic partial aggregates in the global window. Remember to <em>stop</em> the loop (a condition in the callback), or it runs for every key forever.</li>
+    <li>A pending event-time timer also holds back the output watermark by default &mdash; the runner knows output may still be produced at that timestamp. Deep water; flag it only if a student hits "my watermark is stuck" in production.</li>
+    <li><code>@TimerFamily</code> (Java): dynamically-keyed timers within one declared family, for "one timeout per <em>thing within</em> the key." Python has no equivalent through 2.70 &mdash; restructure keys instead.</li>
+  </ul></div>
+</details>
+
+<!-- ============ D4. DIVIDER: THE FULL PATTERN ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 5</div>
+    <h1>The Full Pattern &mdash; and the Built-in That Replaces It</h1>
+    <div class="sub">Everything assembled: the batched-enrichment DoFn with two state cells and two timers. Then the honest ending &mdash; Beam ships this exact pattern, and you should usually use it.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why stateful?</span><span>State API</span><span>Timer API</span><span class="current">The full pattern</span><span>Best practices</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: The Full Pattern">
+  <summary>Speaker notes &mdash; Section 4: The Full Pattern</summary>
+  <div class="n-body"><ul>
+    <li>Three slides: the capstone class (every piece already seen, now composed), the <code>GroupIntoBatches</code> reveal, and a tour of what else people build with the mechanism.</li>
+    <li>The teaching bet of the whole module pays off here: because students built the pattern by hand, the built-in's knobs (<code>batch_size</code>, <code>max_buffering_duration_secs</code>) are not magic numbers &mdash; they're the two flush conditions they just implemented.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. CAPSTONE ============ -->
+<section class="slide" style="padding-top:38px">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:4px;font-size:26px">Capstone: the batched-enrichment DoFn, complete</h1>
+  <div class="cols">
+    <div style="flex:0 0 56%">
+      <pre class="code small" style="font-size:9.5px;line-height:1.4;padding:10px 14px"><span class="lang">Python</span><span class="kw">class</span> <span class="fn">BatchEnrichFn</span>(beam.DoFn):
+    MAX_BATCH = 100
+    BUFFER = BagStateSpec(<span class="st">'buffer'</span>, OrderCoder())
+    COUNT  = CombiningValueStateSpec(<span class="st">'count'</span>, combine_fn=<span class="fn">sum</span>)
+    EXPIRY = TimerSpec(<span class="st">'expiry'</span>, TimeDomain.WATERMARK)
+    STALE  = TimerSpec(<span class="st">'stale'</span>,  TimeDomain.REAL_TIME)
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, kv, w=beam.DoFn.WindowParam,
+                buffer=..., count=..., expiry=..., stale=...):
+        expiry.set(w.end)
+        <span class="kw">if not</span> count.read():
+            stale.set(Timestamp.now() + Duration(seconds=60))
+        buffer.add(kv[1]); count.add(1)
+        <span class="kw">if</span> count.read() &gt;= self.MAX_BATCH:
+            <span class="kw">yield from</span> self._flush(buffer, count)
+
+    <span class="kw">@on_timer</span>(EXPIRY)
+    <span class="kw">def</span> <span class="fn">on_expiry</span>(self, buffer=..., count=...):
+        <span class="kw">yield from</span> self._flush(buffer, count)
+
+    <span class="kw">@on_timer</span>(STALE)
+    <span class="kw">def</span> <span class="fn">on_stale</span>(self, buffer=..., count=...):
+        <span class="kw">yield from</span> self._flush(buffer, count)
+
+    <span class="kw">def</span> <span class="fn">_flush</span>(self, buffer, count):
+        <span class="kw">if</span> count.read():
+            <span class="kw">yield from</span> enrich_batch(buffer.read())
+        buffer.clear(); count.clear()</pre>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="340" height="330" viewBox="0 0 340 330">
+          <defs><marker id="arrCP" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#F9AB00"/></marker>
+          <marker id="arrCPg" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#34A853"/></marker>
+          <marker id="arrCPn" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker>
+          <marker id="arrCPb" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#4285F4"/></marker></defs>
+          <line x1="2" y1="60" x2="30" y2="60" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrCPn)"/>
+          <text x="16" y="48" text-anchor="middle" font-size="8.5" fill="#5f6368">orders</text>
+          <rect x="34" y="16" width="180" height="180" rx="10" fill="#fff" stroke="#4285F4" stroke-width="1.6"/>
+          <text x="46" y="36" font-size="10.5" font-weight="600" fill="#1a73e8">BatchEnrichFn</text>
+          <rect x="46" y="46" width="156" height="36" rx="6" fill="#e8f0fe"/>
+          <text x="56" y="68" font-size="10" font-family="Roboto Mono,monospace" fill="#202124">process()</text>
+          <rect x="46" y="98" width="156" height="36" rx="6" fill="#fef7e0"/>
+          <text x="56" y="120" font-size="10" font-family="Roboto Mono,monospace" fill="#202124">on_expiry()</text>
+          <rect x="46" y="150" width="156" height="36" rx="6" fill="#fef7e0"/>
+          <text x="56" y="172" font-size="10" font-family="Roboto Mono,monospace" fill="#202124">on_stale()</text>
+
+          <circle cx="272" cy="106" r="21" fill="#fff" stroke="#4285F4" stroke-width="2.5"/>
+          <rect x="267" y="76" width="10" height="6" rx="2" fill="#4285F4"/>
+          <line x1="272" y1="106" x2="272" y2="93" stroke="#4285F4" stroke-width="2" stroke-linecap="round"/>
+          <line x1="272" y1="106" x2="281" y2="110" stroke="#4285F4" stroke-width="2" stroke-linecap="round"/>
+          <text x="272" y="140" text-anchor="middle" font-size="8" fill="#1a73e8">watermark</text>
+          <text x="272" y="150" text-anchor="middle" font-size="8" fill="#1a73e8">passes w.end</text>
+          <path d="M 254 118 Q 230 120 206 116" fill="none" stroke="#F9AB00" stroke-width="1.6" marker-end="url(#arrCP)"/>
+
+          <circle cx="272" cy="182" r="21" fill="#fff" stroke="#EA4335" stroke-width="2.5"/>
+          <rect x="267" y="152" width="10" height="6" rx="2" fill="#EA4335"/>
+          <line x1="272" y1="182" x2="272" y2="169" stroke="#EA4335" stroke-width="2" stroke-linecap="round"/>
+          <line x1="272" y1="182" x2="281" y2="186" stroke="#EA4335" stroke-width="2" stroke-linecap="round"/>
+          <text x="272" y="216" text-anchor="middle" font-size="8" fill="#c5221f">60 s after first</text>
+          <text x="272" y="226" text-anchor="middle" font-size="8" fill="#c5221f">buffered order</text>
+          <path d="M 254 190 Q 232 192 206 172" fill="none" stroke="#F9AB00" stroke-width="1.6" marker-end="url(#arrCP)"/>
+
+          <ellipse cx="124" cy="234" rx="88" ry="11" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+          <path d="M36 234 L36 272 A88 11 0 0 0 212 272 L212 234" fill="#f8f9fa" stroke="#4285F4" stroke-width="1.4"/>
+          <ellipse cx="124" cy="272" rx="88" ry="11" fill="none" stroke="#4285F4" stroke-width="1.4"/>
+          <text x="124" y="258" text-anchor="middle" font-size="9.5" font-family="Roboto Mono,monospace" fill="#202124">buffer · count</text>
+          <line x1="92" y1="196" x2="106" y2="224" stroke="#4285F4" stroke-width="1.3" marker-end="url(#arrCPb)"/>
+          <line x1="146" y1="224" x2="160" y2="196" stroke="#4285F4" stroke-width="1.3" marker-end="url(#arrCPb)"/>
+
+          <line x1="214" y1="60" x2="266" y2="60" stroke="#34A853" stroke-width="5" marker-end="url(#arrCPg)"/>
+          <rect x="270" y="40" width="66" height="40" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="303" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#188038">Enrichment</text>
+          <text x="303" y="70" text-anchor="middle" font-size="9" font-weight="600" fill="#188038">API</text>
+          <text x="124" y="308" text-anchor="middle" font-size="9" fill="#5f6368">three ways in, one _flush() out —</text>
+          <text x="124" y="320" text-anchor="middle" font-size="9" fill="#5f6368">timers point into the ParDo (callbacks), not out</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Capstone: the complete DoFn">
+  <summary>Speaker notes &mdash; Capstone: the complete DoFn</summary>
+  <div class="n-body"><ul>
+    <li>Nothing on this slide is new &mdash; say that first. Bag + counter is the BagState slide; <code>expiry.set(w.end)</code> is the event-time slide; set-on-first STALE is the processing-time slide. The composition is the only new content: three entry points, one <code>_flush()</code>.</li>
+    <li>The elided <code>buffer=...</code> parameter defaults stand for the full <code>beam.DoFn.StateParam(BUFFER)</code> spellings shown on earlier slides &mdash; they're compressed here so the structure fits on one slide.</li>
+    <li>Walk the three flush paths and what each guarantees: <strong>size</strong> (100 reached in <code>process()</code> &mdash; throughput), <strong>completeness</strong> (EXPIRY at window end &mdash; correctness), <strong>latency</strong> (STALE at 60 s &mdash; the 3 a.m. guarantee). All three call the same <code>_flush()</code>, which clears both cells &mdash; so after any flush, the next element starts a fresh batch and re-arms STALE.</li>
+    <li>Residual sharp edges, worth naming honestly: after a size-triggered flush, STALE still fires on schedule (harmless: the <code>count.read()</code> guard makes it a no-op, and Python through 2.70 has no <code>timer.clear()</code> &mdash; guard-in-callback is the idiom). And <code>_flush</code> as a generator called from three methods works because each caller <code>yield from</code>s it.</li>
+    <li>If this feels like a lot of machinery for "batch my API calls" &mdash; good. That reaction is the setup for the next slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. GROUPINTOBATCHES ============ -->
+<section class="slide">
+  <span class="brick b-green" style="position:absolute;top:44px;right:64px">GroupIntoBatches</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">Now that you can build it: don't. <span class="accent">Use GroupIntoBatches</span></h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The pattern you just built is common enough that Beam ships it as a transform.</p>
+  <pre class="code small" style="font-size:12px;line-height:1.5"><span class="lang">Python</span>enriched = (
+    orders                                   <span class="cm"># ('cust-region-EU', order)</span>
+    | beam.GroupIntoBatches(
+          batch_size=100,
+          max_buffering_duration_secs=60)
+    | beam.MapTuple(<span class="kw">lambda</span> key, batch: enrich_batch(batch))
+)
+<span class="cm"># ('cust-region-EU', [order, order, …])  ≤100 per batch, ≤60 s wait</span></pre>
+  <div class="vgap-s"></div>
+  <div class="cols">
+    <div style="flex:0 0 58%">
+      <ul class="body" style="font-size:13px">
+        <li>Implemented with exactly the state + timers from the capstone &mdash; you now know what it does and what its knobs mean</li>
+        <li>On Dataflow, prefer <code>GroupIntoBatches.WithShardedKey(...)</code> (Java: <code>withShardedKey()</code>) &mdash; lets the runner shard hot keys and autoscale</li>
+        <li>Also built on state &amp; timers: <code>Deduplicate</code> &mdash; per-key dedup with a time horizon</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout good" style="font-size:13px">State and timers are the <strong>mechanism</strong>. Built-ins are the <strong>product</strong>. Learn the mechanism to use the products well &mdash; and to build your own when none fits.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="GroupIntoBatches">
+  <summary>Speaker notes &mdash; GroupIntoBatches</summary>
+  <div class="n-body"><ul>
+    <li>Map the knobs to the capstone line by line: <code>batch_size=100</code> is the <code>count.read() &gt;= MAX_BATCH</code> check; <code>max_buffering_duration_secs=60</code> is the STALE timer with set-on-first semantics; the window-end flush comes free with windowing, like EXPIRY. The output is (key, list-of-orders) &mdash; the API call itself stays yours, in the MapTuple.</li>
+    <li><strong><code>GroupIntoBatches.WithShardedKey</code></strong> is the production tip worth underlining on Dataflow: it batches per (key, shard) instead of per key, which legitimizes exactly the "batching per shard is fine" observation from the scenario &mdash; and it unlocks autoscaling beyond the key count for this stage. See the "grouping elements for efficient external service calls" pattern page (linked on the final slide).</li>
+    <li><code>Deduplicate</code> (from <code>apache_beam.transforms.deduplicate</code>; also <code>DeduplicatePerKey</code>) completes the message that this module's mechanism underlies the library: Set/Value state ("seen?") plus an event-time GC timer (the horizon). Students can now read its docs and <em>see</em> the state and timers in it.</li>
+    <li>The decision rule to leave them with: reach for built-ins first; hand-roll a stateful DoFn when the logic is genuinely custom &mdash; not when it's a batch, a dedup, or anything else already on the shelf. The full decision ladder closes Section 5.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. WHAT PEOPLE BUILD ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">What people build with state and timers</h1>
+  <div class="tiles">
+    <div class="tile">
+      <div class="t-title">Domain-specific triggering</div>
+      <div class="t-line">"Alert after 3 failed payments for one card, then reset."</div>
+      <div class="t-line"><b>state:</b> Combining (count) &middot; <b>timer:</b> event-time GC</div>
+    </div>
+    <div class="tile">
+      <div class="t-title">Per-key workflows / state machines</div>
+      <div class="t-line">Signup flow with a reminder email.</div>
+      <div class="t-line"><b>state:</b> Value (step) &middot; <b>timer:</b> processing-time reminder, re-set as steps advance</div>
+    </div>
+    <div class="tile">
+      <div class="t-title">Slowly changing lookup data</div>
+      <div class="t-line">Per-key cached FX rate.</div>
+      <div class="t-line"><b>state:</b> Value (rate) &middot; <b>timer:</b> looping processing-time refresh</div>
+    </div>
+    <div class="tile">
+      <div class="t-title">Streaming joins, custom rules</div>
+      <div class="t-line">Roughly how CoGroupByKey behaves under the hood.</div>
+      <div class="t-line"><b>state:</b> Bag per side &middot; <b>timer:</b> event-time emit-and-clear at window end</div>
+    </div>
+    <div class="tile">
+      <div class="t-title">Deduplication</div>
+      <div class="t-line">"Have I seen this event ID before?"</div>
+      <div class="t-line"><b>state:</b> Set / Value (seen?) &middot; <b>timer:</b> event-time horizon</div>
+    </div>
+  </div>
+  <div class="vgap"></div>
+  <div class="callout" style="font-size:13.5px">Every entry is "<strong>state</strong> = what to remember, <strong>timer</strong> = when to act without an element." If you can fill in those two blanks, you can build it.</div>
+</section>
+<details class="notes" data-title="What people build with state and timers">
+  <summary>Speaker notes &mdash; What people build with state and timers</summary>
+  <div class="n-body"><ul>
+    <li>The point of the "state = X, timer = Y" line on every tile: none of these is hand-wavy. Each one is a small design exercise students could now sketch &mdash; consider doing one live on a whiteboard (the failed-payments alert is the quickest: Combining count per card, alert at 3, event-time timer clears the count at horizon).</li>
+    <li>Extra color per tile if time allows:
+      <ul>
+        <li><em>Workflows:</em> the timer re-set on each step is the overwrite-on-set idiom &mdash; the reminder only fires if the flow stalls.</li>
+        <li><em>Lookup cache:</em> the looping timer refreshes the rate even when no orders arrive for that key &mdash; element-driven code can't do that.</li>
+        <li><em>Joins:</em> when the built-in join semantics (CoGroupByKey, Beam SQL) don't fit &mdash; e.g., emit-on-first-match, or expire unmatched rows early &mdash; the two-bag pattern is how you take control.</li>
+        <li><em>Dedup:</em> the horizon matters &mdash; without a GC timer, "seen" state grows forever. And <code>Deduplicate</code> ships this; hand-roll only for custom horizons or match rules.</li>
+      </ul>
+    </li>
+    <li>These five cover most real questions students bring; if one of them maps to a student's production problem, take five minutes on it &mdash; that transfer is worth more than the slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ D5. DIVIDER: BEST PRACTICES ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 5</div>
+    <h1>Best Practices and Pitfalls</h1>
+    <div class="sub">Cleanup, key choice, performance habits, and runner support &mdash; the difference between a stateful pipeline that works in a demo and one that survives production.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why stateful?</span><span>State API</span><span>Timer API</span><span>The full pattern</span><span class="current">Best practices</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: Best Practices and Pitfalls">
+  <summary>Speaker notes &mdash; Section 5: Best Practices and Pitfalls</summary>
+  <div class="n-body"><ul>
+    <li>Ordering: the two <em>correctness</em> pitfalls first (state leaks, key-choice parallelism), then performance habits, then runner/language support, then the closing decision ladder that ties the whole module together.</li>
+    <li>Everything here generalizes beyond the enrichment scenario &mdash; these are review-checklist items for any stateful DoFn a student ever writes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. STATE CLEANUP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">State must be cleaned up &mdash; by you</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The runner GCs state <strong>when its window expires</strong> (end of window + allowed lateness). Two consequences:</p>
+  <ul class="body" style="font-size:14px">
+    <li><strong>Windowed pipelines:</strong> flush-and-clear at your event-time timer; the runner reclaims the rest at expiry</li>
+    <li><strong>Global window + streaming = state lives forever</strong> unless you clear it or set your own GC timer &mdash; the classic slow leak: memory and backlog grow for weeks, then the pipeline degrades</li>
+    <li>The pattern: per-key GC timer in the global window = event-time timer set to "last activity + horizon"; the callback clears all cells</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="720" height="132" viewBox="0 0 720 132">
+      <g font-family="Google Sans,Roboto,sans-serif">
+        <text x="8" y="16" font-size="10.5" fill="#188038" font-weight="600">windowed: cells born and reclaimed per window</text>
+        <line x1="8" y1="44" x2="336" y2="44" stroke="#9aa0a6" stroke-width="1.2"/>
+        <rect x="20" y="28" width="86" height="18" rx="4" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="63" y="41" text-anchor="middle" font-size="8.5" fill="#188038">w1 cells</text>
+        <text x="118" y="41" font-size="10" fill="#34A853">✓ reclaimed</text>
+        <rect x="188" y="28" width="86" height="18" rx="4" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="231" y="41" text-anchor="middle" font-size="8.5" fill="#188038">w2 cells</text>
+        <text x="286" y="41" font-size="10" fill="#34A853">✓ reclaimed</text>
+
+        <text x="380" y="16" font-size="10.5" fill="#c5221f" font-weight="600">global window: nothing is ever reclaimed for you</text>
+        <line x1="380" y1="44" x2="708" y2="44" stroke="#9aa0a6" stroke-width="1.2"/>
+        <rect x="392" y="34" width="40" height="10" fill="#fce8e6" stroke="#EA4335" stroke-width=".8"/>
+        <rect x="392" y="22" width="70" height="10" fill="#fce8e6" stroke="#EA4335" stroke-width=".8"/>
+        <rect x="392" y="10" width="100" height="10" fill="#fce8e6" stroke="#EA4335" stroke-width=".8"/>
+        <text x="540" y="20" font-size="9.5" fill="#c5221f">state accumulates for every key ever seen…</text>
+        <line x1="600" y1="44" x2="600" y2="6" stroke="#4285F4" stroke-width="1.6" stroke-dasharray="5 3"/>
+        <text x="606" y="14" font-size="9" fill="#1a73e8" font-weight="600">GC-timer pin:</text>
+        <text x="606" y="26" font-size="9" fill="#1a73e8">last activity + horizon</text>
+        <text x="606" y="38" font-size="9" fill="#1a73e8">→ clear all cells</text>
+      </g>
+      <text x="360" y="76" text-anchor="middle" font-size="10.5" fill="#5f6368">the leak is silent: no error, just memory / backlog growing until the pipeline degrades</text>
+    </svg>
+  </div>
+  <div class="callout warn" style="font-size:13.5px">If you write to a cell, decide <strong>in the same block of code</strong> who clears it and when.</div>
+</section>
+<details class="notes" data-title="State must be cleaned up">
+  <summary>Speaker notes &mdash; State must be cleaned up</summary>
+  <div class="n-body"><ul>
+    <li>The runner's guarantee, stated exactly once more: state (and timers) belong to a key <em>and window</em>, and the runner reclaims them when the window expires &mdash; end of window plus allowed lateness. In windowed pipelines your explicit <code>clear()</code> at flush is mostly about not carrying dead weight until expiry.</li>
+    <li>The trap: streaming pipelines commonly run in the <strong>global window</strong> (Module 8: unbounded, never expires) &mdash; precisely where stateful DoFns are most tempting. There, no expiry ever comes. Every key ever seen &mdash; every customer, every device, every session ID &mdash; holds its cells forever unless your code clears them.</li>
+    <li>Why it's insidious: the leak has no error message. On Dataflow it shows up weeks later as growing state size / memory pressure and rising watermark lag. By then the fix (a GC timer) requires updating a pipeline that's already degraded.</li>
+    <li>The GC-timer pattern in words: on each element, set an event-time timer to "now + horizon" (overwrite-on-set makes this a sliding deadline per key); the callback clears every cell. It's the dedup tile's horizon and the capstone's EXPIRY generalized.</li>
+    <li>The callout is a code-review habit, phrased to be checkable in a diff: any <code>state.write()</code>/<code>add()</code> without a visible clearing path in the same DoFn is a bug until proven otherwise.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. KEY CHOICE = PARALLELISM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Key choice controls parallelism (again)</h1>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <ul class="body" style="font-size:14px">
+        <li>All elements for one key are processed <strong>serially</strong> wherever that key's state lives &mdash; module 5's GroupByKey physics, and it applies to stateful ParDo too
+          <ul>
+            <li>Too few keys &rarr; capped parallelism: 3 keys = at most 3 busy workers</li>
+            <li>Hot key &rarr; one overloaded worker, everyone else idle; upstream backlog</li>
+          </ul>
+        </li>
+        <li>Pick keys with enough cardinality <em>and</em> balance &mdash; customer-region was fine; "country" with 90% US traffic is not</li>
+        <li>Batching per <em>shard</em> rather than per logical key is often fine &mdash; that's exactly what <code>GroupIntoBatches.WithShardedKey</code> legitimizes</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="340" height="200" viewBox="0 0 340 200">
+          <text x="8" y="14" font-size="10.5" fill="#c5221f" font-weight="600">hot key: one worker owns the pile — and its state</text>
+          <rect x="8" y="24" width="152" height="98" rx="6" fill="#fff" stroke="#5f6368"/>
+          <text x="84" y="40" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Worker 1</text>
+          <rect x="20" y="48" width="13" height="13" fill="#34A853"/><rect x="37" y="48" width="13" height="13" fill="#34A853"/>
+          <rect x="54" y="48" width="13" height="13" fill="#34A853"/><rect x="71" y="48" width="13" height="13" fill="#34A853"/>
+          <rect x="88" y="48" width="13" height="13" fill="#34A853"/><rect x="105" y="48" width="13" height="13" fill="#34A853"/>
+          <rect x="122" y="48" width="13" height="13" fill="#34A853"/><rect x="139" y="48" width="13" height="13" fill="#34A853"/>
+          <rect x="20" y="65" width="13" height="13" fill="#34A853"/><rect x="37" y="65" width="13" height="13" fill="#34A853"/>
+          <rect x="54" y="65" width="13" height="13" fill="#34A853"/><rect x="71" y="65" width="13" height="13" fill="#34A853"/>
+          <text x="84" y="98" text-anchor="middle" font-size="9" fill="#5f6368">all elements for key x, serially</text>
+          <ellipse cx="84" cy="112" rx="46" ry="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.2"/>
+          <text x="84" y="115" text-anchor="middle" font-size="7.5" font-family="Roboto Mono,monospace" fill="#1a73e8">state: key x</text>
+          <rect x="176" y="24" width="152" height="98" rx="6" fill="#fff" stroke="#9aa0a6"/>
+          <text x="252" y="40" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Worker 2</text>
+          <rect x="188" y="48" width="13" height="13" fill="#34A853"/>
+          <rect x="205" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/><rect x="222" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/>
+          <rect x="239" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/><rect x="256" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/>
+          <rect x="273" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/><rect x="290" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/>
+          <rect x="307" y="48" width="13" height="13" fill="#e8eaed" stroke="#dadce0"/>
+          <text x="252" y="98" text-anchor="middle" font-size="9" fill="#5f6368">idle after key y</text>
+          <text x="168" y="152" text-anchor="middle" font-size="10" fill="#5f6368">adding workers cannot help: one key's elements cannot be split —</text>
+          <text x="168" y="166" text-anchor="middle" font-size="10" fill="#5f6368">they all need the same state cells</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Key choice controls parallelism">
+  <summary>Speaker notes &mdash; Key choice controls parallelism</summary>
+  <div class="n-body"><ul>
+    <li>Same figure as Module 5's hot-key slide, one addition: the state cylinder glued to Worker 1. That's the causal link &mdash; the elements can't spread out because they all need the same cells, and the cells live in one place. Serial per key is a <em>semantic</em> bound (state consistency requires it), not a scheduling accident.</li>
+    <li>Worse than GroupByKey in one respect: a GroupByKey hot key hurts once per window at aggregation time; a hot key in a stateful ParDo serializes <em>every element's</em> processing, continuously.</li>
+    <li>Run the scenario's numbers: keying the enrichment by "customer" gives millions of keys (great parallelism, terrible batches of ~1); by "country" gives ~200 keys with 90% of traffic in one (parallelism capped, one giant hot key); "customer region" was chosen as the middle ground. Key design is a real design axis, not plumbing.</li>
+    <li>The sharding observation generalizes: when per-key semantics aren't actually required (batching isn't &mdash; any 100 orders from the region make a valid batch), a synthetic shard component in the key buys parallelism. <code>GroupIntoBatches.WithShardedKey</code> is that move, done for you, with Dataflow-side autoscaling awareness.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. PERFORMANCE HABITS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Performance habits</h1>
+  <ol class="steps" style="font-size:14.5px">
+    <li><strong>Aggregation in state &rarr; Combining, not read-modify-write</strong> &mdash; blind writes let the runner compact lazily</li>
+    <li><strong>Buffers &rarr; Bag</strong>, with size tracked in a separate Combining cell &mdash; never read a bag just to count it</li>
+    <li><strong>Coders matter twice:</strong> state is serialized on every access path &mdash; compact, deterministic coders (module 5's coder guidance applies)</li>
+    <li><strong>Set timers idempotently or conditionally</strong> &mdash; <code>w.end</code> every time, or "only on first element" &mdash; not a new deadline per element when avoidable</li>
+    <li><strong>Keep per-key state small (KBs, not MBs):</strong> it's a working set, not a database &mdash; very large per-key data usually means the key is wrong, or the job is a join that belongs in <code>CoGroupByKey</code> / side inputs</li>
+  </ol>
+</section>
+<details class="notes" data-title="Performance habits">
+  <summary>Speaker notes &mdash; Performance habits</summary>
+  <div class="n-body"><ul>
+    <li>Items 1 and 2 are the module's own examples promoted to rules &mdash; refer back to the Combining and BagState slides rather than re-deriving.</li>
+    <li>Item 3, "twice": once per write and once per read &mdash; and for hot paths the write happens per element. A JSON-ish PickleCoder on a per-element cell is a hidden tax on every single element; a <code>VarIntCoder</code> or a tight custom coder is not. Determinism matters because state bytes are compared/merged by the runner.</li>
+    <li>Item 4's cost model: each <code>set()</code> is a state write. Idempotent sets (same deadline) are cheap for the runner to elide; genuinely moving the deadline per element (sliding timeouts) is fine when it <em>is</em> the semantics &mdash; the habit is about not doing it accidentally.</li>
+    <li>Item 5 is the design smell that catches real designs: "load the customer's full history into state" is a join wearing a state costume. Joins have tools (CoGroupByKey, side inputs &mdash; Module 5); state is for the compact working set of an ongoing computation.</li>
+    <li>Observability on Dataflow: streaming jobs expose per-stage state metrics; a stage whose state size only ever grows is item 5 or a missing GC (previous slide) &mdash; usually the latter.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. SUPPORT VARIES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Support varies: check before you design</h1>
+  <ul class="body" style="font-size:14.5px">
+    <li>State and timers require a <strong>keyed</strong> input, and are supported on Dataflow and most portable runners for the core cells (Value / Bag / Combining) &mdash; check the <a href="https://beam.apache.org/documentation/runners/capability-matrix/" style="color:#1a73e8">capability matrix</a> for Set / OrderedList / Map and for processing-time timers</li>
+    <li>Language gaps are real: Map state has no Python spec (through 2.70); timer families are Java-only</li>
+    <li><strong>Batch vs streaming:</strong> the APIs work in both &mdash; but in batch, "processing time" and watermark semantics are less meaningful; event-time timers effectively fire at the end of each window's data</li>
+    <li><strong>Dataflow note:</strong> streaming state lives in Streaming Engine when enabled (module 2's compute/state separation) &mdash; that's what makes large state autoscale-safe</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13.5px">Design against the runner and SDK you will actually deploy on &mdash; and verify the exotic cell types against the matrix <em>before</em> the architecture depends on them.</div>
+</section>
+<details class="notes" data-title="Support varies">
+  <summary>Speaker notes &mdash; Support varies</summary>
+  <div class="n-body"><ul>
+    <li>The keyed-input requirement is worth restating as a checklist item because the error only appears at pipeline construction/run time: applying a stateful DoFn to an unkeyed PCollection fails &mdash; add the keying Map/WithKeys first.</li>
+    <li>The core trio (Value, Bag, Combining) plus both timer domains is the portable safe set &mdash; everything this module built runs on Dataflow today. The moment a design leans on Set/OrderedList/Map or on subtle timer behavior, the capability matrix is the source of truth, not memory &mdash; support genuinely shifts between Beam releases.</li>
+    <li>Batch nuance, one level deeper if asked: in batch there's no incremental watermark &mdash; the runner processes a window's data and then fires its event-time timers; processing-time timers may fire only at the end or be of limited use. Code using event-time timers ports cleanly between batch and streaming; wall-clock latency logic is streaming-only by nature.</li>
+    <li>The Streaming Engine link back to Module 2 lands the architecture story: state off the workers is why stateful streaming pipelines can autoscale and survive worker loss &mdash; the durability half of the Section 1 contract, physically explained.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. DECISION LADDER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Which tool, when</h1>
+  <div class="figure">
+    <svg width="780" height="278" viewBox="0 0 780 278">
+      <defs><marker id="arrDL" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+      <g font-family="Google Sans,Roboto,sans-serif" font-size="12">
+        <rect x="30" y="8" width="360" height="34" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="46" y="30" fill="#202124">Element-wise only?</text>
+        <line x1="390" y1="25" x2="448" y2="25" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="418" y="18" text-anchor="middle" font-size="9.5" fill="#188038">yes</text>
+        <rect x="452" y="8" width="300" height="34" rx="17" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="602" y="30" text-anchor="middle" fill="#1a73e8" font-family="Roboto Mono,monospace" font-size="11.5">ParDo / Map</text>
+
+        <line x1="210" y1="42" x2="210" y2="62" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="222" y="57" font-size="9.5" fill="#5f6368">no</text>
+        <rect x="30" y="64" width="360" height="34" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="46" y="86" fill="#202124">Standard aggregation per key / window?</text>
+        <line x1="390" y1="81" x2="448" y2="81" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="418" y="74" text-anchor="middle" font-size="9.5" fill="#188038">yes</text>
+        <rect x="452" y="64" width="300" height="34" rx="17" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="602" y="86" text-anchor="middle" fill="#1a73e8" font-family="Roboto Mono,monospace" font-size="11.5">CombinePerKey + windows/triggers</text>
+
+        <line x1="210" y1="98" x2="210" y2="118" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="222" y="113" font-size="9.5" fill="#5f6368">no</text>
+        <rect x="30" y="120" width="360" height="34" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="46" y="142" fill="#202124">Batching for an external call?</text>
+        <line x1="390" y1="137" x2="448" y2="137" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="418" y="130" text-anchor="middle" font-size="9.5" fill="#188038">yes</text>
+        <rect x="452" y="120" width="300" height="34" rx="17" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="602" y="142" text-anchor="middle" fill="#1a73e8" font-family="Roboto Mono,monospace" font-size="11.5">GroupIntoBatches (+ WithShardedKey)</text>
+
+        <line x1="210" y1="154" x2="210" y2="174" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="222" y="169" font-size="9.5" fill="#5f6368">no</text>
+        <rect x="30" y="176" width="360" height="34" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="46" y="198" fill="#202124">Per-key dedup with a time horizon?</text>
+        <line x1="390" y1="193" x2="448" y2="193" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="418" y="186" text-anchor="middle" font-size="9.5" fill="#188038">yes</text>
+        <rect x="452" y="176" width="300" height="34" rx="17" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="602" y="198" text-anchor="middle" fill="#1a73e8" font-family="Roboto Mono,monospace" font-size="11.5">Deduplicate</text>
+
+        <line x1="210" y1="210" x2="210" y2="230" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <text x="222" y="225" font-size="9.5" fill="#5f6368">no</text>
+        <rect x="30" y="232" width="360" height="34" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="46" y="254" fill="#202124">Genuinely custom per-key memory or emit rules?</text>
+        <line x1="390" y1="249" x2="448" y2="249" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrDL)"/>
+        <rect x="452" y="232" width="300" height="34" rx="17" fill="#4285F4"/>
+        <text x="602" y="254" text-anchor="middle" fill="#fff" font-weight="600" font-size="12">stateful DoFn — you now know how</text>
+      </g>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px">The ladder is ordered by how much correctness the runner guarantees for free &mdash; each step down transfers responsibility (clearing, GC, hot keys) to you.</div>
+</section>
+<details class="notes" data-title="Which tool, when">
+  <summary>Speaker notes &mdash; Which tool, when</summary>
+  <div class="n-body"><ul>
+    <li>This is the module's takeaway artifact &mdash; worth a screenshot in students' notes. Read it top down as "spend as little of your own correctness budget as possible": each yes-branch is a tool where the runner (or the library author) owns cleanup, GC, and hot-key handling; the final row is where all of that becomes your code.</li>
+    <li>Rung 2 folds in all of Module 8: "standard aggregation" plus windows for <em>where</em> and triggers for <em>when</em> covers a large majority of streaming computations without any user state.</li>
+    <li>The last row is deliberately not scary: the module exists so that when a design genuinely lands there &mdash; the state machines, custom joins, and caches of slide 20 &mdash; students build it with the contract, the cleanup, and the key-design lessons already in hand.</li>
+    <li>A good closing exercise: call out two or three requirements ("sessionize clicks," "batch writes to Firestore," "alert on 3 failures per card") and have the class walk each down the ladder aloud.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 26. SUMMARY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Summary</h1>
+  <ul class="body" style="font-size:15.5px">
+    <li><strong>State</strong> = durable per-key + window memory the runner owns: consistent with retries, invisible across keys. Cells: Value, Bag, Combining (+ Set / OrderedList / Map where supported)</li>
+    <li><strong>Timers</strong> = scheduled callbacks with access to that state. Event time for completeness, processing time for latency &mdash; and they compose</li>
+    <li>Always pair writes with a clearing plan; in the global window, GC is entirely yours</li>
+    <li>Key choice = parallelism; shard hot keys</li>
+    <li>Prefer built-ins (<code>GroupIntoBatches</code>, <code>Deduplicate</code>); hand-roll only truly custom logic</li>
+  </ul>
+</section>
+<details class="notes" data-title="Summary">
+  <summary>Speaker notes &mdash; Summary</summary>
+  <div class="n-body"><ul>
+    <li>Read the five bullets as the module in miniature: the contract (Section 1&ndash;2), the clocks (Section 3), the responsibility bullets (Section 5), and the built-ins-first rule (Section 4).</li>
+    <li>A closing question that tests the whole module: "why couldn't an instance variable do any of this?" &mdash; the answer should now come in three parts (workers, retries, durability) without prompting.</li>
+    <li>Bridge to the next module: SQL and DataFrames sit at the opposite end of the abstraction ladder &mdash; after living at the lowest level, students go back to the highest.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. ADDITIONAL MATERIAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Reference</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://beam.apache.org/documentation/programming-guide/#state-and-timers" style="color:#1a73e8">Beam Programming Guide: State and timers</a></li>
+        <li><a href="https://beam.apache.org/documentation/patterns/grouping-elements-for-efficient-external-service-calls/" style="color:#1a73e8">Patterns: grouping elements for efficient external service calls</a></li>
+        <li><a href="https://beam.apache.org/documentation/runners/capability-matrix/" style="color:#1a73e8">Runner capability matrix</a></li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Deep dives &amp; practice</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://beam.apache.org/blog/stateful-processing/" style="color:#1a73e8">Stateful processing with Apache Beam</a> &mdash; blog, K. Knowles</li>
+        <li><a href="https://beam.apache.org/blog/timely-processing/" style="color:#1a73e8">Timely (and Stateful) Processing with Apache Beam</a> &mdash; blog</li>
+        <li><a href="https://tour.beam.apache.org/" style="color:#1a73e8">Tour of Beam</a> &mdash; interactive state &amp; timers units</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li>The two Kenneth Knowles blog posts are the canonical deep dives this module compresses &mdash; "Stateful processing" motivates the model, "Timely processing" adds timers; both use the same per-key-cells mental picture as our diagrams. Recommend them as the first read after class.</li>
+    <li>The patterns page is the production companion to the capstone: it covers <code>GroupIntoBatches.WithShardedKey</code> and the trade-offs of calling external services from a pipeline.</li>
+    <li>Tour of Beam has runnable state-and-timers units in the browser &mdash; the closest thing to a lab for this module.</li>
+  </ul></div>
+</details>
+
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

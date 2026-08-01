@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAS with ADK 2.x — Course Decks</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --card: #f6f7f9;
+    --border: #e2e4e8; --accent: #3056d3; --card-hover: #eef0f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e8eaed; --muted: #9aa0a6; --card: #1e2128;
+      --border: #2a2e37; --accent: #7f9cff; --card-hover: #252932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  a.back { color: var(--muted); text-decoration: none; font-size: .9rem; }
+  a.back:hover { color: var(--accent); }
+  h1 { font-size: 1.7rem; margin: .5rem 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+  li a {
+    display: flex; align-items: center; gap: 1rem; padding: 1rem 1.25rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--fg); text-decoration: none; transition: background .15s, border-color .15s;
+  }
+  li a:hover { background: var(--card-hover); border-color: var(--accent); }
+  .num {
+    flex: none; width: 2rem; height: 2rem; display: grid; place-items: center;
+    border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; font-size: .9rem;
+  }
+  .title { font-weight: 500; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 .75rem; }
+  .desc { color: var(--muted); font-size: .9rem; margin-top: .2rem; }
+  li a.doc { display: block; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">&larr; All courses</a>
+  <h1>Multi-agent Systems with ADK 2.x</h1>
+  <p class="sub">Course decks</p>
+  <ol>
+    <li><a href="m1.html"><span class="num">1</span><span class="title">Introducing ADK (2.x)</span></a></li>
+    <li><a href="m2.html"><span class="num">2</span><span class="title">Develop Agents with ADK (2.x)</span></a></li>
+    <li><a href="m3.html"><span class="num">3</span><span class="title">Build Multi-agent Systems with ADK (2.x)</span></a></li>
+    <li><a href="m4.html"><span class="num">4</span><span class="title">Deploy ADK Agents to Agent Runtime (2.x)</span></a></li>
+    <li><a href="m5.html"><span class="num">5</span><span class="title">Evaluate ADK Agent Systems (2.x)</span></a></li>
+  </ol>
+  <h2>Reference</h2>
+  <ol>
+    <li>
+      <a class="doc" href="ADK-2.0-course-delta.html">
+        <span class="title">ADK Course Delta Review: Existing Content vs. ADK 2.4.0</span>
+        <span class="desc">Module-by-module and lab-by-lab review of what changed between the course baseline (~1.26) and ADK 2.4.0</span>
+      </a>
+    </li>
+  </ol>
+  <footer>
+    Copyright &copy; 2026 Jeff Davis. All rights reserved. Proprietary &mdash; use requires written approval.
+  </footer>
+</div>
+</body>
+</html>

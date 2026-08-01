@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ADK General — Reference Material</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --card: #f6f7f9;
+    --border: #e2e4e8; --accent: #3056d3; --card-hover: #eef0f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e8eaed; --muted: #9aa0a6; --card: #1e2128;
+      --border: #2a2e37; --accent: #7f9cff; --card-hover: #252932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  a.back { color: var(--muted); text-decoration: none; font-size: .9rem; }
+  a.back:hover { color: var(--accent); }
+  h1 { font-size: 1.7rem; margin: .5rem 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+  li a {
+    display: block; padding: 1rem 1.25rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--fg); text-decoration: none; transition: background .15s, border-color .15s;
+  }
+  li a:hover { background: var(--card-hover); border-color: var(--accent); }
+  .title { font-weight: 500; }
+  .desc { color: var(--muted); font-size: .9rem; margin-top: .2rem; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">&larr; All courses</a>
+  <h1>ADK General</h1>
+  <p class="sub">Reference material not tied to a specific course</p>
+  <ol>
+    <li>
+      <a href="adk-resumability-expense-approvals.html">
+        <span class="title">ADK Resumability, From the Ground Up</span>
+        <span class="desc">How an ADK agent pauses for a human decision, survives a restart, and resumes days later, traced through one expense approval</span>
+      </a>
+    </li>
+  </ol>
+  <footer>
+    Copyright &copy; 2026 Jeff Davis. All rights reserved. Proprietary &mdash; use requires written approval.
+  </footer>
+</div>
+</body>
+</html>

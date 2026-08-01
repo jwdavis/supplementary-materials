@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pub/Sub &amp; Managed Service for Apache Kafka — Course Decks</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --card: #f6f7f9;
+    --border: #e2e4e8; --accent: #3056d3; --card-hover: #eef0f4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e8eaed; --muted: #9aa0a6; --card: #1e2128;
+      --border: #2a2e37; --accent: #7f9cff; --card-hover: #252932;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  a.back { color: var(--muted); text-decoration: none; font-size: .9rem; }
+  a.back:hover { color: var(--accent); }
+  h1 { font-size: 1.7rem; margin: .5rem 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  ol { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+  li a {
+    display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 1.25rem;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--fg); text-decoration: none; transition: background .15s, border-color .15s;
+  }
+  li a:hover { background: var(--card-hover); border-color: var(--accent); }
+  .num {
+    flex: none; width: 2rem; height: 2rem; display: grid; place-items: center;
+    border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; font-size: .9rem;
+  }
+  .title { font-weight: 500; }
+  .desc { color: var(--muted); font-size: .9rem; margin-top: .2rem; }
+  h2 { font-size: 1.1rem; margin: 2rem 0 .75rem; }
+  li a.doc { display: block; }
+  footer { margin-top: 2.5rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../">&larr; All courses</a>
+  <h1>Pub/Sub &amp; Managed Service for Apache Kafka</h1>
+  <p class="sub">Course decks</p>
+  <ol>
+    <li><a href="PubSub_Kafka_Deck.html"><span class="num">1</span><span><span class="title">Pub/Sub and Managed Service for Apache Kafka</span><div class="desc">The front door for streaming data: the queue-and-lease model, publishing, delivery semantics, backlog diagnosis, and when Kafka is the right call</div></span></a></li>
+  </ol>
+  <h2>Deck maps</h2>
+  <ol>
+    <li><a class="doc" href="PubSub_Kafka_Deck_Map.md"><span class="title">Pub/Sub &amp; Kafka &mdash; deck map</span><div class="desc">Slide-by-slide plan: scenario, diagram specs, speaker notes, corrections applied to the source module, and facts still to verify before delivery</div></a></li>
+  </ol>
+  <footer>
+    Copyright &copy; 2026 Jeff Davis. All rights reserved. Proprietary &mdash; use requires written approval. See LICENSE.
+  </footer>
+</div>
+</body>
+</html>

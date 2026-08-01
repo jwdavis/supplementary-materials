@@ -1,0 +1,8 @@
+theme: jekyll-theme-primer
+markdown: kramdown
+kramdown:
+  input: GFM
+plugins:
+  - jekyll-optional-front-matter   # render .md files even without a front matter block
+  - jekyll-default-layout          # wrap rendered pages in the theme layout
+  - jekyll-titles-from-headings    # page title from the first heading

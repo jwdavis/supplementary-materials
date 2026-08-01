@@ -1,0 +1,2705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orchestrating BigQuery Workloads with Dataform</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-45-55 > div:first-child { flex: 0 0 45%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list for skew slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:262px;bottom:38px;z-index:2" width="240" height="130" viewBox="0 0 240 130">
+    <rect x="8" y="52" width="58" height="34" rx="4" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <rect x="102" y="20" width="58" height="34" rx="4" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <rect x="102" y="84" width="58" height="34" rx="4" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <path d="M66 64 L96 40 M66 74 L96 98" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <path d="M96 40 L88 40 M96 40 L94 47" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <path d="M96 98 L88 97 M96 98 L93 91" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="176" cy="37" r="7" fill="#FBBC04"/>
+    <rect x="170" y="95" width="13" height="13" fill="#34A853" transform="rotate(45 176.5 101.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Orchestrating BigQuery<br>Workloads with Dataform</h1>
+    <div class="sub">Turning a pile of scheduled queries into one tested, versioned graph &middot; Module 5</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>Prerequisite framing:</strong> the last four modules taught how BigQuery stores and runs queries, and how to make one query fast. This module is about the <em>other</em> problem &mdash; fifty queries that have to run in the right order, every night, correctly.</li>
+    <li>This is the first module where the deliverable is a <em>repository</em>, not a query.</li>
+    <li>Walk the five sections verbally in one breath (why the pile fails &rarr; definitions &rarr; trust &rarr; execution &rarr; real workloads); there is no agenda slide.</li>
+    <li>Rough timing: 40&ndash;50 minutes of lecture. Labs sit at the ends of sections 2, 3, and 4.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. TUESDAY, 08:41 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Tuesday, 08:41</h1>
+  <div class="lede" style="max-width:900px;font-size:15.5px;margin-bottom:12px">Every night at 02:30 a scheduled query computes each customer&rsquo;s poor-audio rate over the trailing 7 days; at 08:00 the SLA report emails out. Tuesday&rsquo;s report told Acme <strong>0.4%</strong>. At 08:41 Acme&rsquo;s IT admin replies: Monday was their worst day in months &mdash; a regional network incident &mdash; and ClearMeet&rsquo;s own dashboard agrees, showing <strong>3.1%</strong>.</div>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Monday&rsquo;s samples load nightly; Tuesday&rsquo;s load ran long and committed at <strong>02:47</strong> instead of the usual ~02:10.</li>
+        <li>The 02:30 report query ran on time &mdash; against a table whose newest rows were Sunday&rsquo;s. No error: the table was complete and consistent, it just didn&rsquo;t include Monday yet.</li>
+        <li>Acme&rsquo;s trailing-7-day rate <em>without</em> its worst day: 0.4%. With Monday, as the dashboard later showed: 3.1%.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="380" height="250" viewBox="0 0 380 250" aria-hidden="true">
+          <defs><marker id="s2a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#b3261e"/></marker></defs>
+          <text x="0" y="12" font-size="10.5" fill="#5f6368">processing time</text>
+          <line x1="8" y1="30" x2="330" y2="30" stroke="#dadce0" stroke-width="1.5"/>
+          <text x="8" y="24" font-size="9.5" fill="#9aa0a6">02:00</text>
+          <text x="150" y="24" font-size="9.5" fill="#9aa0a6">02:30</text>
+          <text x="300" y="24" font-size="9.5" fill="#9aa0a6">03:00</text>
+          <rect x="40" y="40" width="152" height="20" rx="3" fill="#fce8e6" stroke="#b3261e" stroke-width="1.5"/>
+          <text x="46" y="54" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#b3261e">load 02:10 &rarr; 02:47</text>
+          <text x="24" y="76" font-size="9" fill="#5f6368">Monday&rsquo;s rows commit at 02:47</text>
+          <rect x="128" y="92" width="92" height="22" rx="11" fill="#e6f4ea" stroke="#188038" stroke-width="1.5"/>
+          <text x="139" y="107" font-size="10" fill="#188038">SLA query 02:30</text>
+          <text x="230" y="107" font-size="10" fill="#188038">&#10003; succeeded</text>
+          <path d="M150 92 L150 66" stroke="#b3261e" stroke-width="1.5" fill="none" marker-end="url(#s2a)" stroke-dasharray="3 2"/>
+          <text x="60" y="132" font-size="9.5" fill="#b3261e">ran 17 min before Monday&rsquo;s rows existed</text>
+          <rect x="20" y="150" width="150" height="42" rx="4" fill="#fff" stroke="#b3261e" stroke-width="1.5"/>
+          <text x="30" y="166" font-size="9.5" fill="#5f6368">SLA report &rarr; Acme</text>
+          <text x="30" y="182" font-size="12" font-family="'Roboto Mono',monospace" fill="#b3261e">poor audio  0.4%</text>
+          <line x1="88" y1="178" x2="152" y2="178" stroke="#b3261e" stroke-width="1.5"/>
+          <rect x="196" y="150" width="150" height="42" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+          <text x="206" y="166" font-size="9.5" fill="#5f6368">dashboard, read later</text>
+          <text x="206" y="182" font-size="12" font-family="'Roboto Mono',monospace" fill="#202124">trailing 7d  3.1%</text>
+          <text x="20" y="215" font-size="9" fill="#5f6368">same table, read after 02:47</text>
+          <text x="20" y="233" font-size="9" fill="#9aa0a6">(6 &times; 0.4 + 19) / 7 &asymp; 3.1</text>
+        </svg>
+        <div class="figcap" style="margin-top:2px">Illustrative measurement.</div>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn">Nothing failed and no query was wrong. The <strong>order</strong> &mdash; load first, then report &mdash; was an assumption, written down nowhere and enforced by nothing.</div>
+</section>
+<details class="notes" data-title="Tuesday, 08:41">
+  <summary>Speaker notes &mdash; Tuesday, 08:41</summary>
+  <div class="n-body"><ul>
+    <li>Be precise about the mechanism, because this room knows the architecture module: the load commit is <em>atomic</em>, so the query did <strong>not</strong> read a half-loaded table. It read a consistent table that simply ended at Sunday. Stale, not corrupt.</li>
+    <li>Monday&rsquo;s incident is why the delta is big and why Acme noticed. All numbers illustrative and re-derivable: six quiet days at ~0.4% plus one day at ~19% averages to ~3.1%.</li>
+    <li><strong>Ask before revealing the right column:</strong> &ldquo;how would you have found this?&rdquo; Five separate query histories, no shared run id, and every job green.</li>
+    <li>This is the deck&rsquo;s spine. Sections 1&ndash;4 each answer one part of &ldquo;why, who knew, and what stopped it.&rdquo; Resist naming Dataform yet &mdash; the student should <em>want</em> something before being told what it is.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. THE PILE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The pile</h1>
+  <div class="lede">This is what ClearMeet&rsquo;s nightly analytics actually is, drawn out for the first time.</div>
+  <div class="figure">
+    <svg width="790" height="252" viewBox="0 0 790 252" aria-hidden="true">
+      <defs>
+        <marker id="s3a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#9aa0a6"/></marker>
+      </defs>
+      <rect x="6" y="60" width="120" height="34" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.6"/>
+      <text x="18" y="76" font-size="11" font-family="'Roboto Mono',monospace" fill="#1a73e8">qos_events</text>
+      <text x="18" y="88" font-size="9" fill="#5f6368">5B rows/day</text>
+      <rect x="6" y="122" width="120" height="30" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.6"/>
+      <text x="18" y="141" font-size="11" font-family="'Roboto Mono',monospace" fill="#5f6368">orgs</text>
+
+      <g font-size="10.5" font-family="'Roboto Mono',monospace">
+        <rect x="330" y="14" width="150" height="26" rx="13" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="342" y="31" fill="#3c4043">daily_summary</text>
+        <text x="492" y="31" font-family="'Google Sans',sans-serif" font-size="9.5" fill="#5f6368">&#9201; 02:00</text>
+
+        <rect x="392" y="62" width="150" height="26" rx="13" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="404" y="79" fill="#3c4043">sla_by_org</text>
+        <text x="554" y="79" font-family="'Google Sans',sans-serif" font-size="9.5" fill="#5f6368">&#9201; 02:30</text>
+
+        <rect x="318" y="110" width="150" height="26" rx="13" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="330" y="127" fill="#3c4043">device_rollup</text>
+        <text x="480" y="127" font-family="'Google Sans',sans-serif" font-size="9.5" fill="#5f6368">&#9201; 03:00</text>
+
+        <rect x="404" y="158" width="150" height="26" rx="13" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="416" y="175" fill="#3c4043">churn_features</text>
+        <text x="566" y="175" font-family="'Google Sans',sans-serif" font-size="9.5" fill="#5f6368">&#9201; 03:00</text>
+
+        <rect x="336" y="206" width="164" height="26" rx="13" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="348" y="223" fill="#3c4043">exec_dashboard_mv</text>
+        <text x="512" y="223" font-family="'Google Sans',sans-serif" font-size="9.5" fill="#5f6368">&#9201; 02:00</text>
+      </g>
+
+      <g stroke="#9aa0a6" stroke-width="1.3" fill="none" stroke-dasharray="4 3" marker-end="url(#s3a)">
+        <path d="M126 70 C 240 40, 250 26, 330 26"/>
+        <path d="M126 78 C 250 90, 290 74, 392 74"/>
+        <path d="M126 84 C 220 100, 240 122, 318 122"/>
+        <path d="M126 90 C 240 140, 300 170, 404 170"/>
+        <path d="M126 136 C 250 150, 280 78, 392 78"/>
+        <path d="M126 146 C 230 190, 300 216, 404 172"/>
+        <path d="M480 32 C 520 60, 420 190, 420 206"/>
+      </g>
+      <line x1="0" y1="240" x2="790" y2="240" stroke="#dadce0" stroke-width="1"/>
+      <text x="0" y="246" font-size="9.5" fill="#5f6368">dashed = the real dependencies, in the FROM clauses &nbsp;&middot;&nbsp; &#9201; = the scheduled time, staggered by hand</text>
+      <text x="612" y="124" font-size="10.5" fill="#b3261e" font-weight="600">the arrows are real;</text>
+      <text x="612" y="140" font-size="10.5" fill="#b3261e" font-weight="600">the clocks are a guess</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">The dependency graph already exists &mdash; it is written in the <code>FROM</code> clauses. It just isn&rsquo;t <em>readable</em> by anything that could act on it.</div>
+</section>
+<details class="notes" data-title="The pile">
+  <summary>Speaker notes &mdash; The pile</summary>
+  <div class="n-body"><ul>
+    <li>Five scheduled queries, three owners, zero declared relationships. The order lives in the schedule times and in the head of whoever staggered them. Adding a sixth derived table means guessing a new time and hoping.</li>
+    <li>That callout is the entire pitch for the product, stated before the product is named.</li>
+    <li>Worth asking: &ldquo;how many of you have this?&rdquo; In a room of experienced engineers this usually gets rueful laughter and a story about Airflow.</li>
+    <li>The tangle is drawn deliberately messy; the same five nodes get redrawn as a clean DAG in section 2, and the visual contrast is the payoff.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. TERMINOLOGY LEGEND ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Five words, five stages</h1>
+  <div class="lede">Five terms carry the rest of this module. They sound interchangeable and are not &mdash; they are the successive stages between a file you edit and a job that runs in BigQuery.</div>
+  <table class="tbl" style="font-size:14px">
+    <tr><th style="width:210px">Term</th><th>What it is</th><th style="width:150px">When it exists</th></tr>
+    <tr><td><strong>definition</strong> <span class="muted">(action)</span></td><td>one <code>.sqlx</code> file = one table, view, assertion, or operation</td><td class="muted">you wrote it</td></tr>
+    <tr><td><strong>compilation result</strong></td><td>the whole repo turned into SQL, once, with settings frozen in</td><td class="muted">compile time</td></tr>
+    <tr><td><strong>release configuration</strong></td><td>a recipe that makes compilation results from a git commitish, on a schedule</td><td class="muted">you configured it</td></tr>
+    <tr><td><strong>workflow configuration</strong></td><td>a schedule that <em>runs</em> a release configuration&rsquo;s output</td><td class="muted">you configured it</td></tr>
+    <tr class="hl"><td><strong>workflow invocation</strong></td><td>one actual run in BigQuery</td><td class="muted">run time</td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout">A <strong>definition</strong> compiles into a <strong>compilation result</strong>; a <strong>release configuration</strong> decides <em>which code and which settings</em>; a <strong>workflow configuration</strong> decides <em>when and which actions</em>; a <strong>workflow invocation</strong> is the run that shows up in your BigQuery job history.</div>
+</section>
+<details class="notes" data-title="Five words, five stages">
+  <summary>Speaker notes &mdash; Five words, five stages</summary>
+  <div class="n-body"><ul>
+    <li>Source material uses these terms loosely and it is the most confusing thing in the product. Fixing it here pays for itself in section 4, where the full lifecycle diagram returns to this table.</li>
+    <li>The book analogy if the room wants one: drafts (sqlx) &rarr; final manuscript (compilation result) &rarr; the print edition with its settings (release config) &rarr; the publication schedule (workflow config) &rarr; someone actually reading it (invocation). Use it <em>after</em> the table, not instead of it.</li>
+    <li>&ldquo;Action&rdquo; and &ldquo;definition&rdquo; are used interchangeably by the docs and UI. This deck says <strong>action</strong> when talking about execution and <strong>definition</strong> when talking about the file.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. DIVIDER: SECTION 1 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 5</div>
+    <h1>Why a pile of scheduled queries fails</h1>
+    <div class="sub">What Dataform is, and the one thing it does that a scheduled query cannot.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Why the pile fails</span><span>Definitions &amp; graph</span><span>Trust</span><span>Execution</span><span>Real workloads</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: Why a pile of scheduled queries fails">
+  <summary>Speaker notes &mdash; Section 1: Why a pile of scheduled queries fails</summary>
+  <div class="n-body"><ul>
+    <li>The student now wants <em>something</em>. This section names it, bounds it, and shows where the code lives &mdash; then section 2 opens the files.</li>
+    <li>Keep this section brisk: four slides, no code the students have to read closely.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. DATAFORM IN ONE DIAGRAM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Dataform in one diagram</h1>
+  <div class="lede">Same five transformations, same BigQuery, same SQL. The difference is what sits between the SQL and the schedule.</div>
+  <div class="figure">
+    <svg width="790" height="216" viewBox="0 0 790 216" aria-hidden="true">
+      <defs><marker id="s6a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5f6368"/></marker></defs>
+      <rect x="4" y="16" width="212" height="150" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.8"/>
+      <text x="16" y="36" font-size="12" font-weight="600" fill="#1a73e8">your repo</text>
+      <g font-family="'Roboto Mono',monospace" font-size="10.5" fill="#3c4043">
+        <text x="20" y="62">definitions/*.sqlx</text>
+        <text x="20" y="84">includes/*.js</text>
+        <text x="20" y="106">workflow_settings.yaml</text>
+      </g>
+      <text x="20" y="134" font-size="9.5" fill="#5f6368">git: branch, review, history</text>
+
+      <path d="M220 90 L286 90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#s6a)"/>
+      <text x="228" y="82" font-size="9.5" fill="#5f6368">compile</text>
+      <text x="222" y="108" font-size="8.5" fill="#9aa0a6">hermetic</text>
+
+      <rect x="292" y="16" width="196" height="150" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.8"/>
+      <text x="304" y="36" font-size="12" font-weight="600" fill="#1a73e8">compilation result</text>
+      <g font-size="9.5" font-family="'Roboto Mono',monospace">
+        <rect x="304" y="48" width="76" height="20" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.2"/>
+        <text x="311" y="62" fill="#1a73e8">CREATE&hellip;</text>
+        <rect x="304" y="72" width="76" height="20" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.2"/>
+        <text x="311" y="86" fill="#1a73e8">MERGE&hellip;</text>
+      </g>
+      <g>
+        <circle cx="412" cy="58" r="8" fill="#9aa0a6"/>
+        <circle cx="446" cy="58" r="8" fill="#4285F4"/>
+        <circle cx="446" cy="92" r="8" fill="#4285F4"/>
+        <path d="M421 58 L437 58 M420 62 L438 88" stroke="#5f6368" stroke-width="1.3" fill="none"/>
+        <text x="404" y="116" font-size="9" fill="#5f6368">+ the graph</text>
+      </g>
+      <text x="304" y="140" font-size="9.5" fill="#5f6368">plain BigQuery SQL, settings frozen</text>
+
+      <path d="M492 90 L558 90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#s6a)"/>
+      <text x="500" y="82" font-size="9.5" fill="#5f6368">invoke</text>
+
+      <rect x="564" y="16" width="220" height="150" rx="6" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.8"/>
+      <text x="576" y="36" font-size="12" font-weight="600" fill="#3c4043">BigQuery</text>
+      <g font-family="'Roboto Mono',monospace" font-size="10">
+        <text x="576" y="60" fill="#188038">&#10003;</text><text x="592" y="60" fill="#3c4043">dataform-gcp-4471</text>
+        <text x="576" y="82" fill="#188038">&#10003;</text><text x="592" y="82" fill="#3c4043">dataform-gcp-4472</text>
+        <text x="576" y="104" fill="#188038">&#10003;</text><text x="592" y="104" fill="#3c4043">dataform-gcp-4473</text>
+      </g>
+      <text x="576" y="132" font-size="9.5" fill="#5f6368">jobs billed to your project,</text>
+      <text x="576" y="146" font-size="9.5" fill="#5f6368">tables land in your datasets</text>
+      <text x="4" y="196" font-size="10" fill="#5f6368">You write SQL with <tspan font-family="'Roboto Mono',monospace">${ref("table")}</tspan> instead of a hard-coded name. Dataform compiles it; BigQuery does all the work.</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">Dataform is a <strong>compiler and scheduler for SQL</strong>, not an execution engine. Every byte is still processed by BigQuery and billed to your BigQuery project &mdash; Dataform itself has no separate compute charge.</div>
+</section>
+<details class="notes" data-title="Dataform in one diagram">
+  <summary>Speaker notes &mdash; Dataform in one diagram</summary>
+  <div class="n-body"><ul>
+    <li>Say the pricing point explicitly; experienced engineers assume a managed orchestration product bills for orchestration. Dataform&rsquo;s cost is the BigQuery jobs it triggers. (<a href="https://docs.cloud.google.com/dataform/docs/overview">Dataform overview</a>)</li>
+    <li>&ldquo;Hermetic&rdquo; on the compile arrow is load-bearing and gets its own slide in section 4 &mdash; flag it now, don&rsquo;t explain it.</li>
+    <li>ELT positioning: this is the T. Ingestion (module 3) already landed the raw data in BigQuery; Dataform transforms it in place.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. WHAT REPLACES WHAT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What replaces what</h1>
+  <div class="lede">ClearMeet&rsquo;s current setup for these five queries, and what of it Dataform absorbs.</div>
+  <table class="tbl" style="font-size:14px">
+    <tr><th style="width:250px">The job</th><th>ClearMeet today</th><th>With Dataform</th></tr>
+    <tr><td>The transformation SQL itself</td><td class="muted">5 scheduled queries in the console</td><td>5 <code>.sqlx</code> files in one repo</td></tr>
+    <tr class="hl"><td>Run order</td><td class="muted">cron times, staggered by hand</td><td>derived from <code>ref()</code></td></tr>
+    <tr><td>Version and review</td><td class="muted">console edits &mdash; no history, no review</td><td>git branch, pull request</td></tr>
+    <tr class="hl"><td>Test the output</td><td class="muted">nothing</td><td>assertions, in the graph</td></tr>
+    <tr><td>Keep descriptions current</td><td class="muted">edited by hand in the console; drifts</td><td>beside the SQL; same commit</td></tr>
+    <tr><td>Schedule</td><td class="muted">3 cron times</td><td>1 workflow configuration</td></tr>
+    <tr><td>Alert on failure</td><td class="muted">a human notices</td><td>log-based alert on <code>FAILED</code></td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout">Note what is <em>not</em> on this list: ingestion, non-SQL transformation, and anything outside BigQuery. Dataform is deliberately narrow &mdash; section 5 draws that line.</div>
+</section>
+<details class="notes" data-title="What replaces what">
+  <summary>Speaker notes &mdash; What replaces what</summary>
+  <div class="n-body"><ul>
+    <li>The descriptions row needs a beat: <em>any</em> BigQuery table can carry descriptions &mdash; that isn&rsquo;t Dataform&rsquo;s feature. What Dataform changes is that the description lives next to the SQL under review, so keeping it current is the path of least resistance instead of a separate chore.</li>
+    <li>Foreshadow the caveats slide here so the deck doesn&rsquo;t read as a sales pitch. Engineers new to a product trust it more when the boundaries come early.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. REPOSITORY AND WORKSPACE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Repository, workspace, and where your code lives</h1>
+  <div class="lede" style="max-width:900px">The five queries from the pile now live as five definitions in one repository, <code>analytics-transforms</code>. Priya opens a <strong>development workspace</strong> &mdash; her own editable copy &mdash; to add a sixth derived table, the per-region rollup behind the support team&rsquo;s new report.</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="410" height="228" viewBox="0 0 410 228" aria-hidden="true">
+          <defs><marker id="s8a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <rect x="4" y="10" width="290" height="212" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.8"/>
+          <text x="16" y="30" font-size="11.5" font-weight="600" fill="#1a73e8">repository &middot; analytics-transforms</text>
+          <rect x="16" y="42" width="126" height="60" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+          <text x="26" y="58" font-size="10" font-family="'Roboto Mono',monospace" fill="#1a73e8">priya-dev</text>
+          <text x="26" y="74" font-size="9" fill="#5f6368">definitions/&hellip;</text>
+          <rect x="26" y="80" width="74" height="14" rx="7" fill="#fef7e0" stroke="#FBBC04" stroke-width="1"/>
+          <text x="32" y="90" font-size="8.5" fill="#3c2f00">uncommitted 3</text>
+          <rect x="154" y="42" width="126" height="60" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.4"/>
+          <text x="164" y="58" font-size="10" font-family="'Roboto Mono',monospace" fill="#5f6368">sam-dev</text>
+          <text x="164" y="74" font-size="9" fill="#5f6368">definitions/&hellip;</text>
+          <text x="16" y="118" font-size="9" fill="#9aa0a6">workspaces &mdash; edits invisible to each other</text>
+          <path d="M79 106 L79 140" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s8a)"/>
+          <text x="84" y="126" font-size="9" fill="#5f6368">commit &rarr; push</text>
+          <path d="M217 106 L217 140" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s8a)" stroke-dasharray="3 2"/>
+          <line x1="20" y1="150" x2="276" y2="150" stroke="#5f6368" stroke-width="1.6"/>
+          <circle cx="60" cy="150" r="5" fill="#5f6368"/><circle cx="120" cy="150" r="5" fill="#5f6368"/>
+          <circle cx="180" cy="150" r="5" fill="#5f6368"/><circle cx="240" cy="150" r="5" fill="#4285F4"/>
+          <text x="20" y="168" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#5f6368">branch: main</text>
+          <rect x="16" y="180" width="264" height="30" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.2"/>
+          <text x="26" y="199" font-size="9.5" fill="#5f6368">Settings &middot; Release configs &middot; Workflow configs</text>
+          <text x="248" y="199" font-size="8.5" fill="#9aa0a6">&sect;4</text>
+          <path d="M298 150 L338 150" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s8a)"/>
+          <path d="M338 162 L298 162" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s8a)"/>
+          <text x="300" y="144" font-size="9" fill="#5f6368">push</text>
+          <text x="300" y="176" font-size="9" fill="#5f6368">pull</text>
+          <rect x="342" y="132" width="62" height="46" rx="4" fill="#fff" stroke="#9aa0a6" stroke-width="1.4"/>
+          <text x="352" y="152" font-size="10" fill="#3c4043">GitHub /</text>
+          <text x="352" y="166" font-size="10" fill="#3c4043">GitLab</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li><strong>Repository</strong> &mdash; connects to GitHub/GitLab, holds settings.</li>
+        <li><strong>Development workspace</strong> &mdash; an editable copy per person; edits start as uncommitted local changes.</li>
+        <li>A workspace is <strong>not</strong> a git branch &mdash; it is a working copy that commits <em>to</em> a branch.</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:14px">The workspace-is-not-a-branch distinction trips up every git-fluent team. Two people can have workspaces off the same branch; their edits are invisible to each other until pushed.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Repository, workspace, and where your code lives">
+  <summary>Speaker notes &mdash; Repository, workspace, and where your code lives</summary>
+  <div class="n-body"><ul>
+    <li>Source: <a href="https://docs.cloud.google.com/dataform/docs/workspaces">development workspaces</a> &mdash; &ldquo;your own editable copy of a repository,&rdquo; with changes that &ldquo;start off as uncommitted local changes.&rdquo;</li>
+    <li>Dataform can run without any remote git connection (internal repo, default branch <code>main</code>), but don&rsquo;t teach that as a pattern &mdash; it throws away the review workflow that is half the point. Mention it only as &ldquo;what you&rsquo;ll see if you click through the quickstart.&rdquo;</li>
+    <li>Developer Connect is now GA for connecting third-party git repos without managing secrets by hand &mdash; one sentence for teams with private-network git. (<a href="https://docs.cloud.google.com/dataform/docs/release-notes">release notes</a>)</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. FILES IN A REPOSITORY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The files in a repository</h1>
+  <div class="lede" style="margin-bottom:12px">Priya&rsquo;s workspace, top level. Six things, and only two of them matter today.</div>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="code small">definitions/
+includes/
+workflow_settings.yaml
+package.json
+package-lock.json
+.gitignore</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><span class="blue">definitions/</span> &mdash; every <code>.sqlx</code>: tables, views, assertions, operations</li>
+        <li><span class="blue">includes/</span> &mdash; <code>.js</code> reused across the repo</li>
+        <li class="muted"><code>package*.json</code> &mdash; only if you use JS packages</li>
+      </ul>
+    </div>
+    <div>
+      <pre class="code small"><span class="lang">workflow_settings.yaml</span><span class="kw">defaultProject</span>: clearmeet-analytics-prod
+<span class="kw">defaultDataset</span>: clearmeet_silver
+<span class="kw">defaultLocation</span>: US
+<span class="kw">defaultAssertionDataset</span>: clearmeet_assertions
+<span class="kw">dataformCoreVersion</span>: <span class="st">3.0.0</span>
+<span class="kw">vars</span>:
+  <span class="kw">poor_audio_threshold</span>: <span class="st">"3.5"</span></pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><code>defaultDataset</code> is where a definition lands unless its config overrides it. Consumer-facing tables override to <code>clearmeet_analytics</code>.</li>
+        <li><code>vars</code> reach every definition at compile time &mdash; <code>poor_audio_threshold</code> returns in section 4.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout"><strong>Documentation guidance</strong> &mdash; <code>defaultProject</code> and <code>defaultDataset</code> are the only required fields; <code>defaultAssertionDataset</code> defaults to <code>dataform_assertions</code> if you omit it.</div>
+</section>
+<details class="notes" data-title="The files in a repository">
+  <summary>Speaker notes &mdash; The files in a repository</summary>
+  <div class="n-body"><ul>
+    <li><strong>Correction to flag</strong> if anyone has seen older material: it lists <code>defaultLocation</code> and <code>defaultAssertionDataset</code> as Required. Current docs list both as optional. (<a href="https://docs.cloud.google.com/dataform/docs/configure-dataform">Configure Dataform</a>)</li>
+    <li><code>workflow_settings.yaml</code> replaced <code>dataform.json</code> in Dataform core 3.0.0 (June 2024). The JSON form still compiles, but new repos should use YAML.</li>
+    <li>Dataset-per-layer naming (<code>raw</code> &rarr; <code>clearmeet_silver</code> &rarr; <code>clearmeet_analytics</code>) is introduced properly on the declarations slide and formalized in section 5.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. RECAP: SECTION 1 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: why the pile fails</h1>
+  <div class="vgap"></div>
+  <ul class="body">
+    <li>The order of your transformations <strong>already exists</strong> &mdash; in the <code>FROM</code> clauses. Nothing could read it.</li>
+    <li>Dataform reads it, compiles to plain BigQuery SQL, and runs BigQuery jobs. <strong>No new engine</strong>, no separate compute bill.</li>
+    <li>A repository holds definitions; a workspace is your editable copy, committing to a git branch.</li>
+    <li>Five lifecycle terms: definition &rarr; compilation result &rarr; release config &rarr; workflow config &rarr; invocation.</li>
+  </ul>
+  <div class="vgap"></div>
+  <div class="callout">Next: open the files. One <code>.sqlx</code> per object, and the one function that turns five <code>FROM</code> clauses into a graph.</div>
+</section>
+<details class="notes" data-title="Recap: why the pile fails">
+  <summary>Speaker notes &mdash; Recap: why the pile fails</summary>
+  <div class="n-body"><ul>
+    <li>Quick check before moving on: &ldquo;what would have prevented Tuesday?&rdquo; If the room says &ldquo;a dependency,&rdquo; they are ready for section 2.</li>
+    <li>Nobody has seen sqlx yet. That is deliberate &mdash; the product is a graph first and a file format second.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. DIVIDER: SECTION 2 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 5</div>
+    <h1>Definitions and the graph</h1>
+    <div class="sub">One file per table, and the one function that builds the whole DAG.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why the pile fails</span><span class="current">Definitions &amp; graph</span><span>Trust</span><span>Execution</span><span>Real workloads</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Definitions and the graph">
+  <summary>Speaker notes &mdash; Section 2: Definitions and the graph</summary>
+  <div class="n-body"><ul>
+    <li>This section has the deck&rsquo;s two load-bearing slides: what <code>ref()</code> does at compile time, and how incremental tables actually generate SQL.</li>
+    <li>Everything here is Dataform core &mdash; the open-source compiler. None of it is specific to the Google Cloud service.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. ANATOMY OF A SQLX FILE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Anatomy of a <code style="font-size:.8em">.sqlx</code> file</h1>
+  <div class="lede">ClearMeet&rsquo;s first definition: the cleaned QoS table, <code>clearmeet_silver.qos_events_clean</code>.</div>
+  <div class="cols c-55-45">
+    <div>
+      <pre class="code small"><span class="lang">qos_events_clean.sqlx</span><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"table"</span>,
+  <span class="kw">description</span>: <span class="st">"QoS samples, device names normalized."</span>,
+}
+
+<span class="kw">SELECT</span>
+  event_time, meeting_id, org_id, region,
+  <span class="fn">LOWER</span>(device) <span class="kw">AS</span> device,
+  audio_mos
+<span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"qos_events_raw"</span>)}</pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><code>config { }</code> &mdash; what to build, plus documentation and tests. <code>type:</code> is one of <code>table</code>, <code>view</code>, <code>incremental</code>, <code>assertion</code>, <code>operations</code>, <code>declaration</code>.</li>
+        <li>SQL body &mdash; the only required part; a bare <code>SELECT</code>, no DDL. Dataform adds the <code>CREATE&hellip;</code> wrapper at compile time.</li>
+        <li><code>js { }</code>, <code>pre_operations { }</code>, <code>post_operations { }</code> &mdash; optional, covered later.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">Comments differ by block: <code>//</code> inside <code>config</code>/<code>js</code>, <code>--</code> in the SQL body. <code>#</code> does not work anywhere in sqlx, even though BigQuery accepts it.</div>
+</section>
+<details class="notes" data-title="Anatomy of a .sqlx file">
+  <summary>Speaker notes &mdash; Anatomy of a .sqlx file</summary>
+  <div class="n-body"><ul>
+    <li>The file name sets the table name; <code>name:</code> in config overrides it. <strong>Ask the room to predict</strong> the full table name before revealing: <code>defaultDataset</code> + filename &rarr; <code>clearmeet_silver.qos_events_clean</code>.</li>
+    <li>The <code>#</code>-comment gotcha costs people ten minutes the first time &mdash; worth saying once out loud.</li>
+    <li><strong>The other table types, parked here:</strong> <code>type: "view"</code> swaps the wrapper for <code>CREATE OR REPLACE VIEW</code>; <code>materialized: true</code> on a view makes it a BigQuery materialized view with exactly the behavior taught in Storage Optimization &mdash; Dataform only issues the DDL. <code>bigquery.additionalOptions</code> covers any option Dataform doesn&rsquo;t expose directly (<code>expiration_timestamp</code>, <code>max_staleness</code>); quoting rule: <code>numeric_option: "5"</code>, <code>string_option: '"text"'</code>.</li>
+    <li><code>LOWER(device)</code> is a placeholder fix here; section 5 replaces it with the real normalization function, so students see the same file evolve.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. DECLARE WHAT YOU DON'T OWN ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Declare what you don&rsquo;t own</h1>
+  <div class="lede"><code>qos_events_raw</code> lives in the <code>raw</code> dataset of the ingestion project, written by the module-3 pipeline. Dataform must read it, and must never build it.</div>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="code small"><span class="lang">sources/qos_events_raw.sqlx</span><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"declaration"</span>,
+  <span class="kw">database</span>: <span class="st">"clearmeet-ingest-prod"</span>,
+  <span class="kw">schema</span>: <span class="st">"raw"</span>,
+  <span class="kw">name</span>: <span class="st">"qos_events_raw"</span>,
+  <span class="kw">description</span>: <span class="st">"10-second QoS samples."</span>,
+}</pre>
+      <div class="vgap-s"></div>
+      <div class="figure">
+        <svg width="380" height="96" viewBox="0 0 380 96" aria-hidden="true">
+          <defs><marker id="s13a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <ellipse cx="76" cy="16" rx="60" ry="12" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/>
+          <text x="30" y="20" font-size="8.5" fill="#5f6368">ingestion pipeline &mdash; not ours</text>
+          <path d="M76 30 L76 42" stroke="#9aa0a6" stroke-width="1.3" stroke-dasharray="3 2"/>
+          <rect x="10" y="44" width="132" height="34" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="5 3"/>
+          <text x="20" y="60" font-size="10" font-family="'Roboto Mono',monospace" fill="#5f6368">qos_events_raw</text>
+          <text x="20" y="72" font-size="8" fill="#9aa0a6">Declaration &middot; external</text>
+          <path d="M146 61 L212 61" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s13a)"/>
+          <rect x="218" y="44" width="140" height="34" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.6"/>
+          <text x="228" y="60" font-size="10" font-family="'Roboto Mono',monospace" fill="#1a73e8">qos_events_clean</text>
+          <text x="228" y="72" font-size="8" fill="#5f6368">Table</text>
+          <path d="M212 88 L152 88" stroke="#b3261e" stroke-width="1.4" marker-end="url(#s13a)" opacity=".55"/>
+          <text x="218" y="92" font-size="8.5" fill="#b3261e">&#10007; nothing can build this</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>A declaration is a <strong>read-only pointer</strong> to a table Dataform did not create.</li>
+        <li>It produces no SQL and modifies nothing &mdash; it only gives you a name to <code>ref()</code>.</li>
+        <li>Declarations can be a dependency, never a dependent.</li>
+        <li><code>raw</code> is the <strong>bronze layer</strong>: rows exactly as ingestion landed them &mdash; duplicates, bad device strings and all. Layer-per-dataset (<code>raw</code> &rarr; <code>clearmeet_silver</code> &rarr; <code>clearmeet_analytics</code>) is formalized in section 5.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">Declare every external input. It costs one file and it means the graph shows where your data actually comes from &mdash; including the boundary where your ownership starts.</div>
+</section>
+<details class="notes" data-title="Declare what you don't own">
+  <summary>Speaker notes &mdash; Declare what you don&rsquo;t own</summary>
+  <div class="n-body"><ul>
+    <li><strong>On naming, real-world practice:</strong> most BigQuery shops encode the layer as a <em>dataset per layer</em> (<code>raw</code>/<code>staging</code>/<code>marts</code>, or bronze/silver/gold), because IAM grants, labels, and expiration all attach at dataset level &mdash; access control per layer comes free. Filename prefixes (<code>stg_&hellip;</code>) are the other convention, and the one the <a href="https://docs.cloud.google.com/dataform/docs/structure-repositories">structure-repositories doc</a> shows. This deck uses dataset-per-layer.</li>
+    <li><strong>Common mistake:</strong> skipping the declaration and hard-coding the full table name in the FROM clause. It works, and it silently drops the node from the graph &mdash; which is exactly Tuesday&rsquo;s failure mode.</li>
+    <li><code>database</code> = GCP project, <code>schema</code> = BigQuery dataset. Naming inherited from Dataform&rsquo;s pre-Google, multi-warehouse life; say it once so it stops being odd.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. REF() AT COMPILE TIME ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1><code style="font-size:.8em">ref()</code>: what actually happens at compile time</h1>
+  <div class="lede" style="margin-bottom:12px"><code>${ref("qos_events_raw")}</code> is not a macro for a table name. Trace what compilation does with it.</div>
+  <div class="figure">
+    <svg width="800" height="290" viewBox="0 0 800 290" aria-hidden="true">
+      <defs><marker id="s14a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5f6368"/></marker></defs>
+
+      <text x="0" y="12" font-size="10.5" font-weight="600" fill="#5f6368">you write</text>
+      <rect x="0" y="18" width="300" height="30" rx="4" fill="#fff" stroke="#4285F4" stroke-width="1.6"/>
+      <text x="12" y="38" font-size="11.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">FROM ${ref("qos_events_raw")}</text>
+
+      <path d="M150 50 L150 68" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s14a)"/>
+
+      <text x="0" y="86" font-size="10.5" font-weight="600" fill="#5f6368">Dataform does two things</text>
+
+      <rect x="0" y="94" width="384" height="76" rx="5" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.6"/>
+      <text x="12" y="112" font-size="10" font-weight="600" fill="#1a73e8">1 &mdash; substitutes the fully-qualified name</text>
+      <text x="12" y="136" font-size="10" font-family="'Roboto Mono',monospace" fill="#3c4043">FROM `clearmeet-ingest-prod</text>
+      <text x="12" y="152" font-size="10" font-family="'Roboto Mono',monospace" fill="#3c4043">      .raw.qos_events_raw`</text>
+
+      <rect x="400" y="94" width="384" height="76" rx="5" fill="#e6f4ea" stroke="#34A853" stroke-width="1.6"/>
+      <text x="412" y="112" font-size="10" font-weight="600" fill="#188038">2 &mdash; records an edge</text>
+      <rect x="416" y="126" width="120" height="26" rx="4" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+      <text x="424" y="143" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#5f6368">qos_events_raw</text>
+      <path d="M540 139 L586 139" stroke="#188038" stroke-width="1.6" marker-end="url(#s14a)"/>
+      <rect x="592" y="126" width="128" height="26" rx="4" fill="#fff" stroke="#4285F4" stroke-width="1.3"/>
+      <text x="600" y="143" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">qos_events_clean</text>
+
+      <path d="M192 172 L192 194" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s14a)"/>
+      <path d="M592 172 L592 194" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s14a)" opacity=".4"/>
+
+      <text x="0" y="212" font-size="10.5" font-weight="600" fill="#5f6368">BigQuery runs</text>
+      <rect x="0" y="218" width="784" height="66" rx="5" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.4"/>
+      <g font-size="10.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="12" y="238">CREATE OR REPLACE TABLE `clearmeet-analytics-prod.clearmeet_silver.qos_events_clean`</text>
+        <text x="12" y="254">OPTIONS(description='''QoS samples, device names normalized.''')</text>
+        <text x="12" y="270">AS ( SELECT &hellip; FROM `clearmeet-ingest-prod.raw.qos_events_raw` )</text>
+      </g>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">The second thing is the whole product. One function call both <strong>resolves the name</strong> and <strong>declares the edge</strong>, so the graph cannot drift out of sync with the SQL &mdash; they are the same statement.</div>
+</section>
+<details class="notes" data-title="ref(): what actually happens at compile time">
+  <summary>Speaker notes &mdash; ref(): what actually happens at compile time</summary>
+  <div class="n-body"><ul>
+    <li><strong>Delivery beat:</strong> reveal the substitution (which everyone expects), ask &ldquo;and what else?&rdquo;, then reveal the edge.</li>
+    <li>This is why <code>ref()</code> beats the <code>dependencies:</code> array: the array can lie, <code>ref()</code> cannot.</li>
+    <li><code>resolve()</code> does the substitution <em>without</em> the edge. It exists for the rare case where you need the name but genuinely don&rsquo;t want the ordering constraint &mdash; and it is a footgun. Mention, don&rsquo;t teach.</li>
+    <li>Point at <code>OPTIONS(description=&hellip;)</code> in the compiled SQL: that&rsquo;s the <code>description</code> from the config block landing in BigQuery&rsquo;s table metadata.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. THE PILE, REDRAWN ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The pile, redrawn</h1>
+  <div class="lede">The same five derived tables from the pile, after each <code>FROM</code> becomes a <code>ref()</code>. Nothing about the SQL logic changed.</div>
+  <div class="figure">
+    <svg width="800" height="252" viewBox="0 0 800 252" aria-hidden="true">
+      <defs><marker id="s15a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+      <rect x="0" y="0" width="800" height="22" rx="4" fill="#e6f4ea"/>
+      <text x="12" y="15" font-size="11" font-weight="600" fill="#188038">execution order: derived, not scheduled</text>
+
+      <rect x="0" y="46" width="128" height="32" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="10" y="62" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#5f6368">qos_events_raw</text>
+      <text x="10" y="73" font-size="7.5" fill="#9aa0a6">Declaration</text>
+
+      <rect x="0" y="98" width="128" height="32" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="10" y="114" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#5f6368">orgs_raw</text>
+      <text x="10" y="125" font-size="7.5" fill="#9aa0a6">Declaration</text>
+
+      <path d="M132 62 C 160 62, 168 80, 196 84" stroke="#5f6368" stroke-width="1.5" fill="none" marker-end="url(#s15a)"/>
+      <path d="M132 114 C 160 114, 168 96, 196 92" stroke="#5f6368" stroke-width="1.5" fill="none" marker-end="url(#s15a)"/>
+
+      <rect x="202" y="72" width="140" height="32" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.7"/>
+      <text x="212" y="88" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">qos_events_clean</text>
+      <text x="212" y="99" font-size="7.5" fill="#5f6368">Table</text>
+
+      <g stroke="#5f6368" stroke-width="1.5" fill="none" marker-end="url(#s15a)">
+        <path d="M346 82 C 380 82, 390 40, 424 38"/>
+        <path d="M346 86 C 380 86, 390 78, 424 78"/>
+        <path d="M346 90 C 380 90, 390 118, 424 118"/>
+        <path d="M346 94 C 380 94, 390 158, 424 158"/>
+      </g>
+
+      <g font-size="9.5" font-family="'Roboto Mono',monospace">
+        <rect x="430" y="22" width="136" height="32" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="440" y="38" fill="#1a73e8">daily_summary</text>
+        <text x="440" y="49" font-size="7.5" font-family="'Google Sans',sans-serif" fill="#5f6368">Table</text>
+
+        <rect x="430" y="62" width="136" height="32" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="440" y="78" fill="#1a73e8">sla_by_org</text>
+        <text x="440" y="89" font-size="7.5" font-family="'Google Sans',sans-serif" fill="#5f6368">Table</text>
+
+        <rect x="430" y="102" width="136" height="32" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="440" y="118" fill="#1a73e8">device_rollup</text>
+        <text x="440" y="129" font-size="7.5" font-family="'Google Sans',sans-serif" fill="#5f6368">Table</text>
+
+        <rect x="430" y="142" width="136" height="32" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="440" y="158" fill="#1a73e8">churn_features</text>
+        <text x="440" y="169" font-size="7.5" font-family="'Google Sans',sans-serif" fill="#5f6368">Table</text>
+      </g>
+
+      <path d="M570 38 L618 38" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s15a)"/>
+      <rect x="624" y="22" width="140" height="32" rx="4" fill="#fff" stroke="#4285F4" stroke-width="1.7"/>
+      <text x="634" y="38" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">exec_dashboard</text>
+      <text x="634" y="49" font-size="7.5" fill="#5f6368">View</text>
+
+      <line x1="0" y1="196" x2="800" y2="196" stroke="#dadce0" stroke-width="1"/>
+      <g font-size="9">
+        <rect x="0" y="206" width="26" height="13" rx="3" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 2"/>
+        <text x="32" y="216" fill="#5f6368">Declaration</text>
+        <rect x="104" y="206" width="26" height="13" rx="3" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.2"/>
+        <text x="136" y="216" fill="#5f6368">Table</text>
+        <rect x="182" y="206" width="26" height="13" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.2"/>
+        <text x="214" y="216" fill="#5f6368">View</text>
+        <text x="266" y="216" fill="#5f6368">arrows point from dependency to dependent &mdash; left to right in execution order</text>
+      </g>
+      <text x="0" y="240" font-size="9.5" fill="#9aa0a6">Same five nodes as the pile. No clocks.</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">Nobody wrote this order down. Dataform derived it from five <code>FROM</code> clauses &mdash; and re-derives it every compile, so it is never stale.</div>
+</section>
+<details class="notes" data-title="The pile, redrawn">
+  <summary>Speaker notes &mdash; The pile, redrawn</summary>
+  <div class="n-body"><ul>
+    <li><strong>State the arrow convention out loud.</strong> It matches the Dataform UI&rsquo;s compiled graph, and it is the opposite of the dependency-diagram convention some students will expect.</li>
+    <li>Tuesday&rsquo;s failure is now structurally impossible: <code>sla_by_org</code> cannot start before <code>qos_events_clean</code> succeeds, because the graph says so.</li>
+    <li><strong>Plant the next section:</strong> this still doesn&rsquo;t fix wrong <em>data</em>. If <code>qos_events_clean</code> succeeds with garbage, everything downstream cheerfully runs.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. INCREMENTAL TABLES: THE MECHANISM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Incremental tables: the mechanism</h1>
+  <div class="lede" style="font-size:15.5px;margin-bottom:8px"><code>qos_events_clean</code> holds 90 days &asymp; <strong>450 billion rows</strong>. A nightly <code>type: "table"</code> rebuild re-writes all 450 billion &mdash; to add the 5 billion that are new.</div>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"incremental"</span>,
+  <span class="kw">bigquery</span>: { <span class="kw">partitionBy</span>: <span class="st">"DATE(event_time)"</span> },
+}
+
+<span class="kw">SELECT</span> event_time, meeting_id, org_id,
+       <span class="fn">LOWER</span>(device) <span class="kw">AS</span> device, audio_mos
+<span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"qos_events_raw"</span>)}
+${<span class="fn">when</span>(<span class="fn">incremental</span>(),
+  `<span class="kw">WHERE</span> event_time &gt; (
+     <span class="kw">SELECT</span> <span class="fn">MAX</span>(event_time) <span class="kw">FROM</span> ${<span class="fn">self</span>()})`)}</pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13px">
+        <li><strong>First run</strong> (no table yet) and full refresh: the <code>when()</code> clause contributes nothing, and the table is built from scratch with <code>CREATE OR REPLACE</code>.</li>
+        <li><strong>Every run after:</strong> the same body compiles into an <code>INSERT</code> of only the rows passing the incremental <code>WHERE</code>.</li>
+        <li><code>${self()}</code> is this table&rsquo;s own name: the subquery reads the current high-water mark, so &ldquo;new&rdquo; is defined by the data already in the table, not by the clock.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="figure" style="margin-top:6px">
+    <svg width="790" height="62" viewBox="0 0 790 62" aria-hidden="true">
+      <defs><marker id="s16a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+      <text x="0" y="9" font-size="9" font-weight="600" fill="#5f6368">every run after the first</text>
+      <text x="150" y="9" font-size="8.5" fill="#9aa0a6">target already holds rows through 14:02:20 &mdash; MAX(event_time)</text>
+      <rect x="0" y="14" width="216" height="44" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+      <text x="6" y="26" font-size="7.5" fill="#9aa0a6">source</text>
+      <g font-size="8" font-family="'Roboto Mono',monospace">
+        <text x="6" y="38" fill="#9aa0a6">14:02:10  mtg_58d1  4.4  (have)</text>
+        <text x="6" y="50" fill="#1a73e8">14:02:30  mtg_92aa  2.9  (new)</text>
+      </g>
+      <path d="M220 36 L262 36" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s16a)"/>
+      <rect x="266" y="24" width="150" height="24" rx="12" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+      <text x="298" y="40" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">INSERT</text>
+      <text x="266" y="18" font-size="8" fill="#5f6368">only rows past the watermark</text>
+      <path d="M420 36 L462 36" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s16a)"/>
+      <rect x="466" y="14" width="216" height="44" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+      <text x="472" y="26" font-size="7.5" fill="#9aa0a6">target</text>
+      <g font-size="8" font-family="'Roboto Mono',monospace">
+        <text x="472" y="38" fill="#9aa0a6">&hellip; existing rows unchanged &hellip;</text>
+        <text x="472" y="50" fill="#188038">14:02:30  mtg_92aa  2.9  appended</text>
+      </g>
+      <text x="690" y="40" font-size="9" fill="#5f6368">1 row written,</text>
+      <text x="690" y="52" font-size="9" fill="#5f6368">not 450 billion</text>
+    </svg>
+  </div>
+  <div class="callout" style="margin-top:6px;font-size:14px">The <code>when(incremental(), &hellip;)</code> clause is the <em>whole</em> difference. On an incremental run Dataform applies it; on a full refresh it ignores it and rebuilds with <code>CREATE OR REPLACE</code>.</div>
+</section>
+<details class="notes" data-title="Incremental tables: the mechanism">
+  <summary>Speaker notes &mdash; Incremental tables: the mechanism</summary>
+  <div class="n-body"><ul>
+    <li><strong>Correction to older material</strong> (including the Google ILT source deck): it presents <code>CREATE TABLE IF NOT EXISTS AS SELECT</code> as <em>the</em> mapping. That describes only the first build. Current docs: Dataform &ldquo;builds the incremental table from scratch only for the first time. During subsequent executions, Dataform only inserts or merges new rows.&rdquo; (<a href="https://docs.cloud.google.com/dataform/docs/create-tables">Create tables</a>)</li>
+    <li>Every compilation result carries <em>both</em> variants &mdash; incremental and full-refresh &mdash; and execution selects one. &ldquo;Run with full refresh&rdquo; (UI) or <code>--full-refresh</code> (CLI) picks the rebuild path.</li>
+    <li>The <code>when()</code> two-argument form takes a non-incremental branch as its second argument; used here with one argument because there&rsquo;s no residual filter. Show the two-arg form in the lab.</li>
+    <li><strong>On the byte figures:</strong> 170 TB is the 90-day logical size (1.9 TB/day &times; 90, from Storage Optimization). A rebuild reads only the columns the SELECT touches (columnar), so the read is less than that &mdash; but it re-<em>writes</em> the whole table either way. The row count makes the waste plain without byte precision.</li>
+    <li>Partitioning carries over from module 4 and matters more here: the nightly append writes into one partition.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. LATE DATA AND DUPLICATES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Late data and duplicates: <code style="font-size:.8em">uniqueKey</code></h1>
+  <div class="lede" style="max-width:900px;font-size:15px;margin-bottom:10px">A participant&rsquo;s laptop drops off the network mid-meeting. The ClearMeet client buffers unsent samples and re-uploads on reconnect &mdash; and when an ack is lost, it re-sends. So <code>qos_events_raw</code> sometimes holds the <strong>same sample twice</strong>, written minutes apart.</div>
+  <div class="cols c-40-60">
+    <div>
+      <pre class="code small" style="font-size:11px;line-height:1.45"><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"incremental"</span>,
+  <span class="kw">uniqueKey</span>: [<span class="st">"meeting_id"</span>, <span class="st">"event_time"</span>],
+}
+
+<span class="kw">SELECT</span> &hellip;
+${<span class="fn">when</span>(<span class="fn">incremental</span>(),
+  `<span class="kw">WHERE</span> load_time &gt; (
+     <span class="kw">SELECT</span> <span class="fn">MAX</span>(load_time) <span class="kw">FROM</span> ${<span class="fn">self</span>()})`)}</pre>
+      <div class="vgap-s"></div>
+      <div style="font-size:12px;color:#5f6368;line-height:1.45">Watermark on <code>load_time</code>, not <code>event_time</code> &mdash; the reconnect&rsquo;s rows carry <em>old</em> event times and a strict event-time watermark would drop them.</div>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="452" height="184" viewBox="0 0 452 184" aria-hidden="true">
+          <rect x="0" y="0" width="216" height="18" rx="3" fill="#f1f3f4"/>
+          <text x="8" y="13" font-size="9.5" font-weight="600" fill="#5f6368">no uniqueKey &rarr; INSERT</text>
+          <rect x="0" y="24" width="216" height="76" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+          <g font-size="8" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="6" y="40">mtg_58d1  14:02:10  4.4</text>
+            <text x="6" y="56">mtg_58d1  14:02:20  4.5</text>
+          </g>
+          <rect x="4" y="62" width="208" height="14" rx="2" fill="#fce8e6" stroke="#b3261e" stroke-width="1.2"/>
+          <text x="6" y="73" font-size="8" font-family="'Roboto Mono',monospace" fill="#b3261e">mtg_58d1  14:02:10  4.4  &larr; dup</text>
+          <text x="6" y="92" font-size="8" fill="#b3261e">every downstream rate double-counts</text>
+
+          <rect x="236" y="0" width="216" height="18" rx="3" fill="#e6f4ea"/>
+          <text x="244" y="13" font-size="9.5" font-weight="600" fill="#188038">uniqueKey &rarr; MERGE</text>
+          <rect x="236" y="24" width="216" height="76" rx="3" fill="#fff" stroke="#34A853" stroke-width="1.3"/>
+          <g font-size="8" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="242" y="40">mtg_58d1  14:02:10  4.4</text>
+            <text x="242" y="56">mtg_58d1  14:02:20  4.5</text>
+          </g>
+          <rect x="240" y="62" width="208" height="14" rx="2" fill="#e6f4ea" stroke="#34A853" stroke-width="1.2"/>
+          <text x="242" y="73" font-size="8" font-family="'Roboto Mono',monospace" fill="#188038">mtg_92aa  13:58:40  3.1  &larr; late</text>
+          <text x="242" y="92" font-size="8" fill="#188038">no duplicate; late sample kept</text>
+
+          <rect x="0" y="108" width="452" height="74" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.2"/>
+          <text x="10" y="123" font-size="9.5" font-weight="600" fill="#3c4043">MERGE ON (meeting_id, event_time)</text>
+          <rect x="10" y="130" width="212" height="22" rx="3" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.2"/>
+          <text x="18" y="145" font-size="8.5" fill="#3c2f00">WHEN MATCHED &rarr; UPDATE in place</text>
+          <text x="18" y="166" font-size="8" fill="#5f6368">the re-sent sample overwrites itself</text>
+          <rect x="232" y="130" width="210" height="22" rx="3" fill="#e6f4ea" stroke="#34A853" stroke-width="1.2"/>
+          <text x="240" y="145" font-size="8.5" fill="#188038">WHEN NOT MATCHED &rarr; INSERT</text>
+          <text x="240" y="166" font-size="8" fill="#5f6368">the genuinely new row is added</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good"><code>uniqueKey</code> isn&rsquo;t a constraint &mdash; BigQuery has none. It changes the generated statement from <code>INSERT</code> to <code>MERGE</code>, so a re-delivered row updates in place instead of appending.</div>
+</section>
+<details class="notes" data-title="Late data and duplicates: uniqueKey">
+  <summary>Speaker notes &mdash; Late data and duplicates: uniqueKey</summary>
+  <div class="n-body"><ul>
+    <li><strong>The two-beat story:</strong> (1) an <code>event_time</code> watermark silently drops late data, so watermark on <code>load_time</code>; (2) that admits the re-sent duplicate, which is what <code>uniqueKey</code> then kills. Say both out loud &mdash; the slide shows the second.</li>
+    <li><strong>Define by mechanism, not synonym:</strong> &ldquo;idempotent&rdquo; is the word engineers will reach for; make them say <em>what statement is generated</em> instead.</li>
+    <li><strong>Within-batch caveat:</strong> <code>MERGE</code> matches source rows against the <em>target</em>, so two copies of the same sample arriving in the <em>same</em> run are not deduplicated by <code>uniqueKey</code>. Dedupe those in the SELECT: <code>QUALIFY ROW_NUMBER() OVER (PARTITION BY meeting_id, event_time ORDER BY load_time) = 1</code>.</li>
+    <li><strong>Cost:</strong> <code>MERGE</code> must find matching rows, which on a 450 B-row table means scanning unless bounded. <code>bigquery.updatePartitionFilter</code> restricts which target partitions the merge examines &mdash; set it to the recent window late data can realistically fall in.</li>
+    <li>Two properties older material predates: <code>protected: true</code> blocks full refreshes on a table you can never rebuild (source data gone), and <code>onSchemaChange:</code> (<code>IGNORE</code> default / <code>FAIL</code> / <code>EXTEND</code> / <code>SYNCHRONIZE</code>) decides what happens when the SELECT gains a column. <code>SYNCHRONIZE</code> drops removed columns and cannot be undone.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. DOCUMENTATION THAT LANDS IN BIGQUERY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Documentation that lands in BigQuery</h1>
+  <div class="lede">Six months from now someone asks what <code>audio_mos</code> is. The answer should be in BigQuery, not in a wiki.</div>
+  <div class="cols">
+    <div>
+      <pre class="code small"><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"table"</span>,
+  <span class="kw">description</span>: <span class="st">"QoS samples, cleaned. One row"</span>
+    <span class="st">"per participant per 10s."</span>,
+  <span class="kw">columns</span>: {
+    <span class="kw">audio_mos</span>: <span class="st">"Mean opinion score, 1-5."</span>
+      <span class="st">"Below 3.5 counts as poor audio."</span>,
+    <span class="kw">org_id</span>: <span class="st">"ClearMeet customer account id."</span>,
+  },
+  <span class="kw">bigquery</span>: { <span class="kw">labels</span>: {
+    <span class="kw">team</span>: <span class="st">"analytics"</span>, <span class="kw">layer</span>: <span class="st">"silver"</span> } },
+}</pre>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="380" height="214" viewBox="0 0 380 214" aria-hidden="true">
+          <rect x="0" y="0" width="380" height="214" rx="5" fill="#fff" stroke="#dadce0" stroke-width="1.4"/>
+          <text x="12" y="20" font-size="10.5" font-weight="600" fill="#3c4043">BigQuery &rsaquo; qos_events_clean</text>
+          <line x1="0" y1="28" x2="380" y2="28" stroke="#dadce0" stroke-width="1"/>
+          <text x="12" y="46" font-size="9" fill="#5f6368">Description</text>
+          <text x="112" y="46" font-size="9" fill="#202124">QoS samples, cleaned. One row per</text>
+          <text x="112" y="58" font-size="9" fill="#202124">participant per 10s.</text>
+          <text x="12" y="78" font-size="9" fill="#5f6368">Labels</text>
+          <rect x="112" y="68" width="86" height="14" rx="7" fill="#e8f0fe"/>
+          <text x="118" y="78" font-size="8" fill="#1a73e8">team:analytics</text>
+          <rect x="204" y="68" width="72" height="14" rx="7" fill="#e8f0fe"/>
+          <text x="210" y="78" font-size="8" fill="#1a73e8">layer:silver</text>
+          <line x1="0" y1="94" x2="380" y2="94" stroke="#dadce0" stroke-width="1"/>
+          <text x="12" y="110" font-size="9.5" font-weight="600" fill="#3c4043">Schema</text>
+          <text x="12" y="128" font-size="8.5" fill="#5f6368">Field name</text>
+          <text x="112" y="128" font-size="8.5" fill="#5f6368">Type</text>
+          <text x="170" y="128" font-size="8.5" fill="#5f6368">Description</text>
+          <line x1="12" y1="134" x2="368" y2="134" stroke="#eceff1" stroke-width="1"/>
+          <text x="12" y="150" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#202124">audio_mos</text>
+          <text x="112" y="150" font-size="8.5" fill="#5f6368">FLOAT</text>
+          <text x="170" y="150" font-size="8.5" fill="#202124">Mean opinion score, 1-5.</text>
+          <text x="170" y="161" font-size="8.5" fill="#202124">Below 3.5 counts as poor audio.</text>
+          <line x1="12" y1="168" x2="368" y2="168" stroke="#eceff1" stroke-width="1"/>
+          <text x="12" y="184" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#202124">org_id</text>
+          <text x="112" y="184" font-size="8.5" fill="#5f6368">STRING</text>
+          <text x="170" y="184" font-size="8.5" fill="#202124">ClearMeet customer account id.</text>
+          <line x1="12" y1="192" x2="368" y2="192" stroke="#eceff1" stroke-width="1"/>
+          <text x="12" y="206" font-size="8" fill="#9aa0a6">&hellip; remaining columns</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">Any BigQuery table can carry descriptions &mdash; that part isn&rsquo;t Dataform. What changes: the description lives in the same file as the SQL and the tests, under review, so it updates in the same commit that changes the column.</div>
+</section>
+<details class="notes" data-title="Documentation that lands in BigQuery">
+  <summary>Speaker notes &mdash; Documentation that lands in BigQuery</summary>
+  <div class="n-body"><ul>
+    <li><code>columns:</code> is documentation only &mdash; it does <strong>not</strong> define or enforce the schema. People assume it does.</li>
+    <li>Descriptions can be pulled from a shared JS constant (<code>docs.audio_mos</code>) so the same column documented in five tables says the same thing once &mdash; the <code>includes/</code> technique from section 5 applied to prose.</li>
+    <li>Labels flow into BigQuery billing export, so <code>layer: silver</code> lets you cost the medallion layers separately. Practical hook for the section-5 medallion slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. RECAP SECTION 2 + LAB 1 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: definitions and the graph</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li>One <code>.sqlx</code> per object; <code>config</code> says what to build, the body says what&rsquo;s in it.</li>
+        <li><code>ref()</code> resolves the name <em>and</em> records the edge &mdash; that&rsquo;s the DAG.</li>
+        <li>Declare external inputs so the graph shows the boundary of what you own.</li>
+        <li>Incremental: first run builds, later runs <code>INSERT</code> past the watermark; <code>uniqueKey</code> turns that into a <code>MERGE</code>.</li>
+      </ul>
+    </div>
+    <div>
+      <div style="background:#e8f0fe;border-radius:8px;padding:16px 18px">
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1a73e8;font-weight:600;margin-bottom:8px">Lab 1 &middot; 45 min</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:10px">Build a SQL workflow with dependencies</div>
+        <ul class="body" style="font-size:13.5px">
+          <li>Declare <code>qos_events_raw</code>; build <code>qos_events_clean</code> with partitioning and clustering.</li>
+          <li>Add a view on top, with labels and column descriptions.</li>
+          <li>Execute manually and read the compiled SQL.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Recap: definitions and the graph + Lab 1">
+  <summary>Speaker notes &mdash; Recap: definitions and the graph + Lab 1</summary>
+  <div class="n-body"><ul>
+    <li>Tell students to keep the compiled-SQL pane open during the lab &mdash; reading generated SQL is the fastest way to internalize what <code>ref()</code> and <code>when()</code> do.</li>
+    <li>Hand-off: the graph now runs in the right order. Section 3 asks whether what came out of it is <em>true</em>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. DIVIDER: SECTION 3 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 5</div>
+    <h1>Trust: assertions and security</h1>
+    <div class="sub">The graph runs in the right order. It still ran the wrong numbers.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why the pile fails</span><span>Definitions &amp; graph</span><span class="current">Trust</span><span>Execution</span><span>Real workloads</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Trust: assertions and security">
+  <summary>Speaker notes &mdash; Section 3: Trust: assertions and security</summary>
+  <div class="n-body"><ul>
+    <li>Two halves of one question &mdash; can I trust what came out of this graph? Assertions answer &ldquo;is it right?&rdquo;; security answers &ldquo;who can see it?&rdquo;</li>
+    <li>The highest-value slide in the deck is in here: the default that a failed assertion blocks nothing.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. THE NINE DAYS NOBODY NOTICED ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The nine days nobody noticed</h1>
+  <div class="lede" style="max-width:900px">12 June: ClearMeet ships v4.2 of its desktop client. Older clients report their platform as <code>macos</code>; v4.2 reports <code>Mac OS X</code>. Both flow through <code>qos_events_clean</code> into <code>device_rollup</code> &mdash; the table reporting poor-audio rate and traffic share <strong>per device type</strong>.</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="428" height="188" viewBox="0 0 428 188" aria-hidden="true">
+          <text x="0" y="12" font-size="10" font-weight="600" fill="#5f6368">device_rollup &mdash; 11 June</text>
+          <rect x="0" y="18" width="200" height="70" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+          <g font-size="9" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="8" y="34">macos      41.2%</text>
+            <text x="8" y="52">windows    38.9%</text>
+            <text x="8" y="70">ios        12.1%</text>
+          </g>
+          <rect x="0" y="94" width="98" height="16" rx="8" fill="#e6f4ea"/>
+          <text x="8" y="106" font-size="8.5" fill="#188038">&#10003; job SUCCEEDED</text>
+
+          <text x="228" y="12" font-size="10" font-weight="600" fill="#5f6368">device_rollup &mdash; 13 June</text>
+          <rect x="228" y="18" width="200" height="70" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+          <g font-size="9" font-family="'Roboto Mono',monospace">
+            <text x="236" y="34" fill="#3c4043">macos      22.7%</text>
+            <text x="236" y="70" fill="#3c4043">windows    38.9%</text>
+          </g>
+          <rect x="232" y="40" width="192" height="16" rx="2" fill="#fce8e6" stroke="#b3261e" stroke-width="1.2"/>
+          <text x="236" y="52" font-size="9" font-family="'Roboto Mono',monospace" fill="#b3261e">mac os x   18.4%</text>
+          <rect x="228" y="94" width="98" height="16" rx="8" fill="#e6f4ea"/>
+          <text x="236" y="106" font-size="8.5" fill="#188038">&#10003; job SUCCEEDED</text>
+
+          <path d="M100 128 C 160 128, 200 128, 300 118" stroke="#b3261e" stroke-width="1.4" fill="none" stroke-dasharray="3 2"/>
+          <text x="0" y="132" font-size="9" fill="#b3261e">the same Macs,</text>
+          <text x="0" y="144" font-size="9" fill="#b3261e">split by a renamed string</text>
+          <text x="0" y="170" font-size="9" fill="#5f6368">Neither row&rsquo;s <tspan font-style="italic">rate</tspan> looks wrong &mdash; both halves of the fleet behave alike.</text>
+          <text x="0" y="184" font-size="9" fill="#5f6368">Only the <tspan font-weight="600">set of names</tspan> gives it away.</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><code>device_rollup</code> groups by <code>device</code>. macOS traffic now lands in <strong>two rows</strong>, each carrying roughly half the real share.</li>
+        <li>No number raises an eyebrow unless you know the list of device names that should exist.</li>
+        <li>Every job succeeded, every night, for nine days. The missing check is one line.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn">A pipeline that only reports <em>whether it ran</em> will happily deliver nine days of wrong numbers with a green check on every one.</div>
+</section>
+<details class="notes" data-title="The nine days nobody noticed">
+  <summary>Speaker notes &mdash; The nine days nobody noticed</summary>
+  <div class="n-body"><ul>
+    <li>Second half of the deck&rsquo;s driving question: order was fixed by section 2, truth is this section.</li>
+    <li><code>LOWER()</code> in the clean table is why the slide shows <code>mac os x</code>, not <code>Mac OS X</code> &mdash; lowercasing normalizes <em>case</em>, not <em>vocabulary</em>.</li>
+    <li><strong>Ask the room what they&rsquo;d check.</strong> Answers usually cluster on &ldquo;row counts&rdquo; &mdash; steer toward &ldquo;the set of allowed device values,&rdquo; which is exactly <code>rowConditions</code>.</li>
+    <li>Nine days is how long it took a human to eyeball the rollup. The check on the next slide would have failed the run on night one.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. ASSERTIONS: FOUR BUILT IN ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Assertions: four built in</h1>
+  <div class="lede">Four checks on <code>qos_events_clean</code>, written in the same config block that defines the table.</div>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.42"><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"table"</span>,
+  <span class="kw">assertions</span>: {
+    <span class="kw">nonNull</span>: [<span class="st">"meeting_id"</span>, <span class="st">"event_time"</span>, <span class="st">"org_id"</span>],
+    <span class="kw">uniqueKey</span>: [<span class="st">"meeting_id"</span>],
+    <span class="kw">uniqueKeys</span>: [[<span class="st">"meeting_id"</span>, <span class="st">"event_time"</span>]],
+    <span class="kw">rowConditions</span>: [
+      <span class="st">"audio_mos BETWEEN 1 AND 5"</span>,
+      <span class="st">"device IN ('macos','windows',"</span>
+        <span class="st">"'ios','android','web')"</span>,
+    ],
+  },
+}</pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Each entry becomes its <strong>own action</strong> that runs after the table builds.</li>
+        <li>An assertion is a query that hunts for violating rows; finding <strong>any</strong> marks it <code>FAILED</code> that night.</li>
+        <li><code>rowConditions</code> is evaluated per row: every row must satisfy every listed expression.</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <table class="tbl" style="font-size:11.5px">
+        <tr><th style="width:92px">Assertion</th><th>Fails when</th></tr>
+        <tr><td><code>nonNull</code></td><td>a listed column is NULL in any row</td></tr>
+        <tr><td><code>uniqueKey</code></td><td>a single column has a repeated value</td></tr>
+        <tr><td><code>uniqueKeys</code></td><td>a <em>combination</em> of columns repeats</td></tr>
+        <tr class="hl"><td><code>rowConditions</code></td><td>any row makes an expression false</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:6px;font-size:14px">The second <code>rowConditions</code> entry is the nine-day bug, caught on night one. Assertions are cheapest to write at the moment you learn what &ldquo;wrong&rdquo; looks like.</div>
+</section>
+<details class="notes" data-title="Assertions: four built in">
+  <summary>Speaker notes &mdash; Assertions: four built in</summary>
+  <div class="n-body"><ul>
+    <li><code>uniqueKeys</code> (plural, list of lists) is missing from older material &mdash; it&rsquo;s the multi-column form, and it&rsquo;s what you actually want on an event table.</li>
+    <li><strong>Implementation detail that surfaces in the UI:</strong> <code>nonNull</code> is implemented as a <code>rowConditions</code> assertion under the hood, so it doesn&rsquo;t produce a separately-named action. That matters when wiring dependencies by name.</li>
+    <li>These run as BigQuery queries and cost money &mdash; full scan per assertion unless the table is partitioned and the condition prunes. Not free; worth budgeting.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. WHAT AN ASSERTION COMPILES INTO ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What an assertion compiles into</h1>
+  <div class="lede">Trace <code>uniqueKey: ["meeting_id"]</code> from config to the thing that actually fails the run.</div>
+  <ul class="body" style="font-size:13.5px">
+    <li>Dataform inverts the rule into a <strong>violations view</strong>: a query for the rows that <em>break</em> it, materialized in <code>clearmeet_assertions</code>.</li>
+    <li>The assertion action is then a single <code>ASSERT</code> that the view is empty.</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="800" height="196" viewBox="0 0 800 196" aria-hidden="true">
+      <defs><marker id="s23a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+      <rect x="0" y="16" width="150" height="52" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <g font-size="9" font-family="'Roboto Mono',monospace" fill="#1a73e8">
+        <text x="8" y="32">assertions: {</text>
+        <text x="8" y="46">  uniqueKey:</text>
+        <text x="8" y="60">    ['meeting_id'] }</text>
+      </g>
+      <path d="M154 42 L188 42" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s23a)"/>
+
+      <rect x="194" y="0" width="356" height="120" rx="4" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+      <text x="204" y="16" font-size="9.5" font-weight="600" fill="#3c2f00">a view in clearmeet_assertions</text>
+      <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="204" y="34">CREATE OR REPLACE VIEW</text>
+        <text x="204" y="46">  `&hellip;_assertions_uniqueKey_0` AS (</text>
+        <text x="204" y="58">  SELECT * FROM (</text>
+        <text x="204" y="70">    SELECT meeting_id, COUNT(1) AS index_row_count</text>
+        <text x="204" y="82">    FROM `&hellip;.qos_events_clean` GROUP BY meeting_id</text>
+        <text x="204" y="94">  ) AS data WHERE index_row_count &gt; 1 );</text>
+      </g>
+      <rect x="204" y="100" width="150" height="14" rx="2" fill="#fce8e6"/>
+      <text x="209" y="111" font-size="8" font-family="'Roboto Mono',monospace" fill="#b3261e">mtg_58d1 | 2   mtg_92aa | 3</text>
+      <text x="362" y="111" font-size="8" fill="#b3261e">&larr; the offending rows</text>
+
+      <path d="M554 60 L588 60" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s23a)"/>
+
+      <rect x="594" y="16" width="206" height="88" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+      <text x="604" y="32" font-size="9.5" font-weight="600" fill="#3c4043">the check</text>
+      <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="604" y="50">ASSERT ((SELECT COUNT(1)</text>
+        <text x="604" y="62">  FROM `&hellip;_uniqueKey_0`) = 0)</text>
+        <text x="604" y="74">AS "Assertion failed,</text>
+        <text x="604" y="86">    expected zero rows."</text>
+      </g>
+      <rect x="594" y="110" width="100" height="16" rx="8" fill="#fce8e6"/>
+      <text x="602" y="122" font-size="8.5" fill="#b3261e">&#10007; FAILED</text>
+
+      <text x="194" y="146" font-size="9.5" fill="#5f6368">The view persists after the run &mdash; it is an ordinary view in an ordinary dataset.</text>
+      <rect x="194" y="156" width="400" height="30" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.3"/>
+      <text x="204" y="175" font-size="9.5" font-family="'Roboto Mono',monospace" fill="#188038">SELECT * FROM clearmeet_assertions.&hellip;_uniqueKey_0</text>
+      <text x="604" y="175" font-size="9" fill="#188038">&larr; look at what broke</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">When an assertion fails, you don&rsquo;t reproduce the failure &mdash; you <code>SELECT *</code> from the assertion view and look at the exact rows that broke it.</div>
+</section>
+<details class="notes" data-title="What an assertion compiles into">
+  <summary>Speaker notes &mdash; What an assertion compiles into</summary>
+  <div class="n-body"><ul>
+    <li>That persistence is the most practically useful and least advertised thing about Dataform assertions. Lead with it in a demo.</li>
+    <li>Naming pattern: <code>&lt;project&gt;.&lt;assertion_dataset&gt;.&lt;dataset&gt;_&lt;table&gt;_assertions_&lt;condition&gt;_&lt;n&gt;</code>. Ugly, predictable, and greppable.</li>
+    <li>Every assertion is a node in the graph with its own state &mdash; which sets up the next slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. THE TRAP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The trap: a failed assertion does not stop anything</h1>
+  <div class="lede">The <code>device</code> assertion fails at 02:14. Does the SLA report go out?</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="430" height="228" viewBox="0 0 430 228" aria-hidden="true">
+          <defs><marker id="s24a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <rect x="0" y="0" width="430" height="16" rx="3" fill="#f1f3f4"/>
+          <text x="8" y="12" font-size="9.5" font-weight="600" fill="#5f6368">default</text>
+
+          <rect x="0" y="26" width="124" height="28" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="8" y="44" font-size="9" font-family="'Roboto Mono',monospace" fill="#188038">qos_events_clean</text>
+          <path d="M128 40 L168 40" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s24a)"/>
+          <rect x="172" y="26" width="104" height="28" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="180" y="44" font-size="9" font-family="'Roboto Mono',monospace" fill="#188038">sla_by_org</text>
+          <path d="M280 40 L316 40" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s24a)"/>
+          <rect x="320" y="24" width="106" height="32" rx="4" fill="#fff" stroke="#b3261e" stroke-width="1.6"/>
+          <text x="328" y="38" font-size="8.5" fill="#b3261e">SLA report</text>
+          <text x="328" y="50" font-size="8.5" fill="#b3261e">sent to Acme</text>
+
+          <path d="M62 58 L62 76" stroke="#9aa0a6" stroke-width="1.3" stroke-dasharray="3 2"/>
+          <rect x="10" y="78" width="104" height="26" rx="4" fill="#fce8e6" stroke="#b3261e" stroke-width="1.5"/>
+          <text x="18" y="95" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#b3261e">device &#10007; FAILED</text>
+          <text x="124" y="88" font-size="9" fill="#b3261e">ran anyway &mdash; the assertion</text>
+          <text x="124" y="100" font-size="9" fill="#b3261e">isn&rsquo;t between them</text>
+
+          <line x1="0" y1="118" x2="430" y2="118" stroke="#dadce0" stroke-width="1"/>
+          <rect x="0" y="126" width="430" height="16" rx="3" fill="#e8f0fe"/>
+          <text x="8" y="138" font-size="9.5" font-weight="600" fill="#1a73e8">dependOnDependencyAssertions: true</text>
+
+          <rect x="0" y="152" width="124" height="28" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="8" y="170" font-size="9" font-family="'Roboto Mono',monospace" fill="#188038">qos_events_clean</text>
+          <path d="M128 166 L154 166" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s24a)"/>
+          <rect x="158" y="152" width="98" height="28" rx="4" fill="#fce8e6" stroke="#b3261e" stroke-width="1.6"/>
+          <text x="166" y="170" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#b3261e">device &#10007;</text>
+          <path d="M260 166 L288 166" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s24a)"/>
+          <rect x="292" y="152" width="100" height="28" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <text x="300" y="170" font-size="9" font-family="'Roboto Mono',monospace" fill="#9aa0a6">SKIPPED</text>
+          <text x="158" y="196" font-size="9" fill="#5f6368">the assertion is now <tspan font-style="italic">on the path</tspan></text>
+          <rect x="292" y="200" width="100" height="24" rx="4" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.3"/>
+          <text x="300" y="215" font-size="8.5" fill="#9aa0a6">not sent</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>By default, <strong>yes</strong>. The assertion is a node <em>beside</em> the table, not <em>between</em> the table and its dependents &mdash; <code>sla_by_org</code> depends only on <code>qos_events_clean</code>, which <code>SUCCEEDED</code>.</li>
+        <li><code>dependOnDependencyAssertions: true</code> rewires this: every assertion of every dependency becomes an additional dependency.</li>
+        <li>Now the failed assertion is on the path, and <code>sla_by_org</code> ends the night <code>SKIPPED</code>.</li>
+      </ul>
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"table"</span>, <span class="kw">name</span>: <span class="st">"sla_by_org"</span>,
+  <span class="kw">dependOnDependencyAssertions</span>: <span class="kw">true</span>,
+}</pre>
+    </div>
+  </div>
+  <div class="callout warn" style="margin-top:6px">By default, &ldquo;the failure of the assertions of action A does not block Dataform from executing action B.&rdquo; An assertion you don&rsquo;t wire in is a <em>notification</em>, not a <em>gate</em>.</div>
+</section>
+<details class="notes" data-title="The trap: a failed assertion does not stop anything">
+  <summary>Speaker notes &mdash; The trap: a failed assertion does not stop anything</summary>
+  <div class="n-body"><ul>
+    <li>Quote is verbatim from <a href="https://docs.cloud.google.com/dataform/docs/dependencies">Set dependencies</a>. This is the single most consequential default in the product and most source material buries it.</li>
+    <li><strong>Three ways to wire it:</strong> <code>dependOnDependencyAssertions: true</code> (all assertions of all dependencies), <code>includeDependentAssertions</code> per-dependency for exceptions, or naming the assertion action in the <code>dependencies</code> array by hand. The first is the sane default.</li>
+    <li>When both are set, <code>includeDependentAssertions</code> wins &mdash; so <code>dependOnDependencyAssertions: true</code> plus <code>{name: "orgs", includeDependentAssertions: false}</code> means &ldquo;gate on everything except the orgs table&rsquo;s checks.&rdquo;</li>
+    <li><code>SKIPPED</code> is a real terminal state: &ldquo;Execution of the action was skipped because upstream dependencies did not all complete successfully.&rdquo;</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. MANUAL ASSERTIONS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Manual assertions</h1>
+  <div class="lede">Every <code>org_id</code> in <code>qos_events_clean</code> should exist in <code>orgs</code>. No built-in assertion expresses a cross-table check.</div>
+  <div class="cols c-55-45">
+    <div>
+      <pre class="code small"><span class="lang">definitions/assertions/orgs_fk.sqlx</span><span class="fn">config</span> { <span class="kw">type</span>: <span class="st">"assertion"</span> }
+
+<span class="kw">SELECT</span> org_id, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> samples
+<span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"qos_events_clean"</span>)}
+<span class="kw">WHERE</span> org_id <span class="kw">NOT IN</span> (
+  <span class="kw">SELECT</span> org_id <span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"orgs"</span>)})
+<span class="kw">GROUP BY</span> org_id</pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>A manual assertion is a query that must return <strong>zero rows</strong> &mdash; any result row is a violation, and the action fails.</li>
+        <li>It is a first-class node: it has dependencies (via <code>ref()</code>), a state, and dependents.</li>
+        <li>Use it for referential integrity, cross-table totals, and business rules.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">Built-in assertions check a table against itself. Manual assertions are how you check a table against <em>another</em> table &mdash; which is where the interesting bugs live.</div>
+</section>
+<details class="notes" data-title="Manual assertions">
+  <summary>Speaker notes &mdash; Manual assertions</summary>
+  <div class="n-body"><ul>
+    <li>Returning the offending <code>org_id</code>s and a count, rather than <code>SELECT 1</code>, means the failure message points at the culprit. Cheap habit, big payoff.</li>
+    <li>Manual assertions also work against external tables, where built-ins can&rsquo;t reach.</li>
+    <li><strong>Anti-pattern worth naming:</strong> an assertion that&rsquo;s <em>always</em> slightly failing gets muted, and then all assertions get ignored. Assert things that should be exactly true.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 26. SECURITY: THREE GRANULARITIES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Security: three granularities, one question</h1>
+  <div class="lede">A support contractor needs the SLA report for their assigned region. They must not see <code>participant_email</code>, and must not see other regions&rsquo; rows.</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="430" height="196" viewBox="0 0 430 196" aria-hidden="true">
+          <rect x="4" y="16" width="360" height="126" rx="4" fill="none" stroke="#4285F4" stroke-width="2.2"/>
+          <text x="4" y="12" font-size="9" fill="#1a73e8">1 &middot; IAM &mdash; can you open it at all?</text>
+          <g font-size="8.5" font-family="'Roboto Mono',monospace">
+            <text x="14" y="34" fill="#5f6368">org_id</text>
+            <text x="86" y="34" fill="#5f6368">region</text>
+            <text x="168" y="34" fill="#5f6368">participant_email</text>
+            <text x="290" y="34" fill="#5f6368">poor_rate</text>
+          </g>
+          <line x1="10" y1="40" x2="358" y2="40" stroke="#dadce0" stroke-width="1"/>
+          <rect x="162" y="22" width="118" height="114" fill="#fce8e6" opacity=".62"/>
+          <rect x="10" y="86" width="348" height="52" fill="#fce8e6" opacity=".5"/>
+          <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#202124">
+            <text x="14" y="56">acme</text>   <text x="86" y="56">EU</text>   <text x="168" y="56">#####@&hellip;</text> <text x="290" y="56">3.1%</text>
+            <text x="14" y="74">globex</text> <text x="86" y="74">EU</text>   <text x="168" y="74">#####@&hellip;</text> <text x="290" y="74">0.9%</text>
+          </g>
+          <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#9aa0a6">
+            <text x="14" y="102">initech</text> <text x="86" y="102">US</text> <text x="168" y="102">#####@&hellip;</text> <text x="290" y="102">1.4%</text>
+            <text x="14" y="120">umbrella</text><text x="86" y="120">APAC</text><text x="168" y="120">#####@&hellip;</text><text x="290" y="120">2.2%</text>
+          </g>
+          <text x="286" y="150" font-size="8.5" fill="#b3261e">2 &middot; policy tag</text>
+          <text x="286" y="161" font-size="8.5" fill="#b3261e">which columns?</text>
+          <text x="4" y="160" font-size="8.5" fill="#b3261e">3 &middot; row access policy &mdash; which rows?</text>
+          <line x1="374" y1="22" x2="374" y2="136" stroke="#dadce0" stroke-width="1"/>
+          <text x="4" y="184" font-size="8.5" fill="#5f6368">written as: post_operations GRANT &middot; bigqueryPolicyTags in columns &middot; CREATE ROW ACCESS POLICY</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Three controls answer three nested questions, and all three are plain BigQuery:</li>
+        <li><strong>IAM</strong> &mdash; can you open the dataset or table at all?</li>
+        <li><strong>Policy tags</strong> (column-level) &mdash; of the columns, which can you read?</li>
+        <li><strong>Row access policies</strong> &mdash; of the rows, which exist for you?</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">All three are ordinary BigQuery features. Dataform&rsquo;s contribution is that they live in the same reviewed file as the table, so the grant cannot drift from the schema.</div>
+</section>
+<details class="notes" data-title="Security: three granularities, one question">
+  <summary>Speaker notes &mdash; Security: three granularities, one question</summary>
+  <div class="n-body"><ul>
+    <li>Frame as three questions in order &mdash; can you open it, which columns, which rows. Students new to GCP conflate them constantly.</li>
+    <li>Column-level security needs a taxonomy and policy tag to exist <em>first</em>, created outside Dataform.</li>
+    <li><strong>Service limit:</strong> &ldquo;A column can have only one policy tag.&rdquo; (<a href="https://docs.cloud.google.com/bigquery/docs/column-level-security-intro">BQ column-level security</a>)</li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. WRITING THE GRANTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Writing the grants</h1>
+  <div class="lede" style="font-size:15.5px;margin-bottom:12px">Both controls are written in the same file that defines <code>sla_by_org</code>.</div>
+  <div class="cols">
+    <div>
+      <pre class="code small"><span class="lang">post_operations</span><span class="fn">post_operations</span> {
+  <span class="kw">GRANT</span> `roles/bigquery.dataViewer`
+  <span class="kw">ON TABLE</span> ${<span class="fn">self</span>()}
+  <span class="kw">TO</span> <span class="st">"group:support-contractors@</span>
+      <span class="st">clearmeet.example"</span>
+}</pre>
+    </div>
+    <div>
+      <pre class="code small"><span class="lang">config &rsaquo; columns</span><span class="kw">columns</span>: {
+  <span class="kw">participant_email</span>: {
+    <span class="kw">description</span>: <span class="st">"Participant email."</span>,
+    <span class="kw">bigqueryPolicyTags</span>: [
+      <span class="st">"projects/&hellip;/taxonomies/8891"</span>
+      <span class="st">"/policyTags/4417"</span>],
+  },
+}</pre>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:12.5px">
+    <li>The <code>GRANT</code> is plain BigQuery DCL &mdash; the same statement you could type in the console. <code>post_operations</code> runs it after every build of this table.</li>
+    <li><code>${self()}</code> = this file&rsquo;s table; <code>${ref("x")}</code> to grant on another&rsquo;s. Row access policies go here too.</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="callout warn">The Dataform service account needs <strong>Fine-Grained Reader</strong> on the policy tag, or every assertion on that table fails with a permission error. Same for row access policies: grant the service account a <code>FILTER USING (TRUE)</code> policy, or its assertions silently pass by reading zero rows.</div>
+</section>
+<details class="notes" data-title="Writing the grants">
+  <summary>Speaker notes &mdash; Writing the grants</summary>
+  <div class="n-body"><ul>
+    <li><strong>Dwell on that second failure mode.</strong> An assertion that cannot see the bad rows <em>passes</em>. Security misconfiguration turns your data tests into no-ops without any error.</li>
+    <li>Docs suggest removing the GRANT from an incremental table&rsquo;s definition after the first run, since it re-runs every execution.</li>
+    <li><strong>BigLake caveat:</strong> row-level security in <code>post_operations</code> fails on external tables (&ldquo;Actions may only include post_operations if they create a dataset&rdquo;) &mdash; use a separate <code>type: "operations"</code>, <code>hasOutput: false</code> file.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 28. RECAP SECTION 3 + LAB 2 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: trust</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li>Four built-in assertions; manual assertions for anything cross-table.</li>
+        <li>An assertion compiles to a view of the offending rows plus an <code>ASSERT</code> &mdash; the view persists.</li>
+        <li><strong>A failed assertion blocks nothing unless you wire it in</strong> (<code>dependOnDependencyAssertions</code>).</li>
+        <li>Three granularities of access, all written next to the table definition.</li>
+      </ul>
+    </div>
+    <div>
+      <div style="background:#e8f0fe;border-radius:8px;padding:16px 18px">
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1a73e8;font-weight:600;margin-bottom:8px">Lab 2 &middot; 60 min</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:10px">Assertions and BigQuery security settings</div>
+        <ul class="body" style="font-size:13.5px">
+          <li>Add built-in and manual assertions; make one fail on purpose and read the view.</li>
+          <li>Gate a downstream table on the assertion.</li>
+          <li>Add IAM, column-level, and row-level access.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Recap: trust + Lab 2">
+  <summary>Speaker notes &mdash; Recap: trust + Lab 2</summary>
+  <div class="n-body"><ul>
+    <li>The most valuable lab step is deliberately breaking an assertion and watching the dependent go <code>SKIPPED</code> &mdash; make sure nobody skips it.</li>
+    <li>Hand-off: the graph is correct and tested. Section 4 is how it actually gets run, on a schedule, in two environments.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 29. DIVIDER: SECTION 4 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 5</div>
+    <h1>Execution: compile, release, invoke</h1>
+    <div class="sub">From a git commit to rows in a table, and who gets paged when it breaks.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why the pile fails</span><span>Definitions &amp; graph</span><span>Trust</span><span class="current">Execution</span><span>Real workloads</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Execution: compile, release, invoke">
+  <summary>Speaker notes &mdash; Section 4: Execution: compile, release, invoke</summary>
+  <div class="n-body"><ul>
+    <li>This is where the five terms from slide 4 pay off. Put that slide back on screen if the room looks lost.</li>
+    <li>Also the GitOps section &mdash; environments as release configs over git refs is the part most teams get wrong first.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 30. THE CODE LIFECYCLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The code lifecycle</h1>
+  <div class="lede">Priya pushes her change at 16:40. It reaches production tables at 02:00. Here is every step in between.</div>
+  <div class="figure">
+    <svg width="800" height="228" viewBox="0 0 800 228" aria-hidden="true">
+      <defs><marker id="s30a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5f6368"/></marker></defs>
+
+      <rect x="0" y="20" width="176" height="104" rx="5" fill="#fff" stroke="#4285F4" stroke-width="1.7"/>
+      <text x="10" y="38" font-size="10" font-weight="600" fill="#1a73e8">development files</text>
+      <g font-size="9" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="10" y="58">*.sqlx   *.js</text>
+      </g>
+      <line x1="10" y1="76" x2="166" y2="76" stroke="#dadce0" stroke-width="1"/>
+      <circle cx="24" cy="94" r="4" fill="#5f6368"/><circle cx="58" cy="94" r="4" fill="#5f6368"/><circle cx="92" cy="94" r="4" fill="#4285F4"/>
+      <line x1="20" y1="94" x2="96" y2="94" stroke="#5f6368" stroke-width="1.2"/>
+      <text x="10" y="114" font-size="8.5" fill="#5f6368">git branch</text>
+
+      <path d="M180 72 L212 72" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s30a)"/>
+
+      <rect x="216" y="20" width="176" height="104" rx="5" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.7"/>
+      <text x="226" y="38" font-size="10" font-weight="600" fill="#1a73e8">compilation result</text>
+      <rect x="226" y="46" width="70" height="18" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.1"/>
+      <text x="232" y="59" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">SQL</text>
+      <circle cx="320" cy="55" r="6" fill="#9aa0a6"/><circle cx="346" cy="55" r="6" fill="#4285F4"/><circle cx="372" cy="55" r="6" fill="#4285F4"/>
+      <path d="M327 55 L339 55 M353 55 L365 55" stroke="#5f6368" stroke-width="1.2"/>
+      <text x="226" y="86" font-size="8.5" fill="#5f6368">settings frozen in; hermetic</text>
+      <text x="226" y="104" font-size="8.5" fill="#9aa0a6">same code &rarr; same SQL, every time</text>
+
+      <path d="M396 72 L428 72" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s30a)"/>
+
+      <rect x="432" y="20" width="172" height="104" rx="5" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.7"/>
+      <text x="442" y="38" font-size="10" font-weight="600" fill="#1a73e8">release configuration</text>
+      <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="442" y="58">gitCommitish: main</text>
+        <text x="442" y="74">frequency: 1h</text>
+        <text x="442" y="90">overrides: vars, suffix</text>
+      </g>
+      <text x="442" y="110" font-size="8.5" font-style="italic" fill="#1a73e8">which code, which settings</text>
+
+      <path d="M608 72 L640 72" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s30a)"/>
+
+      <rect x="644" y="20" width="156" height="104" rx="5" fill="#e6f4ea" stroke="#34A853" stroke-width="1.7"/>
+      <text x="654" y="38" font-size="10" font-weight="600" fill="#188038">workflow configuration</text>
+      <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="654" y="58">schedule: 0 2 * * *</text>
+        <text x="654" y="74">service account</text>
+        <text x="654" y="90">includedTags</text>
+      </g>
+      <text x="654" y="110" font-size="8.5" font-style="italic" fill="#188038">when, and which actions</text>
+
+      <path d="M722 128 L722 152" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s30a)"/>
+      <rect x="432" y="156" width="368" height="56" rx="5" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+      <text x="442" y="174" font-size="10" font-weight="600" fill="#3c4043">workflow invocation &mdash; BigQuery</text>
+      <g font-size="8.5" font-family="'Roboto Mono',monospace">
+        <text x="442" y="192" fill="#188038">&#10003;</text><text x="456" y="192" fill="#3c4043">dataform-gcp-8801</text>
+        <text x="442" y="205" fill="#188038">&#10003;</text><text x="456" y="205" fill="#3c4043">dataform-gcp-8802</text>
+        <text x="600" y="192" fill="#5f6368">shows in Job History</text>
+        <text x="600" y="205" fill="#5f6368">billed to your project</text>
+      </g>
+      <text x="0" y="180" font-size="9" fill="#5f6368">A workspace can also</text>
+      <text x="0" y="193" font-size="9" fill="#5f6368">invoke directly &mdash; that&rsquo;s</text>
+      <text x="0" y="206" font-size="9" fill="#5f6368">how you develop, not</text>
+      <text x="0" y="219" font-size="9" fill="#5f6368">how you run production.</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">Compilation is separate from execution on purpose: the same compilation result can be run now, re-run after a failure, or run on a schedule &mdash; and it produces byte-identical SQL each time.</div>
+</section>
+<details class="notes" data-title="The code lifecycle">
+  <summary>Speaker notes &mdash; The code lifecycle</summary>
+  <div class="n-body"><ul>
+    <li>Reinforce the legend from slide 4: this is the picture those five terms describe.</li>
+    <li><strong>Service limits:</strong> minimum compilation frequency is 1 hour; workflow invocations expire after 90 days; a workspace&rsquo;s compilation result expires after 24 hours. (<a href="https://docs.cloud.google.com/dataform/docs/code-lifecycle">Code lifecycle</a>)</li>
+    <li>You don&rsquo;t need a release config to run something &mdash; a workspace can execute directly. That&rsquo;s how you develop; it is not how you run production.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 31. TWO ENVIRONMENTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Two environments from one repository</h1>
+  <div class="lede">The same definitions must build <code>clearmeet_silver_dev</code> from Priya&rsquo;s branch and <code>clearmeet_silver</code> from <code>main</code>, with a lower threshold in dev.</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="430" height="200" viewBox="0 0 430 200" aria-hidden="true">
+          <defs><marker id="s31a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <rect x="0" y="70" width="104" height="56" rx="5" fill="#fff" stroke="#4285F4" stroke-width="1.7"/>
+          <text x="10" y="90" font-size="9.5" font-weight="600" fill="#1a73e8">one repo</text>
+          <text x="10" y="106" font-size="8.5" fill="#5f6368">one set of</text>
+          <text x="10" y="117" font-size="8.5" fill="#5f6368">definitions</text>
+
+          <path d="M108 88 C 132 88, 136 46, 160 46" stroke="#5f6368" stroke-width="1.4" fill="none" marker-end="url(#s31a)"/>
+          <path d="M108 108 C 132 108, 136 150, 160 150" stroke="#5f6368" stroke-width="1.4" fill="none" marker-end="url(#s31a)"/>
+
+          <rect x="164" y="14" width="150" height="64" rx="5" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.6"/>
+          <text x="172" y="30" font-size="9.5" font-weight="600" fill="#3c2f00">dev</text>
+          <g font-size="8" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="172" y="44">gitCommitish: priya-dev</text>
+            <text x="172" y="56">datasetSuffix: _dev</text>
+            <text x="172" y="68">poor_audio_threshold: 3.9</text>
+          </g>
+
+          <rect x="164" y="118" width="150" height="64" rx="5" fill="#e6f4ea" stroke="#34A853" stroke-width="1.6"/>
+          <text x="172" y="134" font-size="9.5" font-weight="600" fill="#188038">prod</text>
+          <g font-size="8" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="172" y="148">gitCommitish: main</text>
+            <text x="172" y="160">no suffix</text>
+            <text x="172" y="172">poor_audio_threshold: 3.5</text>
+          </g>
+
+          <path d="M318 46 L344 46" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s31a)"/>
+          <path d="M318 150 L344 150" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s31a)"/>
+
+          <rect x="348" y="8" width="82" height="182" rx="5" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.4"/>
+          <text x="356" y="24" font-size="9" font-weight="600" fill="#3c4043">BigQuery</text>
+          <rect x="354" y="34" width="70" height="30" rx="3" fill="#fff" stroke="#FBBC04" stroke-width="1.2"/>
+          <text x="358" y="46" font-size="7.5" font-family="'Roboto Mono',monospace" fill="#3c4043">clearmeet_</text>
+          <text x="358" y="57" font-size="7.5" font-family="'Roboto Mono',monospace" fill="#3c4043">silver_dev</text>
+          <rect x="354" y="136" width="70" height="30" rx="3" fill="#fff" stroke="#34A853" stroke-width="1.2"/>
+          <text x="358" y="148" font-size="7.5" font-family="'Roboto Mono',monospace" fill="#3c4043">clearmeet_</text>
+          <text x="358" y="159" font-size="7.5" font-family="'Roboto Mono',monospace" fill="#3c4043">silver</text>
+          <text x="354" y="180" font-size="7.5" fill="#9aa0a6">same project</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Environments are <strong>release configurations over git refs</strong>, not copies of the code.</li>
+        <li><code>projectSuffix</code> / <code>datasetSuffix</code> / <code>namePrefix</code> keep the outputs from colliding.</li>
+        <li><code>vars</code> overrides let the same SQL behave differently per environment.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">One repository, one set of definitions, <code>main</code> is production. Promotion is a merge &mdash; which means code review is the deployment gate.</div>
+</section>
+<details class="notes" data-title="Two environments from one repository">
+  <summary>Speaker notes &mdash; Two environments from one repository</summary>
+  <div class="n-body"><ul>
+    <li>This is the GitOps story most source material never tells. For teams coming from Airflow, the &ldquo;no separate dev DAG copy&rdquo; property is the selling point.</li>
+    <li>A separate GCP project per environment (<code>projectSuffix</code>) is stronger isolation than a dataset suffix; pick based on how your org does project boundaries.</li>
+    <li><code>poor_audio_threshold</code> here is the var declared back in section 1 &mdash; same string, closing the loop.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 32. HERMETIC COMPILATION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Hermetic compilation, and what it costs you</h1>
+  <div class="lede">Priya wants the definition to look up today&rsquo;s active-org list from an internal API at compile time. It cannot.</div>
+  <div class="cols c-45-55">
+    <div>
+      <div class="figure">
+        <svg width="360" height="180" viewBox="0 0 360 180" aria-hidden="true">
+          <defs><marker id="s32a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#188038"/></marker></defs>
+          <rect x="20" y="42" width="196" height="96" rx="6" fill="#f8f9fa" stroke="#5f6368" stroke-width="1.8" stroke-dasharray="6 3"/>
+          <text x="30" y="60" font-size="9.5" font-weight="600" fill="#3c4043">sandbox &mdash; no internet</text>
+          <rect x="34" y="70" width="70" height="24" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.3"/>
+          <text x="42" y="86" font-size="9" font-family="'Roboto Mono',monospace" fill="#1a73e8">js + sqlx</text>
+          <path d="M108 82 L134 82" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s32a)"/>
+          <rect x="138" y="70" width="62" height="24" rx="3" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.3"/>
+          <text x="158" y="86" font-size="9" font-family="'Roboto Mono',monospace" fill="#1a73e8">SQL</text>
+          <text x="34" y="118" font-size="8.5" fill="#5f6368">same code + same settings</text>
+          <text x="34" y="130" font-size="8.5" fill="#5f6368">&rarr; same SQL, every time</text>
+
+          <ellipse cx="290" cy="34" rx="62" ry="22" fill="#fce8e6" stroke="#b3261e" stroke-width="1.4"/>
+          <text x="252" y="32" font-size="8.5" fill="#b3261e">external API</text>
+          <text x="252" y="44" font-size="8.5" fill="#b3261e">fetch &middot; clock</text>
+          <path d="M216 62 L252 44" stroke="#b3261e" stroke-width="1.5"/>
+          <line x1="228" y1="46" x2="242" y2="60" stroke="#b3261e" stroke-width="2"/>
+          <line x1="242" y1="46" x2="228" y2="60" stroke="#b3261e" stroke-width="2"/>
+
+          <rect x="240" y="104" width="106" height="34" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+          <text x="250" y="120" font-size="9" font-family="'Roboto Mono',monospace" fill="#188038">vars</text>
+          <text x="250" y="132" font-size="8" fill="#5f6368">from the caller</text>
+          <path d="M238 121 L220 121" stroke="#188038" stroke-width="1.5" marker-end="url(#s32a)"/>
+          <text x="20" y="164" font-size="9" fill="#5f6368">The only way in is a compilation variable.</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Compilation runs in a sandbox with <strong>no internet access</strong> and no external calls.</li>
+        <li>The same code plus the same settings always compiles to the same SQL.</li>
+        <li>Anything dynamic must arrive as a <strong>compilation variable</strong>, or be done in SQL.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">This is why a compilation result is reproducible and safe to re-run: it cannot have picked up a different answer from the outside world between two runs.</div>
+</section>
+<details class="notes" data-title="Hermetic compilation, and what it costs you">
+  <summary>Speaker notes &mdash; Hermetic compilation, and what it costs you</summary>
+  <div class="n-body"><ul>
+    <li>Engineers with dbt/Jinja habits reach for a macro that calls something. Head it off.</li>
+    <li><strong>The escape hatch is real:</strong> an API caller (Cloud Run function, Composer, Workflows) sets <code>vars</code> when it creates the compilation result. ClearMeet&rsquo;s version: a backfill job passes <code>vars: {backfill_date: "2026-06-12"}</code> to reprocess the nine bad days.</li>
+    <li>JavaScript in Dataform <strong>generates SQL text</strong>. It is not a BigQuery UDF and does not run at query time. Common enough confusion to state twice (again in section 5).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 33. TAGS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Tags: run part of the graph</h1>
+  <div class="lede"><code>qos_events_clean</code> must run hourly. <code>churn_features</code> is a weekly model input. One repository, two schedules.</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="430" height="186" viewBox="0 0 430 186" aria-hidden="true">
+          <defs><marker id="s33a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <rect x="0" y="10" width="112" height="26" rx="4" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+          <text x="8" y="27" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c2f00">qos_events_clean</text>
+          <path d="M116 23 C 140 23, 146 23, 166 23" stroke="#5f6368" stroke-width="1.3" marker-end="url(#s33a)"/>
+          <rect x="170" y="10" width="104" height="26" rx="4" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+          <text x="178" y="27" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c2f00">daily_summary</text>
+          <text x="284" y="27" font-size="8.5" fill="#3c2f00">tag: hourly</text>
+
+          <path d="M56 40 L56 58" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="3 2"/>
+          <rect x="0" y="60" width="112" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.3"/>
+          <text x="8" y="77" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#9aa0a6">churn_features</text>
+          <text x="122" y="77" font-size="8.5" fill="#9aa0a6">tag: churn &mdash; not in this run</text>
+
+          <line x1="0" y1="98" x2="430" y2="98" stroke="#dadce0" stroke-width="1"/>
+          <rect x="0" y="108" width="206" height="72" rx="5" fill="#fff" stroke="#FBBC04" stroke-width="1.6"/>
+          <text x="10" y="126" font-size="9.5" font-weight="600" fill="#3c2f00">hourly-core</text>
+          <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="10" y="142">0 * * * *</text>
+            <text x="10" y="156">includedTags: [hourly]</text>
+          </g>
+          <text x="10" y="172" font-size="8" fill="#5f6368">&#9745; include dependencies</text>
+
+          <rect x="224" y="108" width="206" height="72" rx="5" fill="#fff" stroke="#9aa0a6" stroke-width="1.6"/>
+          <text x="234" y="126" font-size="9.5" font-weight="600" fill="#3c4043">weekly-ml</text>
+          <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+            <text x="234" y="142">0 4 * * 1</text>
+            <text x="234" y="156">includedTags: [churn]</text>
+          </g>
+          <text x="234" y="172" font-size="8" fill="#5f6368">&#9745; include dependencies</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <pre class="code small"><span class="fn">config</span> {
+  <span class="kw">type</span>: <span class="st">"incremental"</span>,
+  <span class="kw">tags</span>: [<span class="st">"hourly"</span>, <span class="st">"core"</span>],
+}</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li>Tag any action; a workflow configuration selects by tag or by named action.</li>
+        <li>&ldquo;Include dependencies&rdquo; pulls in upstream actions the tag didn&rsquo;t name.</li>
+        <li>One repository can serve many cadences without splitting.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">Tags are also the alerting boundary &mdash; a workflow configuration is what a log-based alert filters on, so tag by <em>who gets paged</em>, not just by cadence.</div>
+</section>
+<details class="notes" data-title="Tags: run part of the graph">
+  <summary>Speaker notes &mdash; Tags: run part of the graph</summary>
+  <div class="n-body"><ul>
+    <li><strong>Where people get surprised:</strong> tagging only the leaf and forgetting the include-dependencies checkbox runs a leaf on stale inputs.</li>
+    <li>&ldquo;Run with full refresh&rdquo; rebuilds incremental tables from scratch &mdash; and is blocked on <code>protected: true</code> tables.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 34. LOGS AND ALERTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>When it breaks: logs and alerts</h1>
+  <div class="lede">02:14, the device assertion fails. The opening slide asked &ldquo;who knew?&rdquo; This is the answer.</div>
+  <div class="cols c-45-55">
+    <div>
+      <div class="figure">
+        <svg width="360" height="176" viewBox="0 0 360 176" aria-hidden="true">
+          <defs><marker id="s34a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <rect x="0" y="0" width="252" height="118" rx="5" fill="#fff" stroke="#dadce0" stroke-width="1.4"/>
+          <text x="10" y="18" font-size="9.5" font-weight="600" fill="#3c4043">execution log &mdash; 02:14</text>
+          <g font-size="8.5" font-family="'Roboto Mono',monospace">
+            <text x="10" y="38" fill="#3c4043">qos_events_clean</text><text x="164" y="38" fill="#188038">SUCCEEDED</text>
+            <text x="10" y="56" fill="#3c4043">&hellip;_rowConditions_0</text><text x="164" y="56" fill="#b3261e">FAILED</text>
+            <text x="10" y="74" fill="#9aa0a6">sla_by_org</text><text x="164" y="74" fill="#9aa0a6">SKIPPED</text>
+            <text x="10" y="92" fill="#9aa0a6">daily_summary</text><text x="164" y="92" fill="#9aa0a6">SKIPPED</text>
+            <text x="10" y="110" fill="#9aa0a6">device_rollup</text><text x="164" y="110" fill="#9aa0a6">SKIPPED</text>
+          </g>
+          <rect x="158" y="48" width="88" height="12" rx="2" fill="#fce8e6" opacity=".5"/>
+          <path d="M256 58 L288 58" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s34a)"/>
+          <rect x="292" y="34" width="66" height="48" rx="5" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+          <text x="300" y="52" font-size="8.5" fill="#3c2f00">Cloud</text>
+          <text x="300" y="64" font-size="8.5" fill="#3c2f00">Monitoring</text>
+          <text x="300" y="76" font-size="8" fill="#5f6368">alert</text>
+          <path d="M324 86 L324 106" stroke="#5f6368" stroke-width="1.4" marker-end="url(#s34a)"/>
+          <text x="290" y="122" font-size="8.5" fill="#3c4043">on-call, 02:14</text>
+          <text x="0" y="140" font-size="9" fill="#5f6368">The report never sends. Someone is</text>
+          <text x="0" y="154" font-size="9" fill="#5f6368">paged six hours before Acme replies.</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <pre class="term" style="font-size:9.5px;line-height:1.45"><span class="lbl">Logs Explorer</span>resource.type=<span class="flag">"dataform.googleapis.com/Repository"</span>
+jsonPayload.@type=<span class="flag">"type.googleapis.com/google.cloud
+  .dataform.logging.v1
+  .WorkflowInvocationCompletionLogEntry"</span>
+jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
+      <div class="vgap-s"></div>
+      <table class="tbl" style="font-size:11.5px">
+        <tr><th style="width:84px">State</th><th>Means</th></tr>
+        <tr><td><code>SUCCEEDED</code></td><td>the action ran and finished</td></tr>
+        <tr><td><code>FAILED</code></td><td>the action itself errored</td></tr>
+        <tr class="hl"><td><code>SKIPPED</code></td><td>an upstream dependency did not complete successfully</td></tr>
+        <tr><td><code>DISABLED</code></td><td>switched off in the compilation result</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">Add <code>jsonPayload.workflowConfigId</code> to the filter so the team that owns the failing workflow is the team that gets paged.</div>
+</section>
+<details class="notes" data-title="When it breaks: logs and alerts">
+  <summary>Speaker notes &mdash; When it breaks: logs and alerts</summary>
+  <div class="n-body"><ul>
+    <li><strong>Tie back explicitly:</strong> on the opening slide nobody knew for six hours; here the SLA table is <code>SKIPPED</code>, the report never sends, and someone is paged at 02:14.</li>
+    <li>BigQuery jobs from Dataform are prefixed <code>dataform-gcp</code> (<code>dataform-gcp-ui</code> for previews), so you can find them in Job History and attribute cost.</li>
+    <li><strong>Composer caveat:</strong> <code>DataformCreateWorkflowInvocationOperator</code> retries on failure by default, which will re-run a failed assertion repeatedly. Set retries to zero or handle it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 35. RECAP SECTION 4 + LAB 3 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: execution</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li>Compile &rarr; release configuration (which code) &rarr; workflow configuration (when/what) &rarr; invocation.</li>
+        <li>Environments are release configs over git refs; promotion is a merge.</li>
+        <li>Compilation is hermetic; anything dynamic arrives as a <code>var</code>.</li>
+        <li>Tag by who gets paged; alert on <code>terminalState="FAILED"</code>.</li>
+      </ul>
+    </div>
+    <div>
+      <div style="background:#e8f0fe;border-radius:8px;padding:16px 18px">
+        <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1a73e8;font-weight:600;margin-bottom:8px">Lab 3 &middot; 60 min</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:10px">Automate and monitor SQL workflow executions</div>
+        <ul class="body" style="font-size:13.5px">
+          <li>Create and execute a release configuration and a workflow configuration.</li>
+          <li>Trigger a run via the API with a <code>vars</code> override.</li>
+          <li>Create a log-based alert on failed invocations.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Recap: execution + Lab 3">
+  <summary>Speaker notes &mdash; Recap: execution + Lab 3</summary>
+  <div class="n-body"><ul>
+    <li>If the room is running late, the <code>vars</code>-override step is the one to demo rather than have everyone do.</li>
+    <li>Hand-off: the machinery is complete. Section 5 is what you build with it, and where the product stops being the right answer.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 36. DIVIDER: SECTION 5 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 5</div>
+    <h1>Real workloads</h1>
+    <div class="sub">Layering, reuse, history &mdash; and when not to use this product.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Why the pile fails</span><span>Definitions &amp; graph</span><span>Trust</span><span>Execution</span><span class="current">Real workloads</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: Real workloads">
+  <summary>Speaker notes &mdash; Section 5: Real workloads</summary>
+  <div class="n-body"><ul>
+    <li>Four patterns experienced engineers will actually reach for, then the honest boundary slide.</li>
+    <li>If time is short, the SCD pair is the most self-contained to cut &mdash; but keep the medallion slide, it reframes the directory structure.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 37. THE MEDALLION LAYOUT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The medallion layout</h1>
+  <div class="lede">ClearMeet&rsquo;s tables, sorted into the three layers the deck has been using all along &mdash; by who is allowed to read them.</div>
+  <div class="figure">
+    <svg width="800" height="216" viewBox="0 0 800 216" aria-hidden="true">
+      <defs><marker id="s37a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#5f6368"/></marker></defs>
+
+      <rect x="0" y="16" width="220" height="132" rx="6" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.6"/>
+      <text x="12" y="36" font-size="11" font-weight="600" fill="#3c4043">Bronze &mdash; raw, as landed</text>
+      <rect x="12" y="46" width="130" height="22" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 2"/>
+      <text x="18" y="61" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#5f6368">qos_events_raw</text>
+      <rect x="12" y="74" width="130" height="22" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="4 2"/>
+      <text x="18" y="89" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#5f6368">orgs_raw</text>
+      <text x="12" y="116" font-size="8.5" fill="#5f6368">dataset: <tspan font-family="'Roboto Mono',monospace">raw</tspan> (ingest project)</text>
+      <text x="12" y="132" font-size="8.5" fill="#5f6368">dir: <tspan font-family="'Roboto Mono',monospace">definitions/sources/</tspan></text>
+
+      <path d="M224 82 L256 82" stroke="#5f6368" stroke-width="1.6" marker-end="url(#s37a)"/>
+
+      <rect x="260" y="16" width="220" height="132" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.6"/>
+      <text x="272" y="36" font-size="11" font-weight="600" fill="#1a73e8">Silver &mdash; cleaned, conformed</text>
+      <rect x="272" y="46" width="140" height="22" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.2"/>
+      <text x="278" y="61" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">qos_events_clean</text>
+      <rect x="272" y="74" width="140" height="22" rx="3" fill="#fff" stroke="#4285F4" stroke-width="1.2"/>
+      <text x="278" y="89" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#1a73e8">orgs_history</text>
+      <text x="272" y="116" font-size="8.5" fill="#5f6368">dataset: <tspan font-family="'Roboto Mono',monospace">clearmeet_silver</tspan></text>
+      <text x="272" y="132" font-size="8.5" fill="#5f6368">dir: <tspan font-family="'Roboto Mono',monospace">definitions/intermediate/</tspan></text>
+
+      <path d="M484 82 L516 82" stroke="#5f6368" stroke-width="1.6" marker-end="url(#s37a)"/>
+      <line x1="500" y1="10" x2="500" y2="158" stroke="#b3261e" stroke-width="1.4" stroke-dasharray="5 3"/>
+      <text x="286" y="208" font-size="8.5" fill="#b3261e">BI tools (and the BI group&rsquo;s IAM grant) stop at this line</text>
+
+      <rect x="520" y="16" width="220" height="132" rx="6" fill="#e6f4ea" stroke="#34A853" stroke-width="1.6"/>
+      <text x="532" y="36" font-size="11" font-weight="600" fill="#188038">Gold &mdash; consumed</text>
+      <rect x="532" y="46" width="130" height="20" rx="3" fill="#fff" stroke="#34A853" stroke-width="1.2"/>
+      <text x="538" y="60" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#188038">daily_summary</text>
+      <rect x="532" y="70" width="130" height="20" rx="3" fill="#fff" stroke="#34A853" stroke-width="1.2"/>
+      <text x="538" y="84" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#188038">sla_by_org</text>
+      <rect x="532" y="94" width="130" height="20" rx="3" fill="#fff" stroke="#34A853" stroke-width="1.2"/>
+      <text x="538" y="108" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#188038">exec_dashboard</text>
+      <text x="532" y="128" font-size="8.5" fill="#5f6368">dataset: <tspan font-family="'Roboto Mono',monospace">clearmeet_analytics</tspan></text>
+      <text x="532" y="142" font-size="8.5" fill="#5f6368">dir: <tspan font-family="'Roboto Mono',monospace">definitions/outputs/</tspan></text>
+
+      <rect x="520" y="162" width="220" height="32" rx="5" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.3"/>
+      <text x="532" y="176" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#5f6368">churn_features</text>
+      <text x="532" y="188" font-size="8" fill="#9aa0a6">extra/ &mdash; off the main pipeline, ML</text>
+      <path d="M600 150 L600 160" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="3 2"/>
+
+      <text x="0" y="180" font-size="9" fill="#5f6368">Gold definitions override the default</text>
+      <text x="0" y="192" font-size="9" fill="#5f6368">dataset with one config line:</text>
+      <text x="0" y="206" font-size="9" font-family="'Roboto Mono',monospace" fill="#3c4043">schema: "clearmeet_analytics"</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout"><strong>Documentation guidance</strong> &mdash; Dataform&rsquo;s own docs name these <code>sources</code> / <code>intermediate</code> / <code>outputs</code> / <code>extra</code>. If your organization says bronze / silver / gold, they are the same three ideas; pick one vocabulary and don&rsquo;t mix them.</div>
+</section>
+<details class="notes" data-title="The medallion layout">
+  <summary>Speaker notes &mdash; The medallion layout</summary>
+  <div class="n-body"><ul>
+    <li><strong>Terminology discipline:</strong> rooms that use medallion language will map it automatically, but the <em>directory names</em> are what the docs and the UI show. Say both once, then use the directory names.</li>
+    <li>The useful boundary rule: bronze is what you didn&rsquo;t write, silver is one row per real thing with conformed types and values, gold is shaped for a specific consumer.</li>
+    <li>The layer boundary is an <strong>IAM boundary</strong>: the BI group is granted on the gold dataset only, which is why dataset-per-layer naming pays for itself.</li>
+    <li><code>clearmeet_analytics</code> being the gold dataset is continuity, not accident &mdash; it&rsquo;s the dataset the dashboards in the earlier modules already read.</li>
+    <li>Labels (<code>layer: silver</code>) let you cost each band separately in billing export.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 38. REUSE: ONE FUNCTION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Reuse: one function, five call sites</h1>
+  <div class="lede" style="font-size:15.5px;margin-bottom:12px">The device-name fix is needed in five definitions. Copy-paste is how the customer-tier <code>CASE</code> statement drifted apart.</div>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">includes/mappings.js</span><span class="kw">function</span> <span class="fn">normalize_device</span>(col) {
+  <span class="kw">return</span> <span class="st">`CASE
+    WHEN LOWER(${col}) IN
+      ('macos','mac os x','osx') THEN 'macos'
+    WHEN LOWER(${col}) LIKE 'win%' THEN 'windows'
+    ELSE LOWER(${col}) END`</span>;
+}
+<span class="kw">module</span>.exports = { normalize_device };</pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>At compile time, <code>${mappings.normalize_device("device")}</code> in a sqlx body <strong>calls the function and splices its return string into the SQL</strong>.</li>
+        <li>Inside the function, <code>${col}</code> is ordinary JavaScript interpolation &mdash; it inserts the column name, producing <code>CASE WHEN LOWER(device) &hellip;</code>.</li>
+        <li><code>module.exports</code> makes it callable from any definition as <code>filename.functionname</code>.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="790" height="72" viewBox="0 0 790 72" aria-hidden="true">
+      <defs><marker id="s38a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+      <rect x="0" y="14" width="238" height="30" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+      <text x="8" y="33" font-size="9" font-family="'Roboto Mono',monospace" fill="#1a73e8">${mappings.normalize_device("device")}</text>
+      <text x="0" y="10" font-size="8.5" fill="#5f6368">in the sqlx body</text>
+      <path d="M242 29 L286 29" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s38a)"/>
+      <text x="244" y="22" font-size="8" fill="#5f6368">compiles to</text>
+      <rect x="292" y="6" width="498" height="52" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.4"/>
+      <g font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">
+        <text x="300" y="22">CASE WHEN LOWER(device) IN ('macos','mac os x','osx') THEN 'macos'</text>
+        <text x="300" y="36">     WHEN LOWER(device) LIKE 'win%' THEN 'windows'</text>
+        <text x="300" y="50">     ELSE LOWER(device) END</text>
+      </g>
+      <text x="0" y="62" font-size="8.5" fill="#5f6368">one definition &middot; five call sites &middot; zero drift</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn">This JavaScript runs at <strong>compile time and produces SQL text</strong>. It is not a BigQuery UDF and never executes against a row. Nothing you write here can query data or call an API.</div>
+</section>
+<details class="notes" data-title="Reuse: one function, five call sites">
+  <summary>Speaker notes &mdash; Reuse: one function, five call sites</summary>
+  <div class="n-body"><ul>
+    <li>The warning is the hermetic point restated where people actually trip: they write JS that looks like it should filter rows.</li>
+    <li><code>includes/</code> is global &mdash; everything in it is available repo-wide via <code>filename.exportname</code>. <code>js { }</code> inside a sqlx file is the file-local version.</li>
+    <li>Also the right place for shared documentation constants and shared column lists.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 39. SCD TYPE 2: THE PROBLEM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>SCD Type 2: the problem</h1>
+  <div class="lede">Support asks: Acme had a bad call on 3 March. Were they on Enterprise then? The <code>orgs</code> table is overwritten nightly. The answer is gone.</div>
+  <div class="cols c-55-45">
+    <div>
+      <div class="figure">
+        <svg width="430" height="176" viewBox="0 0 430 176" aria-hidden="true">
+          <text x="0" y="12" font-size="9.5" font-weight="600" fill="#5f6368">orgs &mdash; 1 March</text>
+          <rect x="0" y="18" width="190" height="34" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+          <text x="8" y="32" font-size="8" font-family="'Roboto Mono',monospace" fill="#9aa0a6">org    plan        seats</text>
+          <text x="8" y="46" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">acme   Enterprise  400</text>
+
+          <text x="230" y="12" font-size="9.5" font-weight="600" fill="#5f6368">orgs &mdash; today</text>
+          <rect x="236" y="14" width="190" height="34" rx="3" fill="#f1f3f4" stroke="#dadce0" stroke-width="1.2"/>
+          <text x="244" y="42" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#9aa0a6">acme   Enterprise  400</text>
+          <rect x="230" y="22" width="190" height="34" rx="3" fill="#fff" stroke="#9aa0a6" stroke-width="1.3"/>
+          <text x="238" y="36" font-size="8" font-family="'Roboto Mono',monospace" fill="#9aa0a6">org    plan        seats</text>
+          <text x="238" y="50" font-size="8.5" font-family="'Roboto Mono',monospace" fill="#3c4043">acme   Pro         120</text>
+          <line x1="238" y1="62" x2="420" y2="62" stroke="#b3261e" stroke-width="1.3"/>
+          <text x="238" y="76" font-size="8.5" fill="#b3261e">overwritten &mdash; no history</text>
+
+          <path d="M194 36 L226 36" stroke="#9aa0a6" stroke-width="1.4" stroke-dasharray="4 2"/>
+          <text x="196" y="30" font-size="8" fill="#9aa0a6">nightly</text>
+
+          <line x1="10" y1="120" x2="420" y2="120" stroke="#dadce0" stroke-width="1.4"/>
+          <circle cx="120" cy="120" r="5" fill="#EA4335"/>
+          <text x="96" y="140" font-size="8.5" fill="#b3261e">3 March</text>
+          <text x="90" y="152" font-size="8.5" fill="#b3261e">the bad call</text>
+          <text x="112" y="108" font-size="14" fill="#b3261e">?</text>
+          <text x="10" y="168" font-size="8.5" fill="#5f6368">which row was true then &mdash; Enterprise or Pro?</text>
+        </svg>
+      </div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>A daily overwrite answers &ldquo;what is true now&rdquo; and destroys &ldquo;what was true then.&rdquo;</li>
+        <li>Any question joining an event to an attribute <em>as of the event&rsquo;s date</em> needs history.</li>
+        <li><strong>Type 1</strong> = overwrite (what they have). <strong>Type 2</strong> = keep every version, with validity dates.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout">This is not a Dataform feature &mdash; it is a modeling pattern. Dataform&rsquo;s contribution is that the incremental table and the history view are two definitions in the same graph, tested and versioned.</div>
+</section>
+<details class="notes" data-title="SCD Type 2: the problem">
+  <summary>Speaker notes &mdash; SCD Type 2: the problem</summary>
+  <div class="n-body"><ul>
+    <li><strong>Vocabulary beat:</strong> Type 1 overwrites, Type 2 adds a row per version with validity dates, Type 3 keeps a &ldquo;previous value&rdquo; column. Type 2 is what people mean when they say SCD without qualifying.</li>
+    <li>The join this enables, worth showing verbally: <code>qos_events e JOIN orgs_history h ON e.org_id = h.org_id AND e.event_time &gt;= h.valid_from AND (e.event_time &lt; h.valid_to OR h.valid_to IS NULL)</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 40. SCD TYPE 2: THE PATTERN ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>SCD Type 2: incremental table + <code style="font-size:.8em">LEAD()</code> view</h1>
+  <div class="lede" style="font-size:15.5px;margin-bottom:12px">Two definitions. The incremental table keeps every version; the view turns <code>updated_at</code> into validity ranges.</div>
+  <div class="cols c-40-60">
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">orgs_history.sqlx</span><span class="fn">config</span> { <span class="kw">type</span>: <span class="st">"view"</span> }
+
+<span class="kw">SELECT</span> *,
+  updated_at <span class="kw">AS</span> valid_from,
+  <span class="fn">LEAD</span>(updated_at) <span class="kw">OVER</span> (
+    <span class="kw">PARTITION BY</span> org_id
+    <span class="kw">ORDER BY</span> updated_at) <span class="kw">AS</span> valid_to
+<span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"orgs_updates"</span>)}</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12px">
+        <li><code>orgs_updates</code> only ever <strong>appends</strong> &mdash; every changed version becomes a new row.</li>
+        <li><code>LEAD</code> looks one row ahead per org: a version&rsquo;s <code>valid_to</code> is the next version&rsquo;s <code>valid_from</code>.</li>
+        <li>The newest version has no next row &rarr; <code>NULL</code> = current.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="460" height="216" viewBox="0 0 460 216" aria-hidden="true">
+          <defs><marker id="s40a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
+          <text x="0" y="10" font-size="9" font-weight="600" fill="#5f6368">orgs_updates &mdash; incremental, append-only</text>
+          <rect x="0" y="16" width="212" height="66" rx="3" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+          <g font-size="7.5" font-family="'Roboto Mono',monospace">
+            <text x="6" y="29" fill="#5f6368">org   plan        seats updated_at</text>
+            <text x="6" y="45" fill="#3c4043">acme  Enterprise  400   2024-06-01</text>
+            <text x="6" y="59" fill="#3c4043">acme  Enterprise  400   2026-01-15</text>
+            <text x="6" y="73" fill="#3c4043">acme  Pro         120   2026-05-20</text>
+          </g>
+          <text x="216" y="52" font-size="8" fill="#5f6368">seats</text>
+          <text x="216" y="62" font-size="8" fill="#5f6368">changed</text>
+
+          <path d="M60 86 L60 110" stroke="#5f6368" stroke-width="1.5" marker-end="url(#s40a)"/>
+          <text x="76" y="103" font-size="8.5" fill="#5f6368">LEAD() over org_id</text>
+
+          <text x="0" y="122" font-size="9" font-weight="600" fill="#188038">orgs_history &mdash; the view</text>
+          <rect x="0" y="128" width="300" height="66" rx="3" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+          <g font-size="7.5" font-family="'Roboto Mono',monospace">
+            <text x="6" y="141" fill="#5f6368">org   plan        valid_from  valid_to</text>
+            <text x="6" y="157" fill="#3c4043">acme  Enterprise  2024-06-01  2026-01-15</text>
+            <text x="6" y="171" fill="#3c4043">acme  Enterprise  2026-01-15  2026-05-20</text>
+            <text x="6" y="185" fill="#3c4043">acme  Pro         2026-05-20  NULL</text>
+          </g>
+          <rect x="4" y="162" width="292" height="13" rx="2" fill="#fef7e0" opacity=".7"/>
+          <text x="306" y="171" font-size="8" fill="#3c2f00">&larr; 3 March falls here</text>
+          <text x="306" y="185" font-size="8" fill="#188038">&larr; current</text>
+          <rect x="306" y="128" width="150" height="26" rx="4" fill="#fff" stroke="#34A853" stroke-width="1.3"/>
+          <text x="314" y="145" font-size="9" fill="#188038">Enterprise &mdash; answered</text>
+          <line x1="0" y1="206" x2="300" y2="206" stroke="#dadce0" stroke-width="1.2"/>
+          <circle cx="96" cy="206" r="4" fill="#EA4335"/>
+          <text x="72" y="216" font-size="8" fill="#b3261e">3 Mar</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good">History is immutable by construction: the incremental table only appends, so no run can destroy what was true last year.</div>
+</section>
+<details class="notes" data-title="SCD Type 2: incremental table + LEAD() view">
+  <summary>Speaker notes &mdash; SCD Type 2: incremental table + LEAD() view</summary>
+  <div class="n-body"><ul>
+    <li>The incremental table is an ordinary <code>type: "incremental"</code> with <code>WHERE updated_at &gt; (SELECT MAX(updated_at) FROM ${self()})</code> &mdash; <strong>no <code>uniqueKey</code></strong>, because appending every version <em>is</em> the point.</li>
+    <li><strong>Do not teach the <code>dataform-scd</code> package.</strong> It did exactly this, but the repo was archived 19 April 2026 and the Google Cloud doc page for it now 404s. Hand-writing it is ~15 lines and has no dependency risk. If a student has seen it in older material, this slide is the replacement.</li>
+    <li><strong>Caveat:</strong> the view can&rsquo;t be <code>materialized: true</code> &mdash; BigQuery rejects analytic functions in incremental materialized views. Build it as a table if read cost matters.</li>
+    <li>Requires a reliable <code>updated_at</code> on the source. No change timestamp &rarr; you need a hash-comparison variant, or CDC upstream.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 41. CAVEATS AND ALTERNATIVES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Caveats, and when not to use Dataform</h1>
+  <div class="lede" style="font-size:15.5px;margin-bottom:12px">ClearMeet&rsquo;s ingestion is Pub/Sub &rarr; Dataflow. None of that belongs in Dataform. Where is the line?</div>
+  <table class="tbl" style="font-size:14px">
+    <tr><th style="width:280px">If you need&hellip;</th><th style="width:190px">Use</th><th>Why not Dataform</th></tr>
+    <tr class="hl"><td>SQL transforms inside BigQuery</td><td><strong>Dataform</strong></td><td class="muted">&mdash;</td></tr>
+    <tr><td>Non-SQL steps, other systems, sensors</td><td><strong>Composer / Airflow</strong></td><td class="muted">Dataform only issues BigQuery SQL</td></tr>
+    <tr><td>Multi-warehouse, or a large dbt estate</td><td><strong>dbt</strong></td><td class="muted">Dataform is BigQuery-only</td></tr>
+    <tr><td>One query, one schedule, no dependents</td><td><strong>scheduled query</strong></td><td class="muted">a repo is overhead for one query</td></tr>
+    <tr><td>Streaming / sub-minute freshness</td><td><strong>Dataflow, or BQ streaming + MV</strong></td><td class="muted">min compilation frequency 1 h <em>(service limit)</em></td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:13px">
+    <li>Composer can <em>trigger</em> Dataform (<code>DataformCreateWorkflowInvocationOperator</code>) &mdash; a common and good combination, not an either/or.</li>
+  </ul>
+  <div class="callout warn">The honest failure mode is scope creep: teams push non-BigQuery orchestration into Dataform via <code>operations</code> blocks and end up with an orchestrator that can only speak SQL. When the graph must wait on something outside BigQuery, that is Composer&rsquo;s job.</div>
+</section>
+<details class="notes" data-title="Caveats, and when not to use Dataform">
+  <summary>Speaker notes &mdash; Caveats, and when not to use Dataform</summary>
+  <div class="n-body"><ul>
+    <li><strong>Say the dbt comparison plainly</strong> &mdash; most experienced data engineers in the room will have used dbt, and pretending otherwise costs credibility. Dataform is narrower, free of infrastructure, and native to GCP IAM; dbt has the larger ecosystem and is portable.</li>
+    <li>The 1-hour minimum compilation frequency is the real freshness floor for <em>scheduled</em> runs; API-triggered invocations can be more frequent, but that&rsquo;s your scheduler, not Dataform&rsquo;s.</li>
+    <li>Also missing and worth naming if asked: no built-in data-lineage export beyond the graph, and no non-SQL transform step.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 42. CONSEQUENCES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Consequences you can act on</h1>
+  <table class="tbl" style="font-size:13px">
+    <tr><th style="width:250px">You observed</th><th style="width:230px">Because</th><th>So you&hellip;</th></tr>
+    <tr><td>Tuesday&rsquo;s SLA report was missing its worst day</td><td class="muted">order was three cron times, enforced by nothing</td><td>Replace <code>FROM</code> with <code>${ref()}</code> &mdash; order is derived every compile</td></tr>
+    <tr><td>Nine days of split <code>macos</code> rows, all jobs green</td><td class="muted">nothing asserted what a valid <code>device</code> is</td><td>Add <code>rowConditions</code> the day you learn what wrong looks like</td></tr>
+    <tr class="hl"><td>The assertion fired and the report still went out</td><td class="muted">assertions don&rsquo;t gate dependents by default</td><td>Set <code>dependOnDependencyAssertions: true</code> on customer-facing outputs</td></tr>
+    <tr><td>Nobody was paged at 02:14</td><td class="muted">no alert on invocation state</td><td>Log-based alert on <code>terminalState="FAILED"</code>, filtered by <code>workflowConfigId</code></td></tr>
+    <tr><td>Rebuilding 450 B rows nightly to add 5 B</td><td class="muted">full rebuild on an append-only source</td><td><code>type: "incremental"</code>; <code>uniqueKey</code> if rows can re-arrive</td></tr>
+    <tr><td>The tier <code>CASE</code> drifted across four queries</td><td class="muted">copy-paste</td><td>One function in <code>includes/</code>, five call sites</td></tr>
+    <tr><td>Can&rsquo;t say what plan Acme had in March</td><td class="muted">nightly overwrite of <code>orgs</code></td><td>Append-only incremental + <code>LEAD()</code> validity view</td></tr>
+  </table>
+</section>
+<details class="notes" data-title="Consequences you can act on">
+  <summary>Speaker notes &mdash; Consequences you can act on</summary>
+  <div class="n-body"><ul>
+    <li><strong>Delivery beat:</strong> walk the first column only, and let the room supply column three before revealing it. By this point they can.</li>
+    <li>Every row is a slide they&rsquo;ve seen; this is a retrieval exercise, not new material.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 43. REFERENCES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>References</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><a href="https://docs.cloud.google.com/dataform/docs/overview">Dataform overview</a></li>
+        <li><a href="https://docs.cloud.google.com/dataform/docs/create-tables">Create tables</a> &mdash; table types, incremental, <code>onSchemaChange</code>, <code>protected</code></li>
+        <li><a href="https://docs.cloud.google.com/dataform/docs/dependencies">Set dependencies</a> &mdash; <code>ref()</code>, <code>dependOnDependencyAssertions</code></li>
+        <li><a href="https://docs.cloud.google.com/dataform/docs/assertions">Test data quality</a></li>
+        <li><a href="https://docs.cloud.google.com/dataform/docs/reference/dataform-core-reference">Dataform core reference</a></li>
+      </ul>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><a href="https://docs.cloud.google.com/dataform/docs/code-lifecycle">Code lifecycle</a> &middot; <a href="https://docs.cloud.google.com/dataform/docs/release-configurations">Release configurations</a></li>
+        <li><a href="https://docs.cloud.google.com/dataform/docs/configure-dataform">Configure Dataform</a> &middot; <a href="https://docs.cloud.google.com/dataform/docs/structure-repositories">Structure repositories</a></li>
+        <li><a href="https://docs.cloud.google.com/bigquery/docs/column-level-security-intro">Column-level security</a> &middot; <a href="https://docs.cloud.google.com/dataform/docs/table-access">Table access</a></li>
+        <li><a href="https://docs.cloud.google.com/dataform/docs/release-notes">Release notes</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn"><strong>Re-verify before delivery.</strong> Product behavior, limits, and doc URLs move. Verified 30 July 2026. Two known drifts already: <code>/dataform/docs/incremental-tables</code> and <code>/dataform/docs/dimensions-package</code> now 404, and the <code>dataform-scd</code> package was archived 19 April 2026.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul>
+    <li>Check <code>dataformCoreVersion</code> against the current release before delivering; source material for this deck was pinned to 3.0.2 and several defaults changed after it.</li>
+    <li>All ClearMeet figures are <em>illustrative</em>, derived from the scenario established in the BigQuery architecture module (5B rows/day, ~1.9 TB/day, 90-day retention).</li>
+    <li>Closing line if you want one: &ldquo;you already knew the SQL. What you have now is a way to make fifty of them behave like one system.&rdquo;</li>
+  </ul></div>
+</details>
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

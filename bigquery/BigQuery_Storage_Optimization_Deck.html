@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BigQuery Storage Optimization: Teaching BigQuery What to Skip</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .fnote {
+    margin-top: 12px;
+    padding-top: 7px;
+    border-top: 1px solid var(--line, #dadce0);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  /* numbered list for skew slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Storage<br>Optimization</h1>
+    <div class="sub">Teaching BigQuery what to skip &middot; Module 2</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li>Prerequisite framing: last module we followed data and queries through the machine; this module we exploit that machinery. If students skipped it, re-narrate the write path (load &rarr; Capacitor files &rarr; storage-set commit &rarr; optimizer) in two minutes before starting.</li>
+    <li>Open with the three ground rules verbally: don&rsquo;t optimize prematurely, BigQuery keeps getting faster, and you&rsquo;re here because occasionally that isn&rsquo;t enough.</li>
+    <li>Everything in this module is framed as one move: <strong>giving the metadata layer rules so it can skip work</strong>.</li>
+    <li>Rough timing: 90&ndash;110 minutes of lecture across five sections, plus two labs and several short activities.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. THE VILLAIN ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The villain: $19,000 a day</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li><code>qos_events</code> now retains <strong>90 days &asymp; 170 TB logical</strong></li>
+        <li>The dashboard&rsquo;s 3 columns &asymp; <strong>10.8 TB per run</strong></li>
+        <li>Refreshed every 5 minutes &asymp; <strong>$19,000/day</strong> on-demand</li>
+        <li>The query only ever <em>wants</em> yesterday: ~1% of what it reads</li>
+      </ul>
+      <div class="vgap"></div>
+      <div class="callout warn">Napkin math: 120 GB/day &times; 90 days &asymp; 10.8 TB &middot; &times; $6.25/TiB &asymp; $67.50 &middot; &times; 288 runs/day &asymp; $19.4k. Every number re-derivable by students.</div>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:14px">
+        <tr><th>Step</th><th>Mechanism</th><th>Bytes / run</th></tr>
+        <tr class="hl"><td><strong>Start</strong></td><td>full scan, 3 cols &times; 90 days</td><td><strong>~10.8 TB</strong></td></tr>
+        <tr><td class="muted">Partition by day</td><td class="muted">prune to yesterday&rsquo;s sets</td><td class="muted">?</td></tr>
+        <tr><td class="muted">Cluster by org</td><td class="muted">prune blocks per org</td><td class="muted">?</td></tr>
+        <tr><td class="muted">Materialized view</td><td class="muted">incremental pre-aggregation</td><td class="muted">?</td></tr>
+      </table>
+      <div class="figcap" style="text-align:left;margin-top:8px">The reduction table — re-shown at every recap, one more row filled in.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The villain">
+  <summary>Speaker notes &mdash; The villain</summary>
+  <div class="n-body"><ul>
+    <li>Reservations change the currency (slot-time instead of bytes) but not the waste &mdash; say this once so capacity customers don&rsquo;t tune out.</li>
+    <li>This replaces the original module&rsquo;s 205.9&nbsp;MB &rarr; 0&nbsp;B example &mdash; a stunt that proved empty-partition metadata answers rather than the normal case. Here the normal case (proportional reduction) is the story.</li>
+  </ul></div>
+</details>
+<!-- ============ 3. DIVIDER: PARTITIONING ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 5</div>
+    <h1>Partitioning: skip whole storage sets</h1>
+    <div class="sub">Make the commit respect the date, so the metadata can discard 89 of 90 days unread.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Partitioning</span><span>Clustering</span><span>Schema shapes</span><span>Materialized views</span><span>Housekeeping</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: Partitioning">
+  <summary>Speaker notes &mdash; Section 1: Partitioning</summary>
+  <div class="n-body"><ul>
+    <li>First lever. The mechanism is one sentence given last module&rsquo;s vocabulary: partitioning makes the commit boundary match the query boundary.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. WHAT PARTITIONING PHYSICALLY IS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What partitioning physically is</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>A partitioned table routes rows <strong>at write time</strong> into per-partition storage sets: every storage set belongs to exactly <strong>one partition</strong></li>
+        <li>Each partition behaves like a small table: its own metadata, its own lifecycle</li>
+        <li>Pruning = the metadata index returns only matching partitions&rsquo; storage sets — <strong>before touching data</strong></li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="470" height="262" viewBox="0 0 470 262">
+        <defs><marker id="ap7" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+        <rect x="14" y="20" width="80" height="30" rx="15" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="54" y="40" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">load</text>
+        <g stroke="#5f6368" stroke-width="1.3">
+          <line x1="94" y1="30" x2="146" y2="52" marker-end="url(#ap7)"/>
+          <line x1="94" y1="35" x2="146" y2="112" marker-end="url(#ap7)"/>
+          <line x1="94" y1="40" x2="146" y2="172" marker-end="url(#ap7)"/>
+        </g>
+        <text x="112" y="86" font-size="8.5" fill="#5f6368" transform="rotate(38 112 86)">routed by date</text>
+        <g>
+          <rect x="150" y="34" width="164" height="48" rx="8" fill="#f8f9fa" stroke="#9aa0a6" stroke-width="1.4"/>
+          <text x="232" y="50" text-anchor="middle" font-size="9" font-weight="600" fill="#5f6368">SS &middot; p2026-07-26</text>
+          <rect x="162" y="56" width="42" height="18" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="183" y="69" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#5f6368">f1</text>
+          <rect x="210" y="56" width="42" height="18" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="231" y="69" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#5f6368">f2</text>
+        </g>
+        <g>
+          <rect x="150" y="94" width="164" height="48" rx="8" fill="#f8f9fa" stroke="#9aa0a6" stroke-width="1.4"/>
+          <text x="232" y="110" text-anchor="middle" font-size="9" font-weight="600" fill="#5f6368">SS &middot; p2026-07-27</text>
+          <rect x="162" y="116" width="42" height="18" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="183" y="129" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#5f6368">f3</text>
+          <rect x="210" y="116" width="42" height="18" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="231" y="129" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#5f6368">f4</text>
+        </g>
+        <g>
+          <rect x="150" y="154" width="164" height="48" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="2"/>
+          <text x="232" y="170" text-anchor="middle" font-size="9" font-weight="600" fill="#188038">SS &middot; p2026-07-28</text>
+          <rect x="162" y="176" width="42" height="18" rx="4" fill="#fff" stroke="#34A853"/><text x="183" y="189" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#188038">f5</text>
+          <rect x="210" y="176" width="42" height="18" rx="4" fill="#fff" stroke="#34A853"/><text x="231" y="189" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#188038">f6</text>
+        </g>
+        <ellipse cx="392" cy="60" rx="64" ry="20" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+        <text x="392" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#3c2f00">index:</text>
+        <text x="392" y="70" text-anchor="middle" font-size="8.5" fill="#5f6368">date &#8594; sets</text>
+        <rect x="330" y="150" width="128" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="394" y="170" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">WHERE event_time</text>
+        <text x="394" y="184" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">&gt;= '2026-07-28'</text>
+        <text x="394" y="198" text-anchor="middle" font-size="8.5" fill="#5f6368">touches 1 set of 90</text>
+        <line x1="392" y1="80" x2="392" y2="146" stroke="#FBBC04" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ap7)"/>
+        <line x1="330" y1="182" x2="318" y2="180" stroke="#34A853" stroke-width="1.6" marker-end="url(#ap7)"/>
+        <text x="235" y="244" text-anchor="middle" font-size="10.5" fill="#5f6368">gray sets never open &mdash; pruned at the metadata level, which is why the estimate is exact</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What partitioning is">
+  <summary>Speaker notes &mdash; What partitioning is</summary>
+  <div class="n-body"><ul>
+    <li>In our vocabulary: partition filter &rarr; index lookup &rarr; storage-set selection, all metadata-level. Bytes billed are computable <em>before</em> running &mdash; partitioned tables keep precise upfront estimates (contrast with clustering, later).</li>
+    <li>Streaming caveat inline: rows in the write-optimized buffer aren&rsquo;t in any partition yet &mdash; they sit in <code>__UNPARTITIONED__</code> (NULL pseudo-columns) until extraction routes them. Source: partitioned-tables doc.</li>
+    <li>&ldquo;Each partition behaves like a small table&rdquo; pays rent three times on the ops slide ahead: expiration, per-partition long-term pricing, per-partition DML isolation.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. CREATING & MIGRATING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Creating and migrating</h1>
+  <div class="cols c-55-45">
+    <div>
+      <pre class="code"><span class="kw">CREATE TABLE</span> clearmeet_analytics.qos_events_p
+<span class="kw">PARTITION BY</span> <span class="fn">DATE</span>(event_time)
+<span class="kw">OPTIONS</span> (require_partition_filter = <span class="kw">TRUE</span>)
+<span class="kw">AS SELECT</span> * <span class="kw">FROM</span> clearmeet_analytics.qos_events;</pre>
+      <div class="vgap"></div>
+      <ul class="body" style="font-size:14.5px">
+        <li>New tables: <code>PARTITION BY</code> at creation</li>
+        <li>Existing tables: one <code>CREATE TABLE &#8230; AS SELECT</code> — one full scan, once</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout warn"><strong><code>require_partition_filter</code>:</strong> queries without a prunable filter <em>fail</em> instead of silently costing $67:<br><br><span style="font-family:'Roboto Mono',monospace;font-size:12.5px">Cannot query over table &#8230; without a filter that can be used for partition elimination</span></div>
+      <div class="vgap"></div>
+      <div class="callout">Honest cost note: the migration&rsquo;s <code>SELECT *</code> reads <strong>all columns</strong> — ~170 TB logical here. Do it once, off-peak; it&rsquo;s the price of fixing the schema of a monster you already built.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Creating and migrating">
+  <summary>Speaker notes &mdash; Creating and migrating</summary>
+  <div class="n-body"><ul>
+    <li>The original module claimed &ldquo;partitioning is available at table creation time only&rdquo; while showing the CR-TAS migration two slides earlier without naming it. Here the migration path is explicit, with its real cost.</li>
+    <li>ClearMeet policy: <code>require_partition_filter</code> on day one for firehose tables. Show the error live &mdash; it is a feature, not a failure.</li>
+    <li>Time-unit granularities: hourly/daily/monthly/yearly; more on choosing in three slides.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. THE PAYOFF ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The payoff, honestly measured</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li>Same dashboard query, partitioned table: reads <strong>1 of 90 days</strong> &rarr; ~<strong>120 GB</strong> instead of 10.8 TB</li>
+        <li><strong>~90&times; cheaper</strong>, before any cleverness</li>
+        <li>And the validator shows it <strong>before you run</strong> — partition pruning is a metadata answer</li>
+      </ul>
+      <div class="vgap"></div>
+      <div class="callout good">Villain table update: <strong>$19,000/day &rarr; ~$210/day.</strong></div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="250" viewBox="0 0 470 250">
+        <rect x="20" y="18" width="430" height="42" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="36" y="44" font-size="12" font-family="Roboto Mono, monospace" fill="#b3261e">&#9888;  This query will process 10.8 TB when run.</text>
+        <text x="440" y="44" text-anchor="end" font-size="10" fill="#b3261e">unpartitioned</text>
+        <rect x="20" y="70" width="430" height="42" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="36" y="96" font-size="12" font-family="Roboto Mono, monospace" fill="#188038">&#10003;  This query will process 120.4 GB when run.</text>
+        <text x="440" y="96" text-anchor="end" font-size="10" fill="#188038">partitioned</text>
+        <g>
+          <text x="34" y="140" font-size="9.5" fill="#5f6368">90 daily partitions:</text>
+          <g>
+            <rect x="34" y="150" width="30" height="22" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+            <rect x="70" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="92" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="114" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="136" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="158" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="180" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="202" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="224" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="246" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="268" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="290" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="312" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="334" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="356" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="378" y="150" width="18" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/><rect x="400" y="150" width="36" height="22" rx="3" fill="#f1f3f4" stroke="#dadce0"/>
+          </g>
+          <text x="49" y="188" text-anchor="middle" font-size="8.5" fill="#188038">read</text>
+          <text x="250" y="188" text-anchor="middle" font-size="8.5" fill="#9aa0a6">89 never opened</text>
+        </g>
+        <text x="235" y="226" text-anchor="middle" font-size="10.5" fill="#5f6368">the normal case is proportional: days needed &divide; days stored &mdash; students can do this in their heads</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The payoff">
+  <summary>Speaker notes &mdash; The payoff</summary>
+  <div class="n-body"><ul>
+    <li>The 0&nbsp;B curiosity is worth one spoken sentence: query a date range that doesn&rsquo;t exist and metadata alone answers &mdash; fun, but a stunt, not the point.</li>
+    <li>Update the printed villain table now if you&rsquo;re keeping it on the whiteboard: 10.8 TB &rarr; 120 GB.</li>
+  </ul></div>
+</details>
+<!-- ============ 7. WHAT BREAKS PRUNING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What breaks pruning</h1>
+  <p class="lede" style="margin-bottom:10px">Pruning needs a filter the metadata can evaluate: the partition column, <strong>isolated</strong>, compared to <strong>constants</strong>.</p>
+  <div class="cols">
+    <div>
+      <pre class="code small"><span class="cm">-- &#10003; prunes</span>
+<span class="kw">WHERE</span> event_time &gt;= <span class="fn">TIMESTAMP</span>(<span class="st">'2026-07-28'</span>)
+
+<span class="kw">WHERE</span> <span class="fn">DATE</span>(event_time) = <span class="st">'2026-07-28'</span>
+
+<span class="kw">WHERE</span> <span class="fn">DATE_TRUNC</span>(<span class="fn">DATE</span>(event_time), MONTH)
+      = <span class="st">'2026-07-01'</span></pre>
+    </div>
+    <div>
+      <pre class="code small"><span class="cm">-- &#9888; may prevent partition elimination</span>
+<span class="kw">WHERE</span> <span class="fn">TIMESTAMP_ADD</span>(event_time,
+  <span class="kw">INTERVAL</span> 9 <span class="kw">HOUR</span>) &gt;= <span class="st">'2026-07-28'</span>
+                <span class="cm">-- arithmetic on the column</span>
+<span class="kw">WHERE</span> event_time &gt;=
+  (<span class="kw">SELECT</span> <span class="fn">MAX</span>(day) <span class="kw">FROM</span> control_table)
+                <span class="cm">-- subquery (verify)</span>
+<span class="kw">WHERE</span> event_time &gt;= <span class="st">'2026-07-28'</span>
+   <span class="kw">OR</span> org_id = <span class="st">'acme'</span>
+                <span class="cm">-- OR with another column (verify)</span></pre>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn">The timezone-shift version (top-right) is the one that bites real dashboards. Fix: shift the <strong>constant</strong>, not the column. Verify the actual estimate with a dry run; supported constant expressions and predicate shape matter.</div>
+</section>
+<details class="notes" data-title="What breaks pruning">
+  <summary>Speaker notes &mdash; What breaks pruning</summary>
+  <div class="n-body"><ul>
+    <li>The whitelist of pruning-safe functions (<code>DATE_TRUNC</code>, <code>TIMESTAMP_ADD/SUB/DIFF</code>, <code>EXTRACT</code>, <code>CAST</code> to DATE&hellip;) is in the querying-partitioned-tables doc &mdash; link it, don&rsquo;t memorize it. Teach the <em>shape</em>: column alone on one side, constants on the other.</li>
+    <li>This slide exists because the original module never said any of it, and it is the most common real-world partitioning bug.</li>
+    <li>Verification habit: the dry-run byte count tells you immediately whether your filter pruned.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. THREE WAYS TO PARTITION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Three ways to partition, four granularities</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Time-unit column</strong> (our case): DATE / TIMESTAMP / DATETIME; hourly, daily, monthly, yearly</li>
+        <li><strong>Ingestion time</strong>: no suitable column needed; filter via <code>_PARTITIONTIME</code> / <code>_PARTITIONDATE</code> pseudo-columns</li>
+        <li><strong>Integer range</strong>: stable numeric domains (rare)</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="cm">-- if a day is still too big:</span>
+<span class="kw">PARTITION BY</span> <span class="fn">TIMESTAMP_TRUNC</span>(event_time, HOUR)
+
+<span class="cm">-- integer range:</span>
+<span class="kw">PARTITION BY</span> <span class="fn">RANGE_BUCKET</span>(customer_number,
+  <span class="fn">GENERATE_ARRAY</span>(0, 100, 10))</pre>
+    </div>
+    <div>
+      <div class="callout"><strong>Selection heuristic, stated plainly:</strong> partition by the column <em>every</em> query filters on — in telemetry, almost always the event date/time. Ingestion time only when data has no reliable event timestamp.</div>
+      <div class="vgap"></div>
+      <table class="tbl" style="font-size:13px">
+        <tr><th>ClearMeet math</th><th>partitions</th></tr>
+        <tr><td>daily &times; 90-day retention</td><td class="yes">90 &#10003;</td></tr>
+        <tr><td>hourly &times; 90 days</td><td class="yes">2,160 &#10003;</td></tr>
+        <tr><td>hourly &times; 2-year retention</td><td class="no">17,520 &#10007; over limit</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Three ways to partition">
+  <summary>Speaker notes &mdash; Three ways to partition</summary>
+  <div class="n-body"><ul>
+    <li>Out-of-range and NULL partition-column values land in <code>__UNPARTITIONED__</code> and <code>__NULL__</code> partitions &mdash; worth knowing when byte counts don&rsquo;t add up.</li>
+    <li>The 17,520 row sets up the next slide&rsquo;s limit discussion. Source: partitioned-tables doc + quotas.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. LIMITS & GRANULARITY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Limits and the granularity decision</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>10,000 partitions per table</strong> (hard limit); 4,000 modified per job; daily modification quotas</li>
+        <li>Docs guidance: aim for <strong>&ge; ~10 GB per partition</strong></li>
+        <li>Partitions too small or too many? <strong>Coarser granularity + clustering</strong> (next section), or clustering alone</li>
+        <li>Too many partitions = metadata overhead: slower planning, slower full scans, slower commits</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout">Ask the room: daily or hourly for <code>qos_events</code>? <em>(Daily: queries are day-grained, and hourly breaks the limit if retention ever grows to 2 years.)</em></div>
+    </div>
+    <div class="figure">
+      <svg width="380" height="240" viewBox="0 0 380 240">
+        <line x1="40" y1="120" x2="340" y2="120" stroke="#dadce0" stroke-width="6" stroke-linecap="round"/>
+        <rect x="130" y="112" width="120" height="16" rx="8" fill="#34A853" opacity=".25"/>
+        <circle cx="70" cy="120" r="13" fill="#fff" stroke="#EA4335" stroke-width="3"/>
+        <circle cx="190" cy="120" r="13" fill="#fff" stroke="#34A853" stroke-width="3"/>
+        <circle cx="310" cy="120" r="13" fill="#fff" stroke="#FBBC04" stroke-width="3"/>
+        <text x="70" y="88" text-anchor="middle" font-size="10.5" font-weight="600" fill="#b3261e">hourly</text>
+        <text x="70" y="102" text-anchor="middle" font-size="9" fill="#5f6368">2,160 sets &middot; 80 GB each</text>
+        <text x="190" y="88" text-anchor="middle" font-size="10.5" font-weight="600" fill="#188038">daily</text>
+        <text x="190" y="102" text-anchor="middle" font-size="9" fill="#5f6368">90 sets &middot; 1.9 TB each</text>
+        <text x="310" y="88" text-anchor="middle" font-size="10.5" font-weight="600" fill="#e37400">monthly</text>
+        <text x="310" y="102" text-anchor="middle" font-size="9" fill="#5f6368">3 sets &middot; 57 TB each</text>
+        <text x="70" y="152" text-anchor="middle" font-size="9" fill="#b3261e">fine today; breaks at</text>
+        <text x="70" y="164" text-anchor="middle" font-size="9" fill="#b3261e">2-yr retention</text>
+        <text x="190" y="152" text-anchor="middle" font-size="9" fill="#188038">prunes well AND</text>
+        <text x="190" y="164" text-anchor="middle" font-size="9" fill="#188038">partitions stay chunky</text>
+        <text x="310" y="152" text-anchor="middle" font-size="9" fill="#e37400">coarse pruning; pair</text>
+        <text x="310" y="164" text-anchor="middle" font-size="9" fill="#e37400">with clustering</text>
+        <text x="190" y="210" text-anchor="middle" font-size="10.5" fill="#5f6368">the goal: prunes well <tspan font-weight="700">and</tspan> partitions stay &ge; ~10 GB</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Limits and granularity">
+  <summary>Speaker notes &mdash; Limits and granularity</summary>
+  <div class="n-body"><ul>
+    <li><strong>Correction propagated from the fact-check:</strong> older material (the original module, the 2019 book) says 4,000 &mdash; the current per-table limit is <strong>10,000</strong>, and 4,000 survives as the per-job modification limit. Source: docs.cloud.google.com/bigquery/quotas.</li>
+    <li>&ldquo;Each partition behaves like a table&rdquo; cuts both ways: per-partition metadata is the power <em>and</em> the overhead. Last module&rsquo;s fragmentation story (many tiny commits) is the same disease in a different costume.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. PARTITIONS AS OPS LEVER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Partitions as an ops lever</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Expire</strong> old data automatically — deletes are metadata flips, not DML</li>
+        <li><strong>Cheaper archives</strong>: partitions untouched 90 days drop to long-term pricing <em>individually</em></li>
+        <li><strong>DML isolation</strong>: mutations touching different partitions don&rsquo;t conflict; the nightly GDPR delete now rewrites only the partitions holding that participant</li>
+        <li><strong>Surgical backfills</strong>: overwrite one day, not the table</li>
+      </ul>
+    </div>
+    <div>
+      <pre class="code small"><span class="kw">ALTER TABLE</span> clearmeet_analytics.qos_events_p
+<span class="kw">SET OPTIONS</span> (partition_expiration_days = 90);
+
+<span class="cm"># redo one bad day in place:</span>
+bq query --destination_table \
+  <span class="st">'clearmeet_analytics.qos_events_p$20260728'</span> \
+  --replace <span class="st">'SELECT &#8230; FROM staging_reload'</span></pre>
+      <div class="vgap"></div>
+      <div class="callout good">Last module&rsquo;s bad-backfill incident now has a surgical fix (<code>$20260728</code> overwrite) as well as a time-travel undo.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Partitions as an ops lever">
+  <summary>Speaker notes &mdash; Partitions as an ops lever</summary>
+  <div class="n-body"><ul>
+    <li>Tie each bullet back to machinery: expiration = storage-set GARBAGE flip; long-term pricing per partition (90 untouched days, ~half price, queries don&rsquo;t reset the clock); DML conflict scope = partition.</li>
+    <li>The <code>table$YYYYMMDD</code> partition decorator works in <code>bq</code> and load/copy jobs.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. ANTI-PATTERN: SHARDED TABLES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Anti-pattern: date-sharded tables</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>The old way: <code>qos_events_20260726</code>, <code>_20260727</code>, &hellip; queried with wildcards</li>
+        <li>Costs: per-table metadata and permission checks, schema drift, wildcard quirks — and wildcard-table queries have <strong>query-cache limitations</strong>: do not assume a cache hit</li>
+        <li>The docs now say it plainly: <strong>partitioning performs better</strong> — it stays the preferred migration path</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="cm">-- if you inherit shards, query them&#8230;</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> `clearmeet_analytics.qos_events_*`
+<span class="kw">WHERE</span> _TABLE_SUFFIX <span class="kw">BETWEEN</span> <span class="st">'20260726'</span>
+                        <span class="kw">AND</span> <span class="st">'20260728'</span>;
+<span class="cm">-- &#8230;then convert them (one time)</span></pre>
+    </div>
+    <div class="figure">
+      <svg width="380" height="230" viewBox="0 0 380 230">
+        <g>
+          <rect x="20" y="30" width="150" height="24" rx="5" fill="#fce8e6" stroke="#EA4335"/><text x="95" y="46" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#b3261e">qos_events_20260726</text>
+          <rect x="20" y="60" width="150" height="24" rx="5" fill="#fce8e6" stroke="#EA4335"/><text x="95" y="76" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#b3261e">qos_events_20260727</text>
+          <rect x="20" y="90" width="150" height="24" rx="5" fill="#fce8e6" stroke="#EA4335"/><text x="95" y="106" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#b3261e">qos_events_20260728</text>
+          <text x="95" y="134" text-anchor="middle" font-size="9" fill="#b3261e">&#8230; 90 tables, 90 schemas to drift</text>
+        </g>
+        <path d="M186 82 L 216 82" stroke="#5f6368" stroke-width="2"/>
+        <rect x="224" y="52" width="140" height="60" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="2"/>
+        <text x="294" y="76" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#188038">qos_events_p</text>
+        <text x="294" y="94" text-anchor="middle" font-size="9" fill="#188038">one table, 90 partitions</text>
+        <text x="192" y="180" text-anchor="middle" font-size="10" fill="#5f6368">same physical idea (per-day storage sets) &mdash;</text>
+        <text x="192" y="196" text-anchor="middle" font-size="10" fill="#5f6368">but one schema, one ACL, ordinary cache behavior, exact estimates</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Anti-pattern: sharded tables">
+  <summary>Speaker notes &mdash; Anti-pattern: sharded tables</summary>
+  <div class="n-body"><ul>
+    <li>Frame as <em>inherited legacy</em>, not a choice: students will meet sharded datasets (NOAA GSOD, old exports). Wildcards + <code>_TABLE_SUFFIX</code> are the reading skill; conversion is the fix. Source: partitioned-tables doc, &ldquo;Partitioning versus sharding.&rdquo;</li>
+    <li>gcp-demos &ldquo;Sharded and Wildcard Tables&rdquo; activity fits here if time allows.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. RECAP: PARTITIONING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: partitioning</h1>
+  <div class="cols c-55-45">
+    <div>
+      <div class="callout" style="font-size:16px"><strong>Partitioning makes the commit boundary match your query boundary.</strong></div>
+      <div class="vgap"></div>
+      <ul class="body" style="font-size:15px">
+        <li>Pruning is metadata-level and <strong>priced upfront</strong></li>
+        <li>Filter shape matters: isolated column vs constants</li>
+        <li>10,000 partitions per table (service limit)</li>
+        <li>Partitions are ops units: expire, overwrite, age into long-term pricing</li>
+      </ul>
+      <div class="vgap"></div>
+      <p class="lede" style="font-size:15px">But within yesterday&rsquo;s 120 GB, a per-org query still reads <em>every block</em> — cue clustering.</p>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:14px">
+        <tr><th>Step</th><th>Mechanism</th><th>Bytes / run</th></tr>
+        <tr><td>Start</td><td>full scan</td><td>~10.8 TB</td></tr>
+        <tr class="hl"><td><strong>Partition by day</strong></td><td>prune to yesterday&rsquo;s sets</td><td><strong>~120 GB &#10003;</strong></td></tr>
+        <tr><td class="muted">Cluster by org</td><td class="muted">prune blocks per org</td><td class="muted">?</td></tr>
+        <tr><td class="muted">Materialized view</td><td class="muted">incremental pre-aggregation</td><td class="muted">?</td></tr>
+      </table>
+      <div class="figcap" style="text-align:left;margin-top:8px">$19,000/day &rarr; ~$210/day</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Recap: partitioning">
+  <summary>Speaker notes &mdash; Recap: partitioning</summary>
+  <div class="n-body"><ul>
+    <li>One breath: partitioning aligns commits with query boundaries; the estimate stays exact because pruning happens in metadata before execution.</li>
+    <li>Customer-success scenario opens the next section: the same dashboard <em>per organization</em>.</li>
+  </ul></div>
+</details>
+<!-- ============ 13. DIVIDER: CLUSTERING ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 5</div>
+    <h1>Clustering: skip storage blocks inside the partition</h1>
+    <div class="sub">Customer success wants the dashboard per organization. WHERE org_id = 'acme' still costs 120 GB &mdash; and Acme is 0.5% of the data.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Partitioning</span><span class="current">Clustering</span><span>Schema shapes</span><span>Materialized views</span><span>Housekeeping</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Clustering">
+  <summary>Speaker notes &mdash; Section 2: Clustering</summary>
+  <div class="n-body"><ul>
+    <li>The scenario beat matters: partitioning solved &ldquo;which day&rdquo;; it does nothing for &ldquo;which customer within the day.&rdquo;</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. WHAT CLUSTERING PHYSICALLY IS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What clustering physically is</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><code>CLUSTER BY</code> makes BigQuery <strong>sort rows by your columns when writing</strong> each partition&rsquo;s storage set</li>
+        <li>Data lands in <strong>storage blocks</strong>, adaptively sized — shown here as files for intuition</li>
+        <li>Sorting on write <strong>tends to narrow block ranges</strong>, so the per-block <strong>min/max metadata</strong> (which always existed) can exclude blocks</li>
+        <li>Partitioning prunes <em>storage sets</em>; clustering prunes <em>blocks within them</em></li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="470" height="262" viewBox="0 0 470 262">
+        <defs><marker id="ac17" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+        <rect x="14" y="16" width="440" height="120" rx="10" fill="#fff" stroke="#34A853" stroke-width="1.8"/>
+        <text x="234" y="36" text-anchor="middle" font-size="10" font-weight="600" fill="#188038">partition p2026-07-28 &mdash; one storage set, sorted by org_id on write (blocks shown as files)</text>
+        <g>
+          <rect x="34" y="48" width="92" height="52" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="2"/>
+          <text x="80" y="68" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#1a73e8">f1</text>
+          <text x="80" y="84" text-anchor="middle" font-size="8.6" font-family="Roboto Mono, monospace" fill="#1a73e8">aaa &#8594; ban</text>
+          <rect x="138" y="48" width="92" height="52" rx="7" fill="#f1f3f4" stroke="#dadce0"/>
+          <text x="184" y="68" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368">f2</text>
+          <text x="184" y="84" text-anchor="middle" font-size="8.6" font-family="Roboto Mono, monospace" fill="#5f6368">bao &#8594; hzz</text>
+          <rect x="242" y="48" width="92" height="52" rx="7" fill="#f1f3f4" stroke="#dadce0"/>
+          <text x="288" y="68" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368">f3</text>
+          <text x="288" y="84" text-anchor="middle" font-size="8.6" font-family="Roboto Mono, monospace" fill="#5f6368">iaa &#8594; qzz</text>
+          <rect x="346" y="48" width="92" height="52" rx="7" fill="#f1f3f4" stroke="#dadce0"/>
+          <text x="392" y="68" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368">f4</text>
+          <text x="392" y="84" text-anchor="middle" font-size="8.6" font-family="Roboto Mono, monospace" fill="#5f6368">raa &#8594; zzz</text>
+        </g>
+        <text x="234" y="122" text-anchor="middle" font-size="9" fill="#5f6368">clustering narrows the ranges; boundaries live in the block metadata</text>
+        <rect x="80" y="160" width="180" height="40" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="170" y="178" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1a73e8">WHERE org_id = 'acme'</text>
+        <text x="170" y="192" text-anchor="middle" font-size="8.5" fill="#5f6368">matched against block ranges</text>
+        <line x1="170" y1="160" x2="94" y2="104" stroke="#4285F4" stroke-width="1.6" marker-end="url(#ac17)"/>
+        <text x="330" y="180" font-size="9.5" fill="#188038" font-weight="600">skips blocks whose range excludes &lsquo;acme&rsquo;</text>
+        <text x="330" y="196" font-size="9" fill="#5f6368">(a metadata decision, not a scan)</text>
+        <text x="234" y="240" text-anchor="middle" font-size="10.5" fill="#5f6368">sorted <tspan font-weight="700">across</tspan> blocks, not inside them &mdash; inside, Capacitor&rsquo;s compression reordering still rules</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What clustering is">
+  <summary>Speaker notes &mdash; What clustering is</summary>
+  <div class="n-body"><ul>
+    <li>Emphasize what&rsquo;s new vs partitioning: <strong>no new metadata machinery at all</strong> &mdash; clustering just narrows the ranges the existing per-block metadata already records, so more blocks can be excluded.</li>
+    <li>Current docs say <strong>storage blocks</strong>, adaptively sized, and describe <em>block pruning</em>; the file drawing is a teaching aid. Don&rsquo;t promise &ldquo;one block will be read&rdquo; &mdash; say &ldquo;fewer blocks,&rdquo; then measure. Sources: <a href="https://docs.cloud.google.com/bigquery/docs/clustered-tables">clustered-tables doc</a>; <em>Definitive Guide</em> pp. 222&ndash;223 (the older file/binary-search description).</li>
+    <li>Up to 4 clustering columns; STRING uses the first 1,024 characters.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. CREATING: ORDER MATTERS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Creating: order matters</h1>
+  <div class="cols c-55-45">
+    <div>
+      <pre class="code"><span class="kw">CREATE TABLE</span> clearmeet_analytics.qos_events_pc
+<span class="kw">PARTITION BY</span> <span class="fn">DATE</span>(event_time)
+<span class="kw">CLUSTER BY</span> org_id, device_type
+<span class="kw">AS SELECT</span> * <span class="kw">FROM</span> clearmeet_analytics.qos_events_p;</pre>
+      <div class="vgap"></div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Up to <strong>4 columns</strong>; sort is lexicographic — the <strong>leading clustering columns</strong> generally provide the strongest pruning, and later columns help most when the leading columns are also constrained</li>
+        <li>Clustering <strong>can be added to an existing table</strong>; new writes honor it, old data reclusters over time</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout"><strong>The phone book rule:</strong> sorted by (last, first). Looking up <em>Garcia, Maria</em> — fast. Finding <em>everyone named Maria</em> — much less help from the sort order.<br><br><code>org_id</code> &#10003; &middot; <code>org_id, device_type</code> &#10003; &middot; <code>device_type</code> alone: little or no pruning</div>
+      <div class="vgap"></div>
+      <div class="callout good"><strong>Column choice:</strong> most-selective commonly-filtered column first — here <code>org_id</code> (40k values), then <code>device_type</code> (5). High cardinality is <em>good</em> for clustering — the exact opposite of partitioning.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Creating: order matters">
+  <summary>Speaker notes &mdash; Creating: order matters</summary>
+  <div class="n-body"><ul>
+    <li>That inversion &mdash; partitioning wants low cardinality (&le; 10k), clustering wants high &mdash; is the fundamental division of labor. Say it twice.</li>
+    <li><code>ALTER TABLE &#8230; SET OPTIONS</code> can add clustering to an existing table; the fake-NULL-date hack from older material (clustering once required partitioning) has been obsolete for years and is gone from this deck.</li>
+    <li>Clusterable types: most scalars (no ARRAY/STRUCT fields). Source: clustered-tables doc.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. CLUSTERING PAYOFF ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The payoff, and where it shows up</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Acme dashboard: 120 GB &rarr; ~<strong>3 GB</strong> in this measured run (only blocks whose <code>org_id</code> range covers <code>acme</code>)</li>
+        <li>Beyond scanning: like keys are <strong>pre-colocated</strong> — <code>GROUP BY org_id</code> and joins on <code>org_id</code> shuffle less</li>
+        <li><code>LIMIT</code> on clustered filters can <strong>stop early</strong></li>
+      </ul>
+      <div class="vgap"></div>
+      <div class="callout good">Real magnitude, public data: Wikipedia pageviews 2.2 TB, <code>CLUSTER BY wiki, title</code> &rarr; the same filtered query drops 180 GB &rarr; <strong>38.6 GB, 5&times; faster</strong>.</div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="250" viewBox="0 0 470 250">
+        <text x="235" y="20" text-anchor="middle" font-size="10" font-weight="600" fill="#5f6368">yesterday&rsquo;s partition &mdash; 40 storage blocks, sorted by org_id</text>
+        <g>
+          <rect x="20" y="32" width="40" height="26" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="2"/>
+          <rect x="64" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="108" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="152" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="196" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="240" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="284" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="328" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="372" y="32" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="416" y="32" width="34" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/>
+          <rect x="20" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="64" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="108" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="152" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="196" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="240" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="284" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="328" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="372" y="64" width="40" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/><rect x="416" y="64" width="34" height="26" rx="4" fill="#f1f3f4" stroke="#dadce0"/>
+        </g>
+        <text x="40" y="110" text-anchor="middle" font-size="9" fill="#1a73e8" font-weight="600">&#8593; acme lives here</text>
+        <rect x="120" y="130" width="240" height="46" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="240" y="150" text-anchor="middle" font-size="11" font-family="Roboto Mono, monospace" fill="#188038">Bytes processed: 2.9 GB</text>
+        <text x="240" y="166" text-anchor="middle" font-size="9" fill="#5f6368">in this run, 39 of 40 blocks never opened</text>
+        <text x="235" y="206" text-anchor="middle" font-size="10.5" fill="#5f6368">docs guidance today: tables and partitions &gt; ~64 MB already benefit &mdash;</text>
+        <text x="235" y="222" text-anchor="middle" font-size="10.5" fill="#5f6368">clustering is not just for monsters</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Clustering payoff">
+  <summary>Speaker notes &mdash; Clustering payoff</summary>
+  <div class="n-body"><ul>
+    <li>The Wikipedia numbers come from the <em>Definitive Guide</em> (p. 285, Felipe Hoffa&rsquo;s table); rebuild on current public wikipedia pageviews data at demo time and keep the shape (&ldquo;~5&times;&rdquo;), not the exact digits.</li>
+    <li>The shuffle benefit is one sentence here because students know what shuffle costs from the Architecture deck &mdash; the original module needed two diagrams for this.</li>
+    <li>64 MB threshold source: clustered-tables doc (&ldquo;likely to benefit&rdquo;).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. THE ESTIMATE CAVEAT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The estimate caveat (and what to do about it)</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Partition pruning is priced <strong>before</strong> the run; cluster pruning happens <strong>during</strong> it</li>
+        <li>So on clustered tables the validator shows an <strong>upper bound</strong>; the real (lower) bytes appear in job stats afterward</li>
+        <li>Habit: <strong>dry-run for the ceiling, job stats for the floor</strong>; cap with <code>maximum_bytes_billed</code> if you need a hard stop</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="kw">SELECT</span> job_id, total_bytes_processed,
+       total_bytes_billed
+<span class="kw">FROM</span> `region-us`.INFORMATION_SCHEMA.JOBS_BY_PROJECT
+<span class="kw">WHERE</span> creation_time &gt; <span class="fn">TIMESTAMP_SUB</span>(
+      <span class="fn">CURRENT_TIMESTAMP</span>(), <span class="kw">INTERVAL</span> 1 <span class="kw">DAY</span>)
+<span class="kw">ORDER BY</span> creation_time <span class="kw">DESC</span>;</pre>
+    </div>
+    <div>
+      <pre class="term"><span class="lbl">validator, before running</span>This query will process
+<span style="color:#fdd663">120.4 GB</span> when run.          &#8592; ceiling</pre>
+      <div class="vgap-s"></div>
+      <pre class="term"><span class="lbl">job statistics, after running</span>total_bytes_processed:
+<span class="flag">2.9 GB</span>                     &#8592; actual</pre>
+      <div class="vgap-s"></div>
+      <div class="callout warn">Cost-control tooling on clustered tables should alert on <strong>actuals</strong>, not estimates.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The estimate caveat">
+  <summary>Speaker notes &mdash; The estimate caveat</summary>
+  <div class="n-body"><ul>
+    <li>Mechanism in one sentence from the Architecture model: the estimate is computed from storage-set metadata; block-level min/max elimination happens at execution.</li>
+    <li>The original module stated this caveat twice and never operationalized it &mdash; the three-step habit on this slide is the fix.</li>
+    <li>This is also the honest answer to &ldquo;why does my clustered table say it will cost more than it does?&rdquo; &mdash; a very common student question.</li>
+  </ul></div>
+</details>
+<!-- ============ 18. CLUSTERING DECAYS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Clustering decays; the optimizer repairs it</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Streaming keeps appending small storage sets whose blocks <strong>overlap</strong> the sorted ranges</li>
+        <li>A lookup may now hit multiple sets — &ldquo;<strong>stack depth</strong>&rdquo; &gt; 1</li>
+        <li><strong>Automatic reclustering</strong>: the storage optimizer re-sorts in the background — free, no slots consumed, no action required</li>
+      </ul>
+      <div class="vgap"></div>
+      <div class="callout">Same machinery as last module&rsquo;s compaction — <strong>resorted</strong> instead of merely merged.</div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="262" viewBox="0 0 470 262">
+        <defs><marker id="ac21" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+        <rect x="14" y="16" width="230" height="56" rx="8" fill="#fff" stroke="#9aa0a6" stroke-width="1.4"/>
+        <text x="129" y="32" text-anchor="middle" font-size="9" font-weight="600" fill="#5f6368">SS-1 (sorted at write)</text>
+        <rect x="28" y="40" width="94" height="22" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="75" y="55" text-anchor="middle" font-size="8.4" font-family="Roboto Mono, monospace" fill="#5f6368">aaa &#8594; ban</text>
+        <rect x="132" y="40" width="94" height="22" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="179" y="55" text-anchor="middle" font-size="8.4" font-family="Roboto Mono, monospace" fill="#5f6368">bao &#8594; hzz</text>
+        <rect x="256" y="16" width="198" height="56" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.6"/>
+        <text x="355" y="32" text-anchor="middle" font-size="9" font-weight="600" fill="#b3261e">SS-2 (just streamed in)</text>
+        <rect x="284" y="40" width="140" height="22" rx="4" fill="#fff" stroke="#EA4335"/><text x="354" y="55" text-anchor="middle" font-size="8.4" font-family="Roboto Mono, monospace" fill="#b3261e">abc &#8594; bax  &#9888; overlaps</text>
+        <text x="235" y="94" text-anchor="middle" font-size="9.5" fill="#b3261e">a lookup for &lsquo;acme&rsquo; must now open blocks in <tspan font-weight="700">both</tspan> sets &mdash; stack depth 2</text>
+        <rect x="150" y="108" width="170" height="26" rx="13" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="235" y="125" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">storage optimizer &middot; free &middot; background</text>
+        <line x1="235" y1="134" x2="235" y2="158" stroke="#34A853" stroke-width="1.6" marker-end="url(#ac21)"/>
+        <rect x="70" y="162" width="330" height="56" rx="8" fill="#fff" stroke="#34A853" stroke-width="2"/>
+        <text x="235" y="178" text-anchor="middle" font-size="9" font-weight="600" fill="#188038">SS-3 &mdash; resorted, ranges narrow again (stack depth 1)</text>
+        <rect x="90" y="186" width="140" height="22" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="160" y="201" text-anchor="middle" font-size="8.4" font-family="Roboto Mono, monospace" fill="#188038">aaa &#8594; azz</text>
+        <rect x="240" y="186" width="140" height="22" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="310" y="201" text-anchor="middle" font-size="8.4" font-family="Roboto Mono, monospace" fill="#188038">baa &#8594; hzz</text>
+        <text x="235" y="242" text-anchor="middle" font-size="10" fill="#9aa0a6">SS-1 and SS-2 &rarr; GARBAGE (still there for time travel)</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Clustering decays">
+  <summary>Speaker notes &mdash; Clustering decays</summary>
+  <div class="n-body"><ul>
+    <li>This is the Architecture deck&rsquo;s storage-optimizer slide wearing cluster clothes &mdash; say exactly that; the reuse <em>is</em> the pedagogy.</li>
+    <li>The original module&rsquo;s best content (stack depth, overlap) lived in speaker notes under unlabeled diagrams; here it&rsquo;s the slide face.</li>
+    <li>Practical corollary: freshly streamed data is briefly less-clustered, so heavy readers of the last few minutes get slightly worse pruning. That&rsquo;s the trade for free background repair. Sources: clustered-tables doc (automatic, free, capacity-neutral); <em>Definitive Guide</em> pp. 223&ndash;224.</li>
+    <li>For partitioned tables, clustering is maintained <em>within each partition</em>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. DECISION TABLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Partition or cluster?</h1>
+  <table class="tbl" style="font-size:13.5px">
+    <tr><th></th><th>Partitioning</th><th>Clustering</th></tr>
+    <tr><td>Prunes</td><td>storage sets</td><td>storage blocks within sets</td></tr>
+    <tr class="hl"><td>Key cardinality</td><td><strong>low</strong> (&le; 10,000)</td><td><strong>unlimited</strong></td></tr>
+    <tr><td>Cost estimate</td><td>precise, upfront</td><td>upper bound; actual after</td></tr>
+    <tr><td>Management unit</td><td><span class="yes">yes</span> — expire / overwrite / copy a partition</td><td><span class="no">no</span></td></tr>
+    <tr><td>Maintenance</td><td>exact at write</td><td>background reclustering</td></tr>
+    <tr><td>Use when</td><td>one coarse, always-filtered dimension (date)</td><td>selective filters on high-cardinality columns</td></tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout good"><strong>Rule of thumb: partition by time, cluster by what you filter on.</strong> If partitions would fall below ~10 GB or overflow the 10,000 limit — cluster instead of partitioning finer.</div>
+</section>
+<details class="notes" data-title="Partition or cluster?">
+  <summary>Speaker notes &mdash; Partition or cluster?</summary>
+  <div class="n-body"><ul>
+    <li>Modeled on the book&rsquo;s Table 7-1 (p. 287) with current-docs guidance folded in (10 GB/partition aim, 64 MB clustering threshold, &ldquo;clustering instead of more partitions&rdquo; from the quotas doc).</li>
+    <li><strong>Decision beat:</strong> SDK-rollout monitoring filters <code>WHERE sdk_version = '8.2.1' AND event_time &gt;= &#8230;</code>. Extend clustering to (<code>org_id</code>, <code>sdk_version</code>)? Discuss: second position only helps queries that <em>also</em> filter org, so a separate rollup may serve better. There isn&rsquo;t one right answer &mdash; the point is that they can now argue it mechanically.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. WHEN CLUSTERING ALONE WINS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>When clustering <em>alone</em> beats partition + cluster</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Measured on weather data, same query: clustered-only table <strong>14.7 MB</strong>; partitioned <em>and</em> clustered <strong>1.53 GB</strong> (one illustrative measurement)</li>
+        <li>Why? Monthly partitions were <strong>tiny</strong> — each holds one small storage set with too little data to spread across multiple blocks</li>
+        <li>So clustering had <strong>nothing to prune</strong>, and the query paid per-partition overhead across hundreds of partitions</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn">The pruning unit is the <strong>storage block</strong>. A partition needs enough data to spread across several blocks before clustering has anything to exclude.</div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="256" viewBox="0 0 470 256">
+        <text x="112" y="18" text-anchor="middle" font-size="10.5" font-weight="600" fill="#188038">clustered only</text>
+        <rect x="14" y="26" width="196" height="96" rx="8" fill="#fff" stroke="#34A853" stroke-width="2"/>
+        <text x="112" y="42" text-anchor="middle" font-size="8.5" fill="#5f6368">one big storage set, many sorted blocks</text>
+        <g>
+          <rect x="26" y="50" width="40" height="24" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="2"/><text x="46" y="66" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#188038">a&#8594;f</text>
+          <rect x="70" y="50" width="40" height="24" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="90" y="66" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#9aa0a6">g&#8594;m</text>
+          <rect x="114" y="50" width="40" height="24" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="134" y="66" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#9aa0a6">n&#8594;s</text>
+          <rect x="158" y="50" width="40" height="24" rx="4" fill="#f1f3f4" stroke="#dadce0"/><text x="178" y="66" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#9aa0a6">t&#8594;z</text>
+        </g>
+        <text x="112" y="94" text-anchor="middle" font-size="9" fill="#188038" font-weight="600">few blocks read</text>
+        <rect x="40" y="102" width="144" height="16" rx="8" fill="#e6f4ea"/>
+        <text x="112" y="114" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#188038">14.7 MB</text>
+        <text x="352" y="18" text-anchor="middle" font-size="10.5" font-weight="600" fill="#b3261e">partitioned + clustered</text>
+        <rect x="246" y="26" width="212" height="96" rx="8" fill="#fff" stroke="#EA4335" stroke-width="2"/>
+        <text x="352" y="42" text-anchor="middle" font-size="8.5" fill="#5f6368">500 tiny partitions, one block each</text>
+        <g>
+          <rect x="256" y="50" width="26" height="24" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="269" y="66" text-anchor="middle" font-size="6.5" font-family="Roboto Mono, monospace" fill="#b3261e">a&#8594;z</text>
+          <rect x="286" y="50" width="26" height="24" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="299" y="66" text-anchor="middle" font-size="6.5" font-family="Roboto Mono, monospace" fill="#b3261e">a&#8594;z</text>
+          <rect x="316" y="50" width="26" height="24" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="329" y="66" text-anchor="middle" font-size="6.5" font-family="Roboto Mono, monospace" fill="#b3261e">a&#8594;z</text>
+          <rect x="346" y="50" width="26" height="24" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="359" y="66" text-anchor="middle" font-size="6.5" font-family="Roboto Mono, monospace" fill="#b3261e">a&#8594;z</text>
+          <rect x="376" y="50" width="26" height="24" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="389" y="66" text-anchor="middle" font-size="6.5" font-family="Roboto Mono, monospace" fill="#b3261e">a&#8594;z</text>
+          <rect x="406" y="50" width="42" height="24" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="427" y="66" text-anchor="middle" font-size="6.5" font-family="Roboto Mono, monospace" fill="#b3261e">&#8230;&times;495</text>
+        </g>
+        <text x="352" y="94" text-anchor="middle" font-size="9" fill="#b3261e" font-weight="600">every block&rsquo;s range matches &#8594; all read</text>
+        <rect x="280" y="102" width="144" height="16" rx="8" fill="#fce8e6"/>
+        <text x="352" y="114" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#b3261e">1.53 GB</text>
+        <rect x="30" y="146" width="410" height="44" rx="8" fill="#fef7e0"/>
+        <text x="235" y="164" text-anchor="middle" font-size="10.5" font-weight="600" fill="#3c2f00">Generalized rule (matches current docs):</text>
+        <text x="235" y="180" text-anchor="middle" font-size="10.5" fill="#3c2f00">partitioning below ~10 GB per partition mostly buys overhead.</text>
+        <text x="235" y="216" text-anchor="middle" font-size="10" fill="#5f6368">On smaller tables, when in doubt: cluster only.</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="When clustering alone wins">
+  <summary>Speaker notes &mdash; When clustering alone wins</summary>
+  <div class="n-body"><ul>
+    <li>Kept from the original module because it&rsquo;s memorably counterintuitive &mdash; but the mechanism is now <em>stated</em> instead of wondered about (its speaker notes literally asked &ldquo;is this the correct assumption?&rdquo;).</li>
+    <li>The original demo dataset (<code>fh-bigquery</code>) is defunct; rebuild on <code>bigquery-public-data.noaa_gsod</code> at demo time and treat the two figures as &ldquo;expected shape,&rdquo; not gospel.</li>
+    <li>Second-order effect worth mentioning: a storage block is the unit matched to a slot in stage 1, so over-partitioning also wastes parallelism &mdash; lots of slots doing almost nothing.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. LAB: PARTITION & CLUSTER ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content" style="top:126px;max-width:410px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Lab</h1>
+    <div class="sub" style="font-size:18px;color:#202124;margin-bottom:18px">Creating Partitioned and Clustered Tables (40 min)</div>
+    <ul class="body" style="font-size:14px">
+      <li>Partition and cluster a real table; compare bytes processed</li>
+      <li><strong>Before each query, write down your predicted bytes</strong> — partition math is exact; clustering is a ceiling</li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Lab: Partitioned and Clustered Tables">
+  <summary>Speaker notes &mdash; Lab: Partitioned and Clustered Tables</summary>
+  <div class="n-body"><ul>
+    <li>The prediction step is the addition to the original lab briefing &mdash; and it&rsquo;s the module&rsquo;s real deliverable. Predict, run, compare, explain the gap.</li>
+    <li>Expect the clustered-table gap (estimate &Gt; actual) to generate the best question of the day; the estimate-caveat slide is the answer.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. RECAP: PARTITION + CLUSTER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: partitioning + clustering</h1>
+  <div class="cols c-55-45">
+    <div>
+      <div class="callout" style="font-size:15.5px"><strong>Partitioning aligns commits with query boundaries. Clustering aligns storage blocks with filters.</strong></div>
+      <div class="vgap"></div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Neither invents machinery — both give rules to the metadata layer you already knew about</li>
+        <li>Partition: low cardinality, exact estimates, an ops unit</li>
+        <li>Cluster: high cardinality, leading-column-ordered, self-repairing, estimate is a pre-execution upper bound</li>
+      </ul>
+      <div class="vgap"></div>
+      <p class="lede" style="font-size:15px">Next: the data that <em>isn&rsquo;t</em> one flat telemetry table — a relational export just landed.</p>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:14px">
+        <tr><th>Step</th><th>Mechanism</th><th>Bytes / run</th></tr>
+        <tr><td>Start</td><td>full scan</td><td>~10.8 TB</td></tr>
+        <tr><td>Partition by day</td><td>prune sets</td><td>~120 GB &#10003;</td></tr>
+        <tr class="hl"><td><strong>Cluster by org</strong></td><td>prune blocks</td><td><strong>~3 GB &#10003;</strong></td></tr>
+        <tr><td class="muted">Materialized view</td><td class="muted">incremental pre-aggregation</td><td class="muted">?</td></tr>
+      </table>
+      <div class="figcap" style="text-align:left;margin-top:8px">~$210/day &rarr; ~$5/day</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Recap: partitioning + clustering">
+  <summary>Speaker notes &mdash; Recap: partitioning + clustering</summary>
+  <div class="n-body"><ul>
+    <li>Two levers, one sentence each. If a student can say those two sentences and name what each prunes, the section landed.</li>
+  </ul></div>
+</details>
+<!-- ============ 23. DIVIDER: SCHEMA SHAPES ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 5</div>
+    <h1>Schema shapes: skip the join</h1>
+    <div class="sub">A relational export just arrived: meetings, participants, orgs. The dashboard now needs poor-audio share by pricing plan &mdash; and joins don&rsquo;t scan more, they <em>shuffle</em> more.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Partitioning</span><span>Clustering</span><span class="current">Schema shapes</span><span>Materialized views</span><span>Housekeeping</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Schema shapes">
+  <summary>Speaker notes &mdash; Section 3: Schema shapes</summary>
+  <div class="n-body"><ul>
+    <li>New question shape: not &ldquo;how much do we scan&rdquo; but &ldquo;how much do we <em>shuffle</em>&rdquo; &mdash; the join costs from the Architecture deck come home to roost.</li>
+    <li>The three options are genuinely all valid; the section teaches when each is right, not a single winner.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. OPTION 1: NORMALIZED ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Option 1: keep it normalized</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Perfectly valid in BigQuery: storage-efficient, one source of truth, easy to update</li>
+        <li>Cost: every query pays the join</li>
+        <li>Small dims (<code>orgs</code>, 40k rows) <strong>broadcast</strong> for nearly free</li>
+        <li><strong>Fact-to-fact joins shuffle both sides</strong> — billions of rows moving per refresh</li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="470" height="252" viewBox="0 0 470 252">
+        <defs><marker id="an27" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+        <rect x="160" y="104" width="150" height="52" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="2"/>
+        <text x="235" y="126" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">qos_events</text>
+        <text x="235" y="142" text-anchor="middle" font-size="9" fill="#5f6368">5B rows / day &middot; fact</text>
+        <rect x="150" y="16" width="170" height="44" rx="8" fill="#fff" stroke="#EA4335" stroke-width="1.6"/>
+        <text x="235" y="34" text-anchor="middle" font-size="10" font-weight="600" fill="#b3261e">meetings</text>
+        <text x="235" y="50" text-anchor="middle" font-size="8.5" fill="#5f6368">24M rows / day</text>
+        <line x1="235" y1="104" x2="235" y2="66" stroke="#EA4335" stroke-width="2.5" marker-end="url(#an27)"/>
+        <line x1="228" y1="66" x2="228" y2="104" stroke="#EA4335" stroke-width="2.5" marker-end="url(#an27)"/>
+        <text x="330" y="82" font-size="9" fill="#b3261e" font-weight="600">hash shuffle: both sides move</text>
+        <rect x="20" y="196" width="130" height="40" rx="8" fill="#fff" stroke="#34A853" stroke-width="1.6"/>
+        <text x="85" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#188038">orgs</text>
+        <text x="85" y="228" text-anchor="middle" font-size="8.5" fill="#5f6368">40k rows &middot; tiny</text>
+        <line x1="150" y1="204" x2="196" y2="160" stroke="#34A853" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#an27)"/>
+        <text x="150" y="184" font-size="9" fill="#188038" font-weight="600">broadcast: ~free</text>
+        <rect x="330" y="196" width="130" height="40" rx="8" fill="#fff" stroke="#34A853" stroke-width="1.6"/>
+        <text x="395" y="214" text-anchor="middle" font-size="10" font-weight="600" fill="#188038">plans</text>
+        <text x="395" y="228" text-anchor="middle" font-size="8.5" fill="#5f6368">12 rows &middot; tiny</text>
+        <line x1="330" y1="204" x2="284" y2="160" stroke="#34A853" stroke-width="1.6" stroke-dasharray="4 3" marker-end="url(#an27)"/>
+      </svg>
+      <div class="figcap">Star schema: green joins are cheap, the red one is not.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Option 1: normalized">
+  <summary>Speaker notes &mdash; Option 1: normalized</summary>
+  <div class="n-body"><ul>
+    <li>Docs-aligned guidance: normalized, star, and snowflake schemas all work fine in BigQuery &mdash; bring them as-is first (don&rsquo;t optimize prematurely). The 10 GB heuristic arrives at the end of this section.</li>
+    <li>The red arrow is quantifiable from the Architecture deck: both sides hashed by <code>meeting_id</code> through the shuffle tier, billions of rows per dashboard refresh &mdash; and a spill risk.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. DO IT NOW: NORMALIZED ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Normalized schema &mdash; pay the join and measure it</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>Run <code>norm_query.sql</code> in the instructor&rsquo;s project</li>
+      <li>Record four numbers: <strong>bytes processed</strong>, <strong>elapsed time</strong>, <strong>slot seconds</strong>, <strong>bytes shuffled</strong></li>
+      <li>Ask: which join moved both sides?</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#11" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 11</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: normalized">
+  <summary>Speaker notes &mdash; Do It Now: normalized</summary>
+  <div class="n-body"><ul>
+    <li>Also worth asking aloud: what is the <code>WITH</code> clause buying us here?</li>
+    <li>This is the baseline for the whole section &mdash; write the four numbers where the room can see them; every following activity is compared against this row.</li>
+    <li><strong>Bytes shuffled</strong> (Execution details) is the metric this section optimizes. Bytes processed may barely move between the shapes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 26. OPTION 2: DENORMALIZE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Option 2: denormalize (flatten)</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>Pre-join into one wide table: <strong>no join at query time</strong></li>
+        <li>Columnar storage makes the repeated columns cheap — <code>plan_tier</code> repeated 5B times is a dictionary + RLE dream</li>
+        <li>Costs: storage repetition, <strong>update anomalies</strong> (a plan rename rewrites everywhere)</li>
+        <li>And grouping on the one-to-many key <strong>still shuffles</strong></li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="kw">CREATE TABLE</span> clearmeet_analytics.qos_flat <span class="kw">AS</span>
+<span class="kw">SELECT</span> q.*, m.started_at, m.plan_tier, o.org_name
+<span class="kw">FROM</span> qos_events q
+<span class="kw">JOIN</span> meetings m <span class="kw">USING</span> (meeting_id)
+<span class="kw">JOIN</span> orgs o     <span class="kw">USING</span> (org_id);</pre>
+    </div>
+    <div>
+      <div class="callout good"><strong>Why repetition is cheaper here than in a row store:</strong> the repeated column is its own file, dictionary-encoded and run-length compressed. The real tax is maintenance and consistency, not bytes.</div>
+      <div class="vgap"></div>
+      <div class="callout warn"><strong>Honest failure mode:</strong> per-meeting aggregations on the flat table still shuffle by <code>meeting_id</code>. Flattening removes <em>joins</em>, not <em>grouping</em>.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Option 2: denormalize">
+  <summary>Speaker notes &mdash; Option 2: denormalize</summary>
+  <div class="n-body"><ul>
+    <li>Denormalization was devised when storage was expensive and joins were the only alternative; in BigQuery the calculus shifted, but integrity maintenance still costs human time.</li>
+    <li>The &ldquo;still shuffles&rdquo; caveat is the pivot into nesting &mdash; that&rsquo;s the failure mode nesting actually fixes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. DO IT NOW: DENORMALIZED ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Denormalized schema &mdash; no join, but what did it cost?</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>Compare storage first: how much bigger is <code>denorm</code>?</li>
+      <li>Run <code>denorm_query.sql</code>; record the same four numbers</li>
+      <li>Ask: the join is gone &mdash; did the <code>GROUP BY</code> still shuffle?</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#12" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 12</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: denormalized">
+  <summary>Speaker notes &mdash; Do It Now: denormalized</summary>
+  <div class="n-body"><ul>
+    <li>The expected shape: elapsed time and shuffle drop, storage grows. If shuffle does <em>not</em> go to zero, that is the point of the next slide.</li>
+    <li>Good place to ask who would own the update anomaly when a plan gets renamed, and whether the storage trade was worth it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 28. OPTION 3: NEST ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Option 3: nest the one-to-many</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>One row per <strong>meeting</strong>; participants as an <strong>ARRAY of STRUCTs</strong> inside it</li>
+        <li>Parent and children are <strong>stored together</strong>: no join, and <strong>no shuffle</strong> to reassemble a meeting</li>
+        <li>Columnar still applies — untouched nested fields aren&rsquo;t read</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="kw">CREATE TABLE</span> meetings_n <span class="kw">AS</span>
+<span class="kw">SELECT</span> m.meeting_id, m.plan_tier, m.org_id,
+  <span class="fn">ARRAY_AGG</span>(<span class="kw">STRUCT</span>(p.participant_id,
+    p.device_type, p.avg_audio_mos)) <span class="kw">AS</span> participants
+<span class="kw">FROM</span> meetings m
+<span class="kw">JOIN</span> participant_rollups p <span class="kw">USING</span> (meeting_id)
+<span class="kw">GROUP BY</span> 1, 2, 3;</pre>
+    </div>
+    <div class="figure">
+      <svg width="470" height="258" viewBox="0 0 470 258">
+        <text x="112" y="16" text-anchor="middle" font-size="10" font-weight="600" fill="#b3261e">flat: parent repeated</text>
+        <g font-family="Roboto Mono, monospace" font-size="8">
+          <rect x="14" y="24" width="200" height="20" rx="3" fill="#fce8e6" stroke="#EA4335" stroke-width=".8"/><text x="22" y="38" fill="#b3261e">mtg_58d1 enterprise  p_1  macos 4.4</text>
+          <rect x="14" y="46" width="200" height="20" rx="3" fill="#fce8e6" stroke="#EA4335" stroke-width=".8"/><text x="22" y="60" fill="#b3261e">mtg_58d1 enterprise  p_2  ios   4.1</text>
+          <rect x="14" y="68" width="200" height="20" rx="3" fill="#fce8e6" stroke="#EA4335" stroke-width=".8"/><text x="22" y="82" fill="#b3261e">mtg_58d1 enterprise  p_3  web   2.9</text>
+        </g>
+        <text x="112" y="106" text-anchor="middle" font-size="8.5" fill="#5f6368">meeting columns written 3&times;</text>
+        <text x="340" y="16" text-anchor="middle" font-size="10" font-weight="600" fill="#188038">nested: one row per meeting</text>
+        <rect x="236" y="24" width="220" height="86" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="2"/>
+        <text x="248" y="42" font-size="8.6" font-family="Roboto Mono, monospace" fill="#188038">mtg_58d1 &middot; enterprise &middot; acme</text>
+        <line x1="248" y1="48" x2="444" y2="48" stroke="#34A853" stroke-width=".6" stroke-dasharray="3 2"/>
+        <text x="256" y="62" font-size="8" font-family="Roboto Mono, monospace" fill="#188038">participants:</text>
+        <text x="266" y="76" font-size="8" font-family="Roboto Mono, monospace" fill="#3c4043">{p_1, macos, 4.4}</text>
+        <text x="266" y="90" font-size="8" font-family="Roboto Mono, monospace" fill="#3c4043">{p_2, ios,   4.1}</text>
+        <text x="266" y="104" font-size="8" font-family="Roboto Mono, monospace" fill="#3c4043">{p_3, web,   2.9}</text>
+        <text x="340" y="126" text-anchor="middle" font-size="8.5" fill="#5f6368">pre-joined, colocated, parent written once</text>
+        <rect x="30" y="152" width="410" height="52" rx="8" fill="#e8f0fe"/>
+        <text x="235" y="172" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">Console vocabulary you must be able to read:</text>
+        <text x="235" y="190" text-anchor="middle" font-size="10.5" fill="#1a73e8">STRUCT = type <tspan font-family="Roboto Mono, monospace">RECORD</tspan> &nbsp;&middot;&nbsp; ARRAY = mode <tspan font-family="Roboto Mono, monospace">REPEATED</tspan></text>
+        <text x="235" y="232" text-anchor="middle" font-size="10" fill="#5f6368">meeting-level and participant-level facts in one table, without double counting</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Option 3: nest">
+  <summary>Speaker notes &mdash; Option 3: nest</summary>
+  <div class="n-body"><ul>
+    <li>Students must be able to <em>read</em> nested schemas (GA4 exports, GitHub public datasets) even if they never author one &mdash; hence the RECORD/REPEATED callout.</li>
+    <li>Granularity superpower: pick your grain by whether you UNNEST. Aggregates at meeting level need no flattening at all.</li>
+    <li>Physical tie-back: nested/repeated columns are encoded with repetition/definition levels (the Dremel paper scheme Parquet adopted) &mdash; the Architecture deck mentioned this in the Capacitor slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 29. DO IT NOW: NESTED ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Nested schema &mdash; children stored inside the parent</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>Inspect <code>nested_once</code>: which column is mode <strong>REPEATED</strong>?</li>
+      <li>Run the March sales-by-zip query; record the same four numbers</li>
+      <li>Ask: how does shuffle compare with the other two shapes?</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#14" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 14</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: nested">
+  <summary>Speaker notes &mdash; Do It Now: nested</summary>
+  <div class="n-body"><ul>
+    <li>Have them note how much the nested table stores versus <code>denorm</code> before they run anything.</li>
+    <li>Three rows on the board now. The nested row is where reassembling a parent stops moving data between stages.</li>
+    <li>Have them read the schema in the console first &mdash; <strong>RECORD</strong> / <strong>REPEATED</strong> is the vocabulary they will meet in GA4 and GitHub public datasets.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 30. DO IT NOW: ARRAYS ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Arrays &mdash; build them, measure them, flatten them</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>Build arrays explicitly, then with <code>ARRAY_AGG</code>; read them in the <strong>JSON</strong> tab</li>
+      <li>Report and filter array lengths on the GitHub commits data</li>
+      <li>Flatten three ways &mdash; <code>CROSS JOIN UNNEST</code>, the comma form, <code>IN UNNEST</code> &mdash; and time each</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#13" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 13</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: arrays">
+  <summary>Speaker notes &mdash; Do It Now: arrays</summary>
+  <div class="n-body"><ul>
+    <li>This is the syntax practice the deck deliberately compresses &mdash; run it <em>before</em> the two-moves slide and let the slide name what they just did.</li>
+    <li>The three search forms return the same rows with different performance on large data; that comparison is the payoff of the activity.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 31. WORKING WITH NESTED DATA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Working with nested data: the two moves</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Stay at parent grain</strong> — reference or aggregate the array in place</li>
+        <li><strong>Drop to child grain</strong> — <code>CROSS JOIN UNNEST(...)</code>: the join that never leaves the row</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="cm">-- child grain: poor-audio share by plan</span>
+<span class="kw">SELECT</span> m.plan_tier,
+  <span class="fn">COUNTIF</span>(p.avg_audio_mos &lt; 3.5) / <span class="fn">COUNT</span>(*) <span class="kw">AS</span> poor_share
+<span class="kw">FROM</span> clearmeet_analytics.meetings_n <span class="kw">AS</span> m
+<span class="kw">CROSS JOIN</span> <span class="fn">UNNEST</span>(m.participants) <span class="kw">AS</span> p
+<span class="kw">GROUP BY</span> m.plan_tier;
+
+<span class="cm">-- parent grain: no UNNEST needed</span>
+<span class="kw">SELECT</span> meeting_id,
+       <span class="fn">ARRAY_LENGTH</span>(participants) <span class="kw">AS</span> n_people
+<span class="kw">FROM</span> clearmeet_analytics.meetings_n;</pre>
+    </div>
+    <div>
+      <div class="callout"><strong><code>CROSS JOIN UNNEST</code> is a &ldquo;correlated flatten,&rdquo; not a real join.</strong> Each row only unnests its own array — no shuffle, no data movement.</div>
+      <div class="vgap"></div>
+      <div class="callout good">The comma shorthand <code>FROM t, UNNEST(t.arr) AS x</code> is everywhere in the wild — same thing. Add <code>WITH OFFSET</code> when you need element order.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Working with nested data">
+  <summary>Speaker notes &mdash; Working with nested data</summary>
+  <div class="n-body"><ul>
+    <li>Deliberate compression: the original module spent ~24 slides on ARRAY/STRUCT drills. The deck carries the two moves and the mental model; the lab carries the syntax reps.</li>
+    <li>Array order <em>is</em> preserved within an array (unlike table row order) &mdash; <code>OFFSET</code> is 0-based, <code>ORDINAL</code> is 1-based, and out-of-bounds fails the query (failed queries are free).</li>
+    <li>If the room wants more: <code>ARRAY_AGG</code>, <code>ARRAY()</code> subqueries, and <code>WHERE x IN UNNEST(arr)</code> filtering are the next three things to show live.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 32. CHOOSING A SHAPE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Choosing a shape: the working rules</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><strong>Dimension &lt; ~10 GB and mutable</strong> &rarr; keep it a normalized table; joins broadcast, updates stay one-row-one-place (<code>orgs</code>)</li>
+        <li><strong>Big, read-together one-to-many</strong> &rarr; nest it (<code>participants</code> inside meetings)</li>
+        <li><strong>Denormalize flat</strong> when downstream tools can&rsquo;t handle nesting, or to precompute one hot path</li>
+        <li>Any shape can <em>also</em> be partitioned + clustered — <strong>these compose</strong></li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout">The 10 GB rule has a mechanism behind it: below broadcast size, a join is nearly free, so normalization costs nothing at read time.</div>
+    </div>
+    <div class="figure">
+      <svg width="380" height="248" viewBox="0 0 380 248">
+        <defs><marker id="an31" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+        <rect x="110" y="10" width="160" height="34" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="190" y="32" text-anchor="middle" font-size="10" font-weight="600" fill="#1a73e8">a new table arrives</text>
+        <line x1="150" y1="44" x2="80" y2="76" stroke="#5f6368" stroke-width="1.3" marker-end="url(#an31)"/>
+        <line x1="190" y1="44" x2="190" y2="76" stroke="#5f6368" stroke-width="1.3" marker-end="url(#an31)"/>
+        <line x1="230" y1="44" x2="300" y2="76" stroke="#5f6368" stroke-width="1.3" marker-end="url(#an31)"/>
+        <rect x="14" y="80" width="132" height="58" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="80" y="98" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">small + mutable?</text>
+        <text x="80" y="114" text-anchor="middle" font-size="9" fill="#5f6368">normalized table</text>
+        <text x="80" y="130" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#188038">orgs, plans</text>
+        <rect x="124" y="152" width="132" height="58" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="190" y="170" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">one-to-many, read together?</text>
+        <text x="190" y="186" text-anchor="middle" font-size="9" fill="#5f6368">nest it</text>
+        <text x="190" y="202" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#188038">participants</text>
+        <rect x="234" y="80" width="132" height="58" rx="8" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+        <text x="300" y="98" text-anchor="middle" font-size="9.5" font-weight="600" fill="#3c2f00">tool can&rsquo;t nest?</text>
+        <text x="300" y="114" text-anchor="middle" font-size="9" fill="#5f6368">flat extract</text>
+        <text x="300" y="130" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#3c2f00">BI export</text>
+        <text x="190" y="238" text-anchor="middle" font-size="9.5" fill="#5f6368">and <tspan font-weight="700">qos_events</tspan> itself? append-only telemetry &mdash; stays flat, rolls up into the nested table</text>
+      </svg>
+      <div class="figcap"></div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Choosing a shape">
+  <summary>Speaker notes &mdash; Choosing a shape</summary>
+  <div class="n-body"><ul>
+    <li><strong>Decision beat:</strong> where does <code>qos_events</code> itself go? Defensible answer: it stays flat (append-only telemetry with no parent to nest under) but <em>rolls up</em> into <code>meetings_n.participants</code>. Raw firehose and curated nested table coexist with different retention.</li>
+    <li>Star schemas remain respectable &mdash; the original module&rsquo;s own notes said &ldquo;bring them directly and you&rsquo;ll likely be pleased.&rdquo; Optimize when measurement says so.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 33. DO IT NOW: NESTED + PARTITIONED ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Nested + partitioned &mdash; add the date lever back</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>Review <code>table_nested_partitioned</code>: partitioned on what?</li>
+      <li><strong>Predict the bytes before you run</strong> &mdash; partition math is exact</li>
+      <li>Run the March query; note duration and bytes processed</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#15" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 15</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: nested + partitioned">
+  <summary>Speaker notes &mdash; Do It Now: nested + partitioned</summary>
+  <div class="n-body"><ul>
+    <li>Same query, same shape, one more lever &mdash; and this time the prediction should be right to within rounding.</li>
+    <li>Connect back to section 1: the partition filter is answered in metadata, so the validator number is the number.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 34. DO IT NOW: NESTED + PARTITIONED + CLUSTERED ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Nested + partitioned + clustered &mdash; all levers at once</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>One zip code, six months: run it against <em>nested</em>, then <em>nested/partitioned</em>, then <em>nested/partitioned/clustered</em></li>
+      <li>Note duration and bytes for each run</li>
+      <li>On the clustered table the estimate is an <strong>upper bound</strong> &mdash; compare it with job statistics</li>
+      <li>Ask: which lever did the most work, and why?</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#16" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 16</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: nested + partitioned + clustered">
+  <summary>Speaker notes &mdash; Do It Now: nested + partitioned + clustered</summary>
+  <div class="n-body"><ul>
+    <li>The capstone of sections 1&ndash;3: schema shape, partitioning, and clustering composed on one table.</li>
+    <li>Expect the estimate-versus-actual gap on the clustered run to raise the question the estimate-caveat slide answered. Let a student answer it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 35. RECAP: SCHEMA SHAPES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap: schema shapes</h1>
+  <div class="cols">
+    <div>
+      <table class="tbl" style="font-size:13.5px">
+        <tr><th>Shape</th><th>Query cost</th><th>Maintenance</th></tr>
+        <tr><td><strong>Normalized</strong></td><td>join per query; broadcast if small</td><td>easiest — one place per fact</td></tr>
+        <tr><td><strong>Denormalized</strong></td><td>no join; still shuffles on group-by</td><td>update anomalies</td></tr>
+        <tr class="hl"><td><strong>Nested</strong></td><td>no join, <strong>no shuffle</strong> to reassemble</td><td>rewrite the parent row to change a child</td></tr>
+      </table>
+      <div class="vgap"></div>
+      <div class="callout">This section optimized <em>shuffle</em>, not bytes scanned — a different axis from sections 1&ndash;2, and it composes with them.</div>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:14px">
+        <tr><th>Step</th><th>Mechanism</th><th>Bytes / run</th></tr>
+        <tr><td>Start</td><td>full scan</td><td>~10.8 TB</td></tr>
+        <tr><td>Partition by day</td><td>prune sets</td><td>~120 GB &#10003;</td></tr>
+        <tr><td>Cluster by org</td><td>prune blocks</td><td>~3 GB &#10003;</td></tr>
+        <tr><td class="muted">Materialized view</td><td class="muted">incremental pre-aggregation</td><td class="muted">next</td></tr>
+      </table>
+      <div class="figcap" style="text-align:left;margin-top:8px">Unchanged by this section — schema work bought shuffle, not scan.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Recap: schema shapes">
+  <summary>Speaker notes &mdash; Recap: schema shapes</summary>
+  <div class="n-body"><ul>
+    <li>Be explicit that the villain table didn&rsquo;t move: this section fixed a different workload (the plan-tier question), and honesty about which lever moves which number is the whole point of the module.</li>
+  </ul></div>
+</details>
+<!-- ============ 36. DIVIDER: MATERIALIZED VIEWS ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 5</div>
+    <h1>Materialized views: skip the recomputation</h1>
+    <div class="sub">Every 5 minutes, the same 3 GB aggregation over mostly-unchanged data. And because qos_events streams continuously, the query cache never hits.<br>This section is mostly about <em>behavior</em>: how the view is maintained, how fresh a read has to be, and what BigQuery actually reads.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Partitioning</span><span>Clustering</span><span>Schema shapes</span><span class="current">Materialized views</span><span>Housekeeping</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Materialized views">
+  <summary>Speaker notes &mdash; Section 4: Materialized views</summary>
+  <div class="n-body"><ul>
+    <li>The cache exception is the hook: students learned last module that re-running a query is free &mdash; except on a streaming table, which is exactly ClearMeet&rsquo;s case.</li>
+    <li>Section shape: what an MV is and when it is eligible &rarr; incremental refresh &rarr; non-incremental definitions &rarr; the two freshness dials &rarr; smart tuning &rarr; rules of thumb. Teach the conditions before the demo; the demo is the reward, not the rule.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 37. MVs: FRESH RESULTS WHEN ELIGIBLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Materialized views: fresh results when eligible</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:13px">
+        <li>Stores the result of an aggregation and lets BigQuery <strong>maintain it in the background</strong> as base tables change</li>
+        <li>When a read is <strong>eligible</strong> it is current: stored rows plus <strong>only the base-table changes</strong> since the last refresh</li>
+        <li>When the changes <strong>invalidate</strong> it, BigQuery reads the base tables instead: correct answer, full price</li>
+        <li>Three things decide what you get: the <strong>definition</strong>, the <strong>refresh settings</strong>, and the <strong>staleness you allow</strong></li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.4"><span class="kw">CREATE MATERIALIZED VIEW</span> clearmeet_analytics.mv_daily_quality
+<span class="kw">PARTITION BY</span> day <span class="kw">CLUSTER BY</span> org_id <span class="kw">AS</span>
+<span class="kw">SELECT</span> <span class="fn">DATE</span>(event_time) <span class="kw">AS</span> day, org_id, device_type,
+       <span class="fn">COUNTIF</span>(audio_mos &lt; 3.5) <span class="kw">AS</span> poor, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> total
+<span class="kw">FROM</span> clearmeet_analytics.qos_events_pc
+<span class="kw">GROUP BY</span> day, org_id, device_type;</pre>
+    </div>
+    <div>
+      <div class="callout good" style="font-size:12.5px;padding:9px 13px"><strong>All three levers in one DDL:</strong> the MV is itself partitioned and clustered, and its partitioning must align with the base table&rsquo;s.</div>
+      <div class="vgap-s"></div>
+      <table class="tbl" style="font-size:12px">
+        <tr><th>Option</th><th>Freshness</th><th>Upkeep</th></tr>
+        <tr><td>Logical view</td><td>current, always</td><td>recomputes every time</td></tr>
+        <tr><td>Scheduled rollup</td><td>stale between runs</td><td>you maintain it</td></tr>
+        <tr class="hl"><td><strong>Materialized view</strong></td><td><strong>current when eligible; bounded with <code>max_staleness</code></strong></td><td><strong>BigQuery maintains it</strong></td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="fnote">Check the query plan and the <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-intro" style="color:#1a73e8">MV documentation</a>; otherwise BigQuery can fall back to the base table.</div>
+</section>
+<details class="notes" data-title="Materialized views: fresh when eligible">
+  <summary>Speaker notes &mdash; Materialized views: fresh when eligible</summary>
+  <div class="n-body"><ul>
+    <li>Lead with the condition, not the slogan. The doc sentence to teach from: &ldquo;If the changes to the base tables don&rsquo;t invalidate the materialized view, then BigQuery reads the rest of the data from the materialized view and reads only the changes from the base tables.&rdquo; The two clauses of that sentence are the next two slides.</li>
+    <li>The comparison table is the useful framing &mdash; students already know views and scheduled queries; the MV is the managed midpoint. The third column is the reason people reach for it.</li>
+    <li>Scale of the ClearMeet view, if they ask: 40k orgs &times; 5 device types &asymp; 200k rows/day summarizing 5B rows/day.</li>
+    <li>Absent from the source module entirely; this section is new material.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 38. INCREMENTAL REFRESH ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Behavior 1: incremental refresh (the default)</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Background refresh, <strong>best effort</strong>: attempted within about <strong>5 minutes</strong> of a base-table change if the last one ran more than <strong>30 minutes</strong> ago</li>
+        <li>Between refreshes an eligible read is still current, because BigQuery <strong>merges</strong> stored rows + changes since the last refresh</li>
+        <li>Invalidating changes push the read back to the <strong>base tables</strong> until the view re-materializes</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13px;padding:10px 14px"><strong>The data:</strong> <code>qos_events_pc</code> streams 5B rows/day &asymp; <strong>3.5M rows/minute</strong>. The view holds 200k rows/day.</div>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="500" height="150" viewBox="0 0 500 150">
+          <defs><marker id="amv1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+          <line x1="30" y1="60" x2="470" y2="60" stroke="#dadce0" stroke-width="4" stroke-linecap="round"/>
+          <circle cx="90" cy="60" r="7" fill="#34A853"/>
+          <text x="90" y="42" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">refresh 10:00</text>
+          <text x="90" y="82" text-anchor="middle" font-size="8.5" fill="#5f6368">MV = 200k rows</text>
+          <rect x="97" y="53" width="200" height="14" rx="7" fill="#e8f0fe"/>
+          <text x="197" y="64" text-anchor="middle" font-size="8.5" fill="#1a73e8">streaming appends &mdash; 14M rows by 10:04</text>
+          <circle cx="300" cy="60" r="7" fill="#4285F4"/>
+          <text x="300" y="42" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1a73e8">query 10:04</text>
+          <line x1="300" y1="70" x2="300" y2="96" stroke="#5f6368" stroke-width="1.3" marker-end="url(#amv1)"/>
+          <rect x="196" y="100" width="208" height="34" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.6"/>
+          <text x="300" y="114" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">reads MV rows + the 14M new rows</text>
+          <text x="300" y="127" text-anchor="middle" font-size="9" fill="#188038">returns data current as of 10:04</text>
+        </svg>
+      </div>
+      <table class="tbl" style="font-size:11px">
+        <tr><th>Query moment</th><th>What BigQuery reads</th><th>What you get</th></tr>
+        <tr><td>10:00:05, just after a refresh</td><td>MV rows only (delta is ~empty)</td><td>current</td></tr>
+        <tr class="hl"><td>10:04, mid-interval</td><td>MV rows + ~14M appended base rows</td><td><strong>current</strong>, at a fraction of the 3 GB recomputation</td></tr>
+        <tr><td>10:04, after a delete in yesterday&rsquo;s partition</td><td>base tables (view invalidated for that data)</td><td>current, at full cost</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="fnote">Illustrative ClearMeet arithmetic; refresh and merge behavior per the <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-manage" style="color:#1a73e8">manage</a> and <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-intro" style="color:#1a73e8">intro</a> docs. Confirm what a query actually read in the plan.</div>
+</section>
+<details class="notes" data-title="Behavior 1: incremental refresh">
+  <summary>Speaker notes &mdash; Behavior 1: incremental refresh</summary>
+  <div class="n-body"><ul>
+    <li>Say the mechanism out loud: the MV is not a cache with a TTL. It is a stored partial result that the engine finishes at query time by reading only what arrived since the last refresh.</li>
+    <li>Docs wording for refresh cadence: cached data is refreshed &ldquo;within 5 to 30 minutes of a change to the base table,&rdquo; automatic refresh is &ldquo;performed on a best-effort basis,&rdquo; and refresh jobs run as batch-priority jobs under a Google-owned service account &mdash; visible in your project&rsquo;s job history.</li>
+    <li>Manual refresh for the demo: <code>CALL BQ.REFRESH_MATERIALIZED_VIEW('project.dataset.mv_daily_quality')</code>. Don&rsquo;t run two at once &mdash; only the first to finish succeeds.</li>
+    <li>The third row of the table is the honest one, and the reason the next slide exists: not every definition or every mutation can be maintained incrementally.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 39. NON-INCREMENTAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Behavior 2: when incremental maintenance can&rsquo;t apply</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Incremental refresh covers a <strong>documented SQL subset</strong>. Currently outside it: <code>UNION ALL</code>, outer joins, self-joins, window functions, <code>ARRAY</code> subqueries, non-deterministic functions, UDFs (outer join and <code>UNION ALL</code> support is in preview)</li>
+        <li>Aggregations are a <strong>published list</strong>, not &ldquo;anything&rdquo;: <code>SUM</code>, <code>COUNT</code>, <code>COUNTIF</code>, <code>MIN</code>/<code>MAX</code>, <code>AVG</code>, <code>ARRAY_AGG</code>, <code>APPROX_COUNT_DISTINCT</code> and a few more</li>
+        <li><code>allow_non_incremental_definition = TRUE</code> buys the wider SQL and changes the deal: it <strong>must</strong> accompany <code>max_staleness</code>, every refresh <strong>reruns the whole query</strong>, and <strong>smart tuning does not apply</strong></li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small" style="font-size:11px;line-height:1.4"><span class="kw">CREATE MATERIALIZED VIEW</span> clearmeet_analytics.mv_quality_all
+<span class="kw">OPTIONS</span> (allow_non_incremental_definition = <span class="kw">TRUE</span>,
+        max_staleness = <span class="kw">INTERVAL</span> <span class="st">'4:0:0'</span> <span class="kw">HOUR TO SECOND</span>,
+        refresh_interval_minutes = 120) <span class="kw">AS</span>
+<span class="kw">SELECT</span> &#8230; <span class="kw">FROM</span> qos_events_pc
+<span class="kw">UNION ALL</span> <span class="kw">SELECT</span> &#8230; <span class="kw">FROM</span> qos_events_archive;</pre>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:11px">
+        <tr><th></th><th>Incremental</th><th>Non-incremental</th></tr>
+        <tr><td>SQL surface</td><td>supported subset</td><td>most of what incremental rejects</td></tr>
+        <tr class="hl"><td>Work per refresh</td><td><strong>the changes only</strong></td><td><strong>the whole query</strong></td></tr>
+        <tr><td>Smart tuning</td><td><span class="yes">yes</span></td><td><span class="no">no</span> &mdash; name the view</td></tr>
+        <tr><td>Read between refreshes</td><td>MV + delta</td><td>MV as of last refresh</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:9px 13px"><strong>What it really is:</strong> a managed scheduled query wearing an MV interface &mdash; a fine thing to want, but don&rsquo;t expect current results or a rewrite.</div>
+    </div>
+  </div>
+  <div class="fnote">Supported and unsupported SQL move; verify against <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-create" style="color:#1a73e8">create materialized views</a> before you teach this list.</div>
+</section>
+<details class="notes" data-title="Behavior 2: non-incremental">
+  <summary>Speaker notes &mdash; Behavior 2: non-incremental</summary>
+  <div class="n-body"><ul>
+    <li>Order of the diagnosis when a student asks &ldquo;why is my MV expensive?&rdquo;: is the definition incremental? is it being refreshed? is a rewrite happening? is <code>max_staleness</code> set? This slide answers the first.</li>
+    <li>Doc anchor: &ldquo;Non-incremental materialized views support most of the syntaxes that incremental materialized views don&rsquo;t support,&rdquo; the option &ldquo;must be accompanied by the <code>max_staleness</code> option,&rdquo; and &ldquo;only incremental materialized views can take advantage of smart tuning.&rdquo;</li>
+    <li>Full supported-aggregation list (for the inevitable question): <code>ANY_VALUE</code>, <code>APPROX_COUNT_DISTINCT</code>, <code>ARRAY_AGG</code>, <code>AVG</code>, <code>BIT_AND</code>/<code>BIT_OR</code>/<code>BIT_XOR</code>, <code>COUNT</code>, <code>COUNTIF</code>, <code>HLL_COUNT.INIT</code>, <code>LOGICAL_AND</code>/<code>LOGICAL_OR</code>, <code>MAX</code>, <code>MIN</code>, <code>MAX_BY</code>, <code>MIN_BY</code>, <code>SUM</code>.</li>
+    <li><code>max_staleness</code> is optional on an incremental view and <strong>required</strong> on a non-incremental one &mdash; that pairing is the row cut from the table for space.</li>
+    <li>Worth saying: the preview items (<code>LEFT OUTER JOIN</code>, <code>UNION ALL</code>) inherit incremental limitations &mdash; preview is not the same as supported.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 40. FRESHNESS DIALS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The two freshness dials</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:12px">
+        <li><code>refresh_interval_minutes</code> &mdash; how often a refresh may run (cap: <strong>1 minute to 7 days</strong>); <code>enable_refresh = FALSE</code> stops it</li>
+        <li><code>max_staleness</code> &mdash; how old a read may be (range: <strong>30 minutes to 3 days</strong>)</li>
+        <li>Inside the window: <strong>MV only, no base-table read</strong>. Outside it: MV <strong>plus the changes since the last refresh</strong></li>
+        <li>Size the interval so a refresh <em>finishes</em> inside the window</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="500" height="112" viewBox="0 4 500 122">
+          <text x="14" y="12" font-size="9.5" font-weight="600" fill="#202124">max_staleness = 1 hour &middot; last refresh 10:00</text>
+          <line x1="30" y1="42" x2="470" y2="42" stroke="#dadce0" stroke-width="4" stroke-linecap="round"/>
+          <rect x="60" y="30" width="180" height="32" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+          <text x="150" y="50" text-anchor="middle" font-size="9" fill="#188038" font-weight="600">inside the window (10:00&ndash;11:00)</text>
+          <rect x="248" y="30" width="210" height="32" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.4"/>
+          <text x="353" y="50" text-anchor="middle" font-size="9" fill="#b3261e" font-weight="600">stale (no refresh landed)</text>
+          <circle cx="150" cy="78" r="6" fill="#34A853"/>
+          <text x="150" y="97" text-anchor="middle" font-size="9" fill="#188038">query 10:20</text>
+          <text x="150" y="109" text-anchor="middle" font-size="8.5" fill="#5f6368">MV only &mdash; no base read</text>
+          <text x="150" y="121" text-anchor="middle" font-size="8.5" fill="#5f6368">answers as of 10:00</text>
+          <circle cx="353" cy="78" r="6" fill="#EA4335"/>
+          <text x="353" y="97" text-anchor="middle" font-size="9" fill="#b3261e">query 11:15</text>
+          <text x="353" y="109" text-anchor="middle" font-size="8.5" fill="#5f6368">MV + 260M rows since 10:00</text>
+          <text x="353" y="121" text-anchor="middle" font-size="8.5" fill="#5f6368">current, and measurably dearer</text>
+        </svg>
+      </div>
+      <table class="tbl" style="font-size:10.5px">
+        <tr><th>Setting</th><th>Read behavior</th><th>Freshness you promise</th></tr>
+        <tr><td>no <code>max_staleness</code></td><td>MV + every change since last refresh</td><td>current, every time</td></tr>
+        <tr class="hl"><td><code>max_staleness</code>, inside window</td><td><strong>MV rows only</strong> &mdash; cheapest read available</td><td>up to <code>max_staleness</code> old</td></tr>
+        <tr><td><code>max_staleness</code>, outside window</td><td>MV + changes since last refresh</td><td>current</td></tr>
+      </table>
+      <div class="callout warn" style="margin-top:4px;font-size:11.5px;padding:6px 11px">This dial trades <strong>staleness for cost</strong>, and it is the one setting that changes what a dashboard may show. Decide it with the dashboard&rsquo;s owner.</div>
+    </div>
+  </div>
+  <div class="fnote" style="margin-top:8px;padding-top:5px">Ranges and interval guidance: <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-create" style="color:#1a73e8">create</a> and <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-manage" style="color:#1a73e8">manage</a> MV docs; recheck before delivery. Row counts are illustrative.</div>
+</section>
+<details class="notes" data-title="The two freshness dials">
+  <summary>Speaker notes &mdash; The two freshness dials</summary>
+  <div class="n-body"><ul>
+    <li>Docs&rsquo; own sizing example: a refresh that takes an hour &rarr; <code>refresh_interval_minutes = 120</code> with <code>max_staleness</code> of 4 hours (runtime plus a margin for growth).</li>
+    <li>The counterintuitive bit that students get backwards: <code>max_staleness</code> makes reads <em>cheaper by allowing them to be older</em>. Without it you always get current data and always pay for the delta merge.</li>
+    <li>Doc sentences worth reading aloud: &ldquo;If the last refresh occurred within the <code>max_staleness</code> interval, then BigQuery returns data directly from the materialized view without reading the base tables,&rdquo; and if it occurred outside, BigQuery &ldquo;reads the data from the materialized view, combines it with changes to the base table since the last refresh, and returns the combined result.&rdquo;</li>
+    <li>ClearMeet decision beat: a 5-minute dashboard refresh over streaming telemetry does <em>not</em> want a 1-hour staleness bound &mdash; but the weekly exec rollup happily would. Same view, different consumer, so this is a per-view design choice.</li>
+    <li>The 260M figure is 75 minutes &times; 3.5M rows/minute &mdash; derive it on the board so the cost of letting a refresh fail is visible.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 41. SEEING SMART TUNING WORK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Smart tuning may rewrite eligible queries</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li>Run the dashboard query <strong>against the base table</strong> — unchanged SQL</li>
+        <li>If part of it can be answered from an eligible MV, BigQuery <strong>may reroute</strong>: the plan shows the <strong>MV as an input</strong>, bytes drop from ~3 GB to <strong>MBs</strong></li>
+        <li>No rewrite is not a failure: an ineligible or non-incremental view, or a non-matching query, reads the <strong>base table</strong></li>
+        <li>Habit: <strong>read the plan</strong> &mdash; a dry run is a check, not a guarantee</li>
+      </ul>
+      <div class="vgap"></div>
+      <div class="callout good">Villain table, final row (measured scenario): <strong>~$5/day &rarr; cents/day.</strong></div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="248" viewBox="0 0 470 248">
+        <rect x="10" y="10" width="450" height="150" rx="8" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+        <text x="26" y="32" font-size="10.5" font-weight="600" fill="#202124">Execution details &mdash; query written against qos_events_pc</text>
+        <text x="26" y="58" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">S00: input</text>
+        <rect x="26" y="66" width="410" height="24" rx="4" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="36" y="82" font-size="9" font-family="Roboto Mono, monospace" fill="#188038">clearmeet_analytics.mv_daily_quality</text>
+        <text x="428" y="82" text-anchor="end" font-size="8.5" fill="#188038" font-weight="600">&#8592; the rewrite</text>
+        <rect x="26" y="94" width="410" height="24" rx="4" fill="#f1f3f4" stroke="#dadce0"/>
+        <text x="36" y="110" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368">clearmeet_analytics.qos_events_pc (delta only)</text>
+        <text x="26" y="140" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368">slot time 34 ms &middot; bytes shuffled 27 B</text>
+        <rect x="10" y="176" width="216" height="56" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="118" y="196" text-anchor="middle" font-size="9.5" fill="#b3261e">without the MV</text>
+        <text x="118" y="218" text-anchor="middle" font-size="13" font-family="Roboto Mono, monospace" font-weight="600" fill="#b3261e">3.1 GB</text>
+        <rect x="244" y="176" width="216" height="56" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="2"/>
+        <text x="352" y="196" text-anchor="middle" font-size="9.5" fill="#188038">with an eligible MV, same SQL</text>
+        <text x="352" y="218" text-anchor="middle" font-size="13" font-family="Roboto Mono, monospace" font-weight="600" fill="#188038">14 MB</text>
+      </svg>
+      <div class="figcap">One measured run; rebuild the figures before delivery.</div>
+    </div>
+  </div>
+  <div class="fnote">Check the query plan and the <a href="https://docs.cloud.google.com/bigquery/docs/materialized-views-intro" style="color:#1a73e8">MV documentation</a>; otherwise BigQuery can fall back to the base table.</div>
+</section>
+<details class="notes" data-title="Smart tuning may rewrite eligible queries">
+  <summary>Speaker notes &mdash; Smart tuning may rewrite eligible queries</summary>
+  <div class="n-body"><ul>
+    <li>Demo order matters: create the MV &rarr; query the <em>base table</em> &rarr; open Execution details &rarr; find the MV among the inputs. The &ldquo;it rewrote my query&rdquo; moment is the section.</li>
+    <li>Show the negative case too, even briefly: add something the view can&rsquo;t answer (a column it doesn&rsquo;t carry, a finer grain) and watch the plan go back to the base table. Students who have only seen the happy path assume the rewrite is guaranteed.</li>
+    <li>Doc wording: &ldquo;If any part of a query against a base table can be resolved by querying the materialized view, then BigQuery reroutes the query.&rdquo; Eligibility, permissions, refresh state, and staleness all participate.</li>
+    <li>Refresh mechanics for the notes: auto-refresh within ~5 minutes of base changes, throttled (default no more often than every 30 minutes), run as batch-priority jobs by a Google-owned service account &mdash; visible in your project&rsquo;s job history. Manual: <code>CALL BQ.REFRESH_MATERIALIZED_VIEW('&#8230;')</code>.</li>
+    <li>Rebuild these numbers live at build time; keep the shape (GB &rarr; MB).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 42. MV RULES OF THUMB ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>MV rules of thumb (heuristics, not rules)</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><strong>Good fit:</strong> aggregate-heavy, small-result, frequently-read queries. <strong>Bad fit:</strong> one-off analysis</li>
+        <li><em>Heuristic:</em> put the <strong>largest, most-appended table leftmost</strong> in a join MV — it is the shape most likely to stay incrementally maintainable, not a guarantee. Read it next to the current incremental-refresh restrictions</li>
+        <li><em>Heuristic:</em> an MV whose join key is already the cluster key may be buying a join that was already cheap</li>
+        <li>Restrictions exist (the aggregation list, no window functions, no MV-on-MV, outer and self joins) — <strong>check the docs, not your memory</strong>: limits keep loosening</li>
+        <li>Validate, don&rsquo;t assume: the view&rsquo;s <strong>refresh status</strong> and the <strong>query plan</strong> tell you whether maintenance is still incremental and whether a rewrite happened</li>
+      </ul>
+    </div>
+    <div>
+      <div class="callout warn"><strong>Cost model:</strong> you pay MV storage + refresh compute + (much smaller) query compute. For a 288&times;/day dashboard the trade is overwhelming. For a weekly report it may not be.</div>
+      <div class="vgap"></div>
+      <div class="callout">Incremental-refresh boundary, stated carefully: appends are the change type incremental refresh handles best; other mutations can invalidate the stored data until the view re-materializes. Confirm with the refresh status and <code>INFORMATION_SCHEMA</code> job history.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="MV rules of thumb">
+  <summary>Speaker notes &mdash; MV rules of thumb</summary>
+  <div class="n-body"><ul>
+    <li>Deliberately no hard limit numbers on the slide face: the per-table/per-project/per-org MV caps and the same-dataset smart-tuning restriction were early-2024 facts that have since been relaxed. Verify at docs.cloud.google.com/bigquery/docs/materialized-views-intro when you teach it.</li>
+    <li>In star schemas the leftmost table should be the fact table &mdash; that&rsquo;s the append-heavy one.</li>
+    <li>Also worth knowing: no DML against an MV, and deleting the base table breaks it (recreate both).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 43. DO IT NOW: MATERIALIZED VIEWS ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content" style="top:112px;max-width:392px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Do It Now</h1>
+    <div class="sub" style="font-size:16.5px;color:#202124;margin-bottom:16px">Materialized views &mdash; build one, then catch the rewrite</div>
+    <ul class="body" style="font-size:13.5px">
+      <li>Create the view, then query the <strong>base table</strong> with unchanged SQL</li>
+      <li>Find the MV among the plan inputs; note bytes with and without it</li>
+      <li>Then break it: ask for something the view can&rsquo;t answer and watch the plan return to the base table</li>
+      <li><a href="https://roitraining.github.io/gcp-demos/#18" style="color:#1a73e8">roitraining.github.io/gcp-demos &middot; activity 18</a></li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Do It Now: materialized views">
+  <summary>Speaker notes &mdash; Do It Now: materialized views</summary>
+  <div class="n-body"><ul>
+    <li>The negative case is the half of this activity people skip, and it is the half that teaches eligibility. Budget two minutes for it.</li>
+    <li>If the room has time, have them set <code>max_staleness</code> on the view and re-run: the read should stop touching the base table while the last refresh is inside the window.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 44. HOUSEKEEPING ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 5</div>
+    <h1>Housekeeping: the storage bill</h1>
+    <div class="sub">The last lever is the storage bill itself: expiration, long-term pricing, and which billing model fits the data.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Partitioning</span><span>Clustering</span><span>Schema shapes</span><span>Materialized views</span><span class="current">Housekeeping</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: Housekeeping">
+  <summary>Speaker notes &mdash; Section 5: Housekeeping</summary>
+  <div class="n-body"><ul>
+    <li>Short closing section: the storage-side cost levers. Close the module verbally with the diagnosis order &mdash; bytes processed, then bytes shuffled, then repeated jobs, then the storage bill &mdash; and the reminder that each arrow starts from something observable.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 45. STORAGE HOUSEKEEPING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Storage housekeeping: stop paying for the past</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><strong>Expiration</strong>: dataset default &rarr; table &rarr; partition; expired data is gone after time travel, automatically, and logged</li>
+        <li><strong>Long-term pricing</strong>: any table <em>or partition</em> untouched <strong>90 consecutive days</strong> drops to about half price, automatically. <strong>Queries don&rsquo;t reset the clock</strong> — writes do</li>
+        <li><strong>Logical vs physical billing</strong>: telemetry compresses well, so ClearMeet could be a physical-billing candidate — compare measured active, long-term, time-travel, and fail-safe bytes first</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="code small"><span class="kw">SELECT</span> table_name, active_logical_bytes,
+       long_term_logical_bytes, active_physical_bytes,
+       time_travel_physical_bytes
+<span class="kw">FROM</span> `region-us`.INFORMATION_SCHEMA.TABLE_STORAGE
+<span class="kw">WHERE</span> table_schema = <span class="st">'clearmeet_analytics'</span>;</pre>
+    </div>
+    <div>
+      <div class="callout good"><strong>Why partitioning helps twice:</strong> old partitions age into long-term pricing <em>individually</em>, while today&rsquo;s partition stays active — even though every query still reads the table daily.</div>
+      <div class="vgap"></div>
+      <div class="callout warn">Time-travel and fail-safe bytes are billed separately <strong>only under physical billing</strong>. Mutation-heavy tables can surprise you — the query on the left surfaces it.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Storage housekeeping">
+  <summary>Speaker notes &mdash; Storage housekeeping</summary>
+  <div class="n-body"><ul>
+    <li>The 90-day clock resets on writes (load, copy-in, query-results-write, DML, streaming) but not on reads, exports, copies-out, or metadata patches. Source: cloud.google.com/bigquery/pricing (storage section).</li>
+    <li>Physical billing is a dataset-level choice with a 14-day cooldown between switches; no performance difference.</li>
+    <li>Kept deliberately small: rates drift. Teach <em>where the numbers live</em> (pricing page, <code>TABLE_STORAGE</code>), not the numbers.</li>
+  </ul></div>
+</details>
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

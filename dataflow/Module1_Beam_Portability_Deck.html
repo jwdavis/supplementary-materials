@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module 1: Beam Portability</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list for skew slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Beam<br>Portability</h1>
+    <div class="sub">Module 1 &middot; Serverless Data Processing with Dataflow</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>Set the frame in one sentence:</strong> the portability framework is an abstraction layer between Beam SDKs and runners &mdash; write a pipeline with any SDK, run it on any runner. The whole module is that sentence plus the three things it buys you.</li>
+    <li>Pulse-check the room: who has written a Beam pipeline? Who has hit a missing-dependency error on a distributed worker? Both experiences get picked up directly &mdash; the second is the custom-containers section.</li>
+    <li>Rough timing: ~40 minutes of lecture &mdash; a two-slide intro that defines the framework, then three hands-on sections.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. AGENDA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Agenda</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:16px">
+        <li>What the portability framework is &mdash; an <span class="blue">abstraction layer</span> between SDKs and runners</li>
+        <li>How it works, briefly &mdash; a language-neutral pipeline graph, executed by per-language <span class="blue">SDK harness</span> containers</li>
+        <li>Run pipelines written in <span class="blue">different SDKs</span> on <span class="blue">different runners</span></li>
+        <li>Run with <span class="blue">custom containers</span> &mdash; your dependencies, your runtime</li>
+        <li>Run <span class="blue">cross-language pipelines</span> &mdash; Java transforms from Python, and Managed I/O</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 260px;display:flex;align-items:center;justify-content:center">
+      <svg width="210" height="200" viewBox="0 0 210 200" aria-hidden="true">
+        <rect x="20" y="20" width="170" height="52" rx="10" fill="#4285F4"/>
+        <text x="105" y="51" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">one pipeline</text>
+        <line x1="60"  y1="72" x2="42"  y2="122" stroke="#5f6368" stroke-width="2"/>
+        <line x1="105" y1="72" x2="105" y2="122" stroke="#5f6368" stroke-width="2"/>
+        <line x1="150" y1="72" x2="168" y2="122" stroke="#5f6368" stroke-width="2"/>
+        <rect x="14"  y="126" width="56" height="40" rx="8" fill="#f1f3f4"/>
+        <rect x="77"  y="126" width="56" height="40" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <rect x="140" y="126" width="56" height="40" rx="8" fill="#f1f3f4"/>
+        <text x="42"  y="150" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">laptop</text>
+        <text x="105" y="150" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">Dataflow</text>
+        <text x="168" y="150" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Flink</text>
+        <text x="105" y="188" text-anchor="middle" font-size="10.5" fill="#5f6368">same code, three destinations</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agenda">
+  <summary>Speaker notes &mdash; Agenda</summary>
+  <div class="n-body"><ul>
+    <li><strong>The module is deliberately short:</strong> two slides define the framework, and the rest of the time goes to the three capabilities it enables, each shown with working code.</li>
+    <li>Set expectations for what is <em>not</em> here: what Beam is and how to author pipelines (Module 5 and others), windowing and streaming semantics (their own modules), Shuffle/Streaming Engine internals (next module).</li>
+    <li>Each capability section has the same shape &mdash; a concrete problem, the solution, and a "when to bother" judgment slide &mdash; so students always know where they are.</li>
+  </ul></div>
+</details>
+<!-- ============ 3. AN ABSTRACTION LAYER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">An abstraction layer between SDKs and runners</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The portability framework lets a pipeline written with <strong>any SDK</strong> run on <strong>any runner</strong>. Without it, every SDK&ndash;runner pair is its own integration:</p>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:14.5px;margin-bottom:8px">Before: every runner reimplements every SDK</p>
+      <div class="figure">
+      <svg width="330" height="180" viewBox="0 0 330 180">
+        <text x="120" y="20"  text-anchor="middle" font-size="11" font-weight="600" fill="#5f6368">Java</text>
+        <text x="195" y="20"  text-anchor="middle" font-size="11" font-weight="600" fill="#5f6368">Python</text>
+        <text x="270" y="20"  text-anchor="middle" font-size="11" font-weight="600" fill="#5f6368">Go</text>
+        <text x="70" y="52"  text-anchor="end" font-size="11" font-weight="600" fill="#5f6368">Dataflow</text>
+        <text x="70" y="86"  text-anchor="end" font-size="11" font-weight="600" fill="#5f6368">Flink</text>
+        <text x="70" y="120" text-anchor="end" font-size="11" font-weight="600" fill="#5f6368">Spark</text>
+        <text x="70" y="154" text-anchor="end" font-size="11" font-weight="600" fill="#5f6368">Samza</text>
+        <g font-size="15" font-weight="700" text-anchor="middle">
+          <text x="120" y="53"  fill="#34A853">✓</text><text x="195" y="53"  fill="#34A853">✓</text><text x="270" y="53"  fill="#34A853">✓</text>
+          <text x="120" y="87"  fill="#34A853">✓</text><text x="195" y="87"  fill="#c5221f">✗</text><text x="270" y="87"  fill="#c5221f">✗</text>
+          <text x="120" y="121" fill="#34A853">✓</text><text x="195" y="121" fill="#c5221f">✗</text><text x="270" y="121" fill="#c5221f">✗</text>
+          <text x="120" y="155" fill="#34A853">✓</text><text x="195" y="155" fill="#c5221f">✗</text><text x="270" y="155" fill="#c5221f">✗</text>
+        </g>
+        <text x="195" y="176" text-anchor="middle" font-size="10" fill="#c5221f">N SDKs × M runners = N×M integrations</text>
+      </svg>
+      </div>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:14.5px;margin-bottom:8px">After: one shared contract — N + M</p>
+      <div class="figure">
+      <svg width="380" height="180" viewBox="0 0 380 180">
+        <g font-size="11" font-weight="600">
+          <rect x="6" y="14"  width="78" height="26" rx="6" fill="#e8f0fe" stroke="#4285F4"/><text x="45" y="31" text-anchor="middle" fill="#1a73e8">Java SDK</text>
+          <rect x="6" y="52"  width="78" height="26" rx="6" fill="#e8f0fe" stroke="#4285F4"/><text x="45" y="69" text-anchor="middle" fill="#1a73e8">Python</text>
+          <rect x="6" y="90"  width="78" height="26" rx="6" fill="#e8f0fe" stroke="#4285F4"/><text x="45" y="107" text-anchor="middle" fill="#1a73e8">Go SDK</text>
+          <rect x="6" y="128" width="78" height="26" rx="6" fill="#e8f0fe" stroke="#4285F4"/><text x="45" y="145" text-anchor="middle" fill="#1a73e8">YAML</text>
+        </g>
+        <line x1="84" y1="27"  x2="140" y2="80"  stroke="#9aa0a6" stroke-width="1.4"/>
+        <line x1="84" y1="65"  x2="140" y2="85"  stroke="#9aa0a6" stroke-width="1.4"/>
+        <line x1="84" y1="103" x2="140" y2="95"  stroke="#9aa0a6" stroke-width="1.4"/>
+        <line x1="84" y1="141" x2="140" y2="100" stroke="#9aa0a6" stroke-width="1.4"/>
+        <rect x="142" y="60" width="104" height="60" rx="8" fill="#FBBC04"/>
+        <text x="194" y="84"  text-anchor="middle" font-size="11" font-weight="700" fill="#3c2f00">Fn API +</text>
+        <text x="194" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#3c2f00">Runner API</text>
+        <line x1="246" y1="80"  x2="298" y2="27"  stroke="#9aa0a6" stroke-width="1.4"/>
+        <line x1="246" y1="85"  x2="298" y2="65"  stroke="#9aa0a6" stroke-width="1.4"/>
+        <line x1="246" y1="95"  x2="298" y2="103" stroke="#9aa0a6" stroke-width="1.4"/>
+        <line x1="246" y1="100" x2="298" y2="141" stroke="#9aa0a6" stroke-width="1.4"/>
+        <g font-size="11" font-weight="600">
+          <rect x="298" y="14"  width="76" height="26" rx="6" fill="#f1f3f4"/><text x="336" y="31" text-anchor="middle" fill="#202124">Dataflow</text>
+          <rect x="298" y="52"  width="76" height="26" rx="6" fill="#f1f3f4"/><text x="336" y="69" text-anchor="middle" fill="#202124">Flink</text>
+          <rect x="298" y="90"  width="76" height="26" rx="6" fill="#f1f3f4"/><text x="336" y="107" text-anchor="middle" fill="#202124">Spark</text>
+          <rect x="298" y="128" width="76" height="26" rx="6" fill="#f1f3f4"/><text x="336" y="145" text-anchor="middle" fill="#202124">Samza</text>
+        </g>
+        <text x="194" y="172" text-anchor="middle" font-size="10" fill="#188038">each side implements the contract once</text>
+      </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13.5px">Every ✗ is an integration someone would have to write and maintain. <strong>Python and Go on Flink and Spark simply did not exist</strong> before the shared contract.</div>
+</section>
+<details class="notes" data-title="An abstraction layer between SDKs and runners">
+  <summary>Speaker notes &mdash; An abstraction layer between SDKs and runners</summary>
+  <div class="n-body"><ul>
+    <li><strong>The definition really is one sentence &mdash; resist adding to it.</strong> An abstraction layer between SDKs and runners, so that any pipeline runs on any runner. The N×M &rarr; N+M picture is the "little insight" version of why the layer exists; it's the same argument as LLVM, ODBC, or JVM bytecode &mdash; reach for whichever analogy your room knows.</li>
+    <li>The concrete historical fact makes it real: <strong>before the framework, Python on Flink didn't exist.</strong> Not "was limited" &mdash; didn't exist.</li>
+    <li>The Beam roadmap's own framing is worth quoting: the goal is that "everybody can run everywhere," and the framework "enables cross-language pipelines (sharing I/O or transformations across SDKs) and user-customized execution environments ('custom containers')" &mdash; exactly the capabilities this module walks through (beam.apache.org/roadmap/portability).</li>
+    <li>What Beam itself is &mdash; pipelines, PCollections, transforms, the runner list &mdash; is covered in other modules. Don't re-teach it here.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. HOW IT WORKS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">How it works: the graph and the harness</h1>
+  <div class="cols">
+    <div class="figure" style="flex:0 0 55%">
+      <svg width="450" height="250" viewBox="0 0 450 250">
+        <rect x="8" y="10" width="434" height="212" rx="12" fill="#f8f9fa" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="225" y="32" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5f6368">worker VM</text>
+        <rect x="28" y="48" width="180" height="150" rx="8" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+        <text x="118" y="70" text-anchor="middle" font-size="11.5" font-weight="600" fill="#202124">runner harness</text>
+        <text x="42" y="94"  font-size="10.5" fill="#5f6368">· reads work</text>
+        <text x="42" y="112" font-size="10.5" fill="#5f6368">· manages shuffle</text>
+        <text x="42" y="130" font-size="10.5" fill="#5f6368">· checkpoints</text>
+        <text x="42" y="148" font-size="10.5" fill="#5f6368">· reports progress</text>
+        <text x="118" y="188" text-anchor="middle" font-size="9.5" fill="#9aa0a6">one per VM</text>
+        <rect x="248" y="48" width="176" height="150" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="2" stroke-dasharray="6 3"/>
+        <text x="336" y="70" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1a73e8">SDK harness</text>
+        <text x="336" y="85" text-anchor="middle" font-size="9.5" fill="#1a73e8">(container)</text>
+        <text x="262" y="108" font-size="10.5" fill="#3c4043">· your DoFns</text>
+        <text x="262" y="126" font-size="10.5" fill="#3c4043">· your dependencies</text>
+        <text x="262" y="144" font-size="10.5" fill="#3c4043">· the Beam SDK</text>
+        <text x="336" y="188" text-anchor="middle" font-size="9.5" fill="#9aa0a6">one or more per VM</text>
+        <line x1="208" y1="118" x2="248" y2="118" stroke="#188038" stroke-width="2"/>
+        <text x="228" y="108" text-anchor="middle" font-size="9" fill="#188038" font-weight="700">Fn API</text>
+        <text x="228" y="132" text-anchor="middle" font-size="8.5" fill="#188038">gRPC</text>
+        <text x="225" y="242" text-anchor="middle" font-size="10.5" fill="#5f6368">the dashed border is a container boundary — swappable, per language</text>
+      </svg>
+    </div>
+    <div style="align-self:center">
+      <ul class="body" style="font-size:13px">
+        <li><strong>Build time</strong> — your pipeline is serialized to a <strong>language-neutral proto</strong> (the Runner API); each transform declares the <strong>container environment</strong> it runs in</li>
+        <li><strong>Run time</strong> — an <strong>SDK harness</strong> container runs your code, in your language, with your dependencies; the runner sends it work over gRPC (the Fn API)</li>
+        <li>The runner never imports your code &mdash; it <strong>talks to a container</strong> over a wire protocol</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:12.5px;padding:9px 12px">That one design choice is the whole module: <strong>swap the runner</strong> (Section 1), <strong>swap the container</strong> (Section 2), or <strong>mix containers</strong> in one job (Section 3).</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="How it works: the graph and the harness">
+  <summary>Speaker notes &mdash; How it works: the graph and the harness</summary>
+  <div class="n-body"><ul>
+    <li><strong>This is the only architecture slide in the module &mdash; lower the stakes out loud.</strong> Nobody needs to memorize the two API names; they need to recognize "SDK harness," "Runner API," and "Fn API" when they appear in logs and error messages.</li>
+    <li><strong>The mental model that makes everything downstream obvious: your code runs in a container, and the runner talks to that container over gRPC.</strong> It does not link against your code. It does not import your modules. It sends work and receives results.</li>
+    <li>Two consequences worth stating explicitly: (1) if your code runs in a container you can <em>specify</em>, you control the entire runtime &mdash; Python version, native libraries, model files. That's the custom-containers section, and it should feel inevitable rather than magical. (2) If the boundary is a wire protocol rather than a language binding, nothing requires all the containers in one job to be the <em>same</em> language. That's the cross-language section.</li>
+    <li>Anyone who wants the full architecture &mdash; the individual gRPC services, the design docs &mdash; gets pointed at beam.apache.org/roadmap/portability. Don't teach it here.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. WHAT IT BUYS YOU ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">What it buys you</h1>
+  <p class="lede" style="margin-bottom:14px;font-size:15px">Three capabilities &mdash; each shown in this module with working code:</p>
+  <table class="tbl" style="font-size:14.5px">
+    <tr><th style="width:36%">Capability</th><th>The example you'll see</th></tr>
+    <tr><td><strong>1&nbsp;&nbsp;Different SDKs, different runners</strong></td><td>The same Python pipeline run on your laptop, on Dataflow, and on a Flink cluster &mdash; nothing changed but flags</td></tr>
+    <tr><td><strong>2&nbsp;&nbsp;Custom containers</strong></td><td>A pipeline that needs <code>scikit-learn</code>, a pinned NumPy, a native library, and a model file &mdash; baked into the worker image</td></tr>
+    <tr><td><strong>3&nbsp;&nbsp;Cross-language pipelines</strong></td><td>Java's battle-tested <code>KafkaIO</code>, called from Python as if it were a Python transform</td></tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout" style="font-size:14px">One section per row &mdash; each with a concrete problem, a working solution, and the judgment call of when to use it.</div>
+</section>
+<details class="notes" data-title="What it buys you">
+  <summary>Speaker notes &mdash; What it buys you</summary>
+  <div class="n-body"><ul>
+    <li><strong>The organizing slide.</strong> The three rows are the module; every later section is one row expanded into problem &rarr; solution &rarr; judgment.</li>
+    <li>The rows map directly onto how the Beam project describes the framework: portability across SDKs and runners as the goal, with cross-language pipelines and user-customized execution environments ("custom containers") as what it enables.</li>
+    <li>The examples are chosen to be the ones students actually hit this week: runner flags in the labs, missing-dependency errors on Dataflow, and Java-only connectors needed from Python.</li>
+  </ul></div>
+</details>
+<!-- ============ 6. SECTION 1 DIVIDER ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 3</div>
+    <h1>Different SDKs, Different Runners</h1>
+    <div class="sub">The same pipeline, three destinations, one flag &mdash; portability demonstrated, not asserted.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Any runner</span><span>Containers</span><span>Cross-language</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: Different SDKs, Different Runners">
+  <summary>Speaker notes &mdash; Section 1: Different SDKs, Different Runners</summary>
+  <div class="n-body"><ul>
+    <li>The demonstration section. If you can run anything live in this module, run this &mdash; a DirectRunner execution on a 20-line CSV takes seconds and makes the point better than any diagram.</li>
+    <li>The example is Python, but the point is symmetric: the same portability lets a Java or Go pipeline target Dataflow, Flink, Spark, or the local DirectRunner.</li>
+  </ul></div>
+</details>
+<!-- ============ 7. THE PIPELINE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:4px">The pipeline</h1>
+  <p class="lede" style="margin-bottom:6px;font-size:13.5px">Scenario: count orders per product category. Input: a CSV of orders in Cloud Storage. Output: a text file of counts.</p>
+  <pre class="code small" style="font-size:11px;line-height:1.35"><span class="lang">Python — orders.py</span><span class="kw">import</span> apache_beam <span class="kw">as</span> beam
+<span class="kw">from</span> apache_beam.options.pipeline_options <span class="kw">import</span> PipelineOptions
+
+<span class="kw">def</span> <span class="fn">category_of</span>(line):
+    <span class="kw">return</span> line.split(<span class="st">","</span>)[1]   <span class="cm"># order_id,category,amount → "electronics"</span>
+
+<span class="kw">with</span> beam.Pipeline(options=PipelineOptions(argv)) <span class="kw">as</span> p:
+    (p
+     | <span class="st">"ReadOrders"</span>  &gt;&gt; beam.io.ReadFromText(<span class="st">"gs://my-bucket/orders/*.csv"</span>, skip_header_lines=1)
+     | <span class="st">"GetCategory"</span> &gt;&gt; beam.Map(category_of)
+     | <span class="st">"CountPerCat"</span> &gt;&gt; beam.combiners.Count.PerElement()
+     | <span class="st">"Format"</span>      &gt;&gt; beam.Map(<span class="kw">lambda</span> kv: <span class="st">f"{kv[0]},{kv[1]}"</span>)
+     | <span class="st">"WriteCounts"</span> &gt;&gt; beam.io.WriteToText(<span class="st">"gs://my-bucket/out/counts"</span>))</pre>
+  <div class="figure">
+    <svg width="820" height="72" viewBox="0 0 820 72">
+      <defs>
+        <marker id="arrC" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/>
+        </marker>
+      </defs>
+      <rect x="4"   y="14" width="128" height="34" rx="17" fill="#4285F4"/><text x="68"  y="35" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">ReadOrders</text>
+      <rect x="176" y="14" width="128" height="34" rx="17" fill="#4285F4"/><text x="240" y="35" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">GetCategory</text>
+      <rect x="348" y="14" width="128" height="34" rx="17" fill="#4285F4"/><text x="412" y="35" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">CountPerCat</text>
+      <rect x="520" y="14" width="110" height="34" rx="17" fill="#4285F4"/><text x="575" y="35" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">Format</text>
+      <rect x="674" y="14" width="128" height="34" rx="17" fill="#4285F4"/><text x="738" y="35" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">WriteCounts</text>
+      <line x1="132" y1="31" x2="172" y2="31" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrC)"/>
+      <line x1="304" y1="31" x2="344" y2="31" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrC)"/>
+      <line x1="476" y1="31" x2="516" y2="31" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrC)"/>
+      <line x1="630" y1="31" x2="670" y2="31" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrC)"/>
+      <text x="152" y="66" text-anchor="middle" font-size="9.5" fill="#5f6368">PColl[str]</text>
+      <text x="324" y="66" text-anchor="middle" font-size="9.5" fill="#5f6368">PColl[str]</text>
+      <text x="496" y="66" text-anchor="middle" font-size="9.5" fill="#5f6368">PColl[(str,int)]</text>
+      <text x="650" y="66" text-anchor="middle" font-size="9.5" fill="#5f6368">PColl[str]</text>
+    </svg>
+  </div>
+  <div class="callout" style="font-size:12.5px;padding:7px 14px">Note what is <strong>not</strong> in this code: no runner, no project, no region, no cluster, no worker count. The pipeline says <em>what</em>, never <em>where</em>.</div>
+</section>
+<details class="notes" data-title="The pipeline">
+  <summary>Speaker notes &mdash; The pipeline</summary>
+  <div class="n-body"><ul>
+    <li>Walk the PCollection types along the diagram &mdash; the same edges will exist on all three runners.</li>
+    <li><strong>The callout is the slide's real content.</strong> Have someone read the code and confirm out loud that there's no execution target anywhere in it. That absence is what makes the next slide possible.</li>
+    <li><code>PipelineOptions(argv)</code> with nothing parsed in code is intentional &mdash; every runtime decision arrives from the command line. This is also the pattern the templates material builds on later in the course.</li>
+    <li><code>beam.combiners.Count.PerElement()</code> rather than a hand-rolled Map + GroupByKey + sum is a deliberate best-practice choice: it's a Combine, so it pre-aggregates before the shuffle. Don't explain combiner lifting here (Module 5 does) &mdash; but don't model the bad version either.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. RUN IT THREE WAYS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Run it three ways</h1>
+  <div class="cols">
+    <div style="flex:0 0 56%">
+      <pre class="term" style="font-size:11.5px;line-height:1.5"><span class="lbl">Local, on a sample — no cloud, no cost, fast iteration</span>python orders.py
+<span style="color:#9aa0a6"># DirectRunner is the default — nothing to specify</span></pre>
+      <div class="vgap-s"></div>
+      <pre class="term" style="font-size:11.5px;line-height:1.5"><span class="lbl">On Dataflow</span>python orders.py \
+  <span class="flag">--runner</span>=DataflowRunner \
+  <span class="flag">--project</span>=$PROJECT_ID <span class="flag">--region</span>=$REGION \
+  <span class="flag">--temp_location</span>=gs://$BUCKET/tmp/</pre>
+      <div class="vgap-s"></div>
+      <pre class="term" style="font-size:11.5px;line-height:1.5"><span class="lbl">On a Flink cluster</span>python orders.py \
+  <span class="flag">--runner</span>=FlinkRunner \
+  <span class="flag">--flink_master</span>=$FLINK_HOST:8081</pre>
+    </div>
+    <div style="align-self:center">
+      <div class="figure">
+      <svg width="300" height="210" viewBox="0 0 300 210">
+        <rect x="70" y="10" width="160" height="44" rx="8" fill="#4285F4"/>
+        <text x="150" y="30" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">orders.py</text>
+        <text x="150" y="46" text-anchor="middle" font-size="10" fill="#e8f0fe">unchanged</text>
+        <line x1="100" y1="54" x2="52"  y2="118" stroke="#5f6368" stroke-width="1.8"/>
+        <line x1="150" y1="54" x2="150" y2="118" stroke="#5f6368" stroke-width="1.8"/>
+        <line x1="200" y1="54" x2="248" y2="118" stroke="#5f6368" stroke-width="1.8"/>
+        <rect x="8"   y="122" width="88" height="52" rx="8" fill="#f1f3f4"/>
+        <text x="52"  y="144" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">DirectRunner</text>
+        <text x="52"  y="160" text-anchor="middle" font-size="9.5" fill="#5f6368">your laptop</text>
+        <rect x="106" y="122" width="88" height="52" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="150" y="144" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">Dataflow</text>
+        <text x="150" y="160" text-anchor="middle" font-size="9.5" fill="#5f6368">Google Cloud</text>
+        <rect x="204" y="122" width="88" height="52" rx="8" fill="#f1f3f4"/>
+        <text x="248" y="144" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Flink</text>
+        <text x="248" y="160" text-anchor="middle" font-size="9.5" fill="#5f6368">your cluster</text>
+        <text x="150" y="200" text-anchor="middle" font-size="10.5" fill="#188038" font-weight="600">zero lines of pipeline code changed</text>
+      </svg>
+      </div>
+      <div class="callout" style="font-size:12.5px;padding:9px 12px">Only <code>--runner</code> is core Beam. The rest are contributed by the chosen runner — switch runners and they're swapped out wholesale.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Run it three ways">
+  <summary>Speaker notes &mdash; Run it three ways</summary>
+  <div class="n-body"><ul>
+    <li><strong>This is the slide the old module was missing entirely.</strong> Run it live if you can; a DirectRunner execution on a small CSV takes seconds and makes the point better than any diagram.</li>
+    <li><strong>Flag scope, precisely</strong> &mdash; students conflate "Beam flags" with "Dataflow flags": only <code>--runner</code> is core Beam. <code>--project</code>, <code>--region</code>, and <code>--temp_location</code> come from the Dataflow runner's <code>GoogleCloudOptions</code>; <code>--flink_master</code> comes from the Flink runner.</li>
+    <li><strong>The honest caveat, again:</strong> this works cleanly here because <code>ReadFromText</code> and <code>WriteToText</code> are supported everywhere. A pipeline using a Google-Cloud-specific connector (say, <code>WriteToBigQuery</code>) would still run on Flink, but that connector's behavior and tuning differ. Portability is about the model, not a promise that every connector is equally good everywhere.</li>
+    <li>If someone asks how a <em>Python</em> pipeline runs on a <em>Java</em> engine at all &mdash; perfect. Point back at the harness slide from the intro: what crossed the wire was a proto, and a Python SDK harness container on the workers does the Python work.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. DEVELOP LOCALLY, DEPLOY REMOTELY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Best practice: develop locally, deploy remotely</h1>
+  <div class="cols">
+    <div style="flex:0 0 47%">
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>Stage</th><th>Runner</th><th>Data</th></tr>
+        <tr><td>Write &amp; unit test</td><td><strong>Direct</strong></td><td>a few dozen rows, in-code</td></tr>
+        <tr><td>Integration test</td><td><strong>Direct</strong></td><td>small file in GCS</td></tr>
+        <tr><td>Scale test</td><td><strong>Dataflow</strong></td><td>representative sample</td></tr>
+        <tr><td>Production</td><td><strong>Dataflow</strong></td><td>full dataset</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:12.5px;padding:9px 12px"><strong>The DirectRunner is strict on purpose.</strong> It shuffles element order, checks that DoFns don't mutate inputs, and enforces serializability — surfacing bugs a lenient runner would let through until you're at scale.</div>
+    </div>
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python — unit-testable without any cluster</span><span class="kw">from</span> apache_beam.testing.util <span class="kw">import</span> assert_that, equal_to
+
+<span class="kw">with</span> beam.Pipeline() <span class="kw">as</span> p:
+    result = (p
+        | beam.Create([<span class="st">"1,electronics,50"</span>,
+                       <span class="st">"2,books,20"</span>,
+                       <span class="st">"3,electronics,15"</span>])
+        | beam.Map(category_of)
+        | beam.combiners.Count.PerElement())
+    assert_that(result, equal_to(
+        [(<span class="st">"electronics"</span>, 2), (<span class="st">"books"</span>, 1)]))</pre>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Develop locally, deploy remotely">
+  <summary>Speaker notes &mdash; Develop locally, deploy remotely</summary>
+  <div class="n-body"><ul>
+    <li><strong>This is the practical payoff of portability students will use this week</strong> &mdash; don't let it get lost among the architecture. Portability isn't only about hedging against engine migrations someday; it's about a tight local test loop today.</li>
+    <li><code>beam.Create</code> plus <code>assert_that</code>/<code>equal_to</code> from <code>apache_beam.testing.util</code> is the standard testing idiom. A student who leaves this module able to test a transform locally has gotten real value from it.</li>
+    <li><strong>The strictness point is genuinely useful and counterintuitive:</strong> the DirectRunner deliberately randomizes bundle boundaries and element order so that code depending on order fails locally rather than mysteriously in production. "Works on DirectRunner but not Dataflow" is common; the reverse is rare, and that asymmetry is by design.</li>
+    <li>Cost angle for the budget-conscious: every DirectRunner iteration is a Dataflow job you didn't pay for.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. SECTION 2 DIVIDER ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 3</div>
+    <h1>Custom Containers</h1>
+    <div class="sub">Your dependencies, your Python version, your native libraries. The most immediately practical section of the module.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Any runner</span><span class="current">Containers</span><span>Cross-language</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Custom Containers">
+  <summary>Speaker notes &mdash; Section 2: Custom Containers</summary>
+  <div class="n-body"><ul>
+    <li>If students remember one hands-on skill from this module, it should be this. The arc: the failure they'll hit &rarr; the Dockerfile &rarr; build &amp; push &rarr; launch &rarr; use what's inside &rarr; when to bother.</li>
+    <li>This works because of the harness model from the intro: the SDK harness is a container you can substitute your own image for.</li>
+  </ul></div>
+</details>
+<!-- ============ 11. THE PROBLEM: IT WORKED ON MY LAPTOP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">The problem: it worked on my laptop</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">Scenario: your pipeline classifies product descriptions with a scikit-learn model. It needs <code>scikit-learn==1.5.2</code>, a pinned NumPy, a 40&nbsp;MB model file, and a native library for text normalization. You submit to Dataflow:</p>
+  <pre class="term" style="font-size:12.5px"><span style="color:#f28b82">ModuleNotFoundError: No module named 'sklearn'</span></pre>
+  <p style="font-size:13.5px;color:#5f6368;margin:8px 0 10px"><strong style="color:#202124">Why:</strong> the default SDK harness container has the Beam SDK and its dependencies. It does not have <em>yours</em>.</p>
+  <table class="tbl" style="font-size:13px">
+    <tr><th>Approach</th><th>Problem</th></tr>
+    <tr><td><code>--requirements_file=requirements.txt</code></td><td>Installs at <strong>worker startup</strong> — slow, repeated on every autoscale event, depends on PyPI being reachable</td></tr>
+    <tr><td><code>--extra_packages</code> (local <code>.tar.gz</code>)</td><td>Same startup cost; no native-dependency support</td></tr>
+    <tr class="hl"><td><strong>Custom container</strong></td><td>Everything baked in <strong>ahead of time</strong>. Workers start ready.</td></tr>
+  </table>
+</section>
+<details class="notes" data-title="It worked on my laptop">
+  <summary>Speaker notes &mdash; It worked on my laptop</summary>
+  <div class="n-body"><ul>
+    <li><strong>Lead with the error message</strong> &mdash; it's the one students will actually hit, and recognizing it later is worth more than any abstraction.</li>
+    <li><strong>Be fair to <code>--requirements_file</code>:</strong> genuinely fine for a small pure-Python pipeline with two or three lightweight dependencies, and less setup than a container. The failure modes disqualify it at scale: installs run at worker startup, so every autoscale event pays the cost again, and the job now depends on PyPI availability at run time. A large dependency tree can add minutes per worker.</li>
+    <li><strong>The native-library requirement is the hard disqualifier</strong> &mdash; you cannot <code>pip install</code> a system package. There, a container isn't an optimization; it's the only option.</li>
+    <li>The 40&nbsp;MB model file is a deliberate detail: baking model artifacts into the image is a real and common pattern for ML pipelines, much better than downloading from GCS in <code>setup()</code> on every worker.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. THE DOCKERFILE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The Dockerfile</h1>
+  <div class="cols">
+    <div style="flex:0 0 58%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Dockerfile</span><span class="cm"># Base image must match your local Python + Beam versions</span>
+<span class="kw">FROM</span> apache/beam_python3.12_sdk:<span class="st">2.75.0</span>
+
+<span class="cm"># Native deps first — they change least often</span>
+<span class="kw">RUN</span> apt-get update &amp;&amp; apt-get install -y \
+      --no-install-recommends libicu-dev \
+ &amp;&amp; rm -rf /var/lib/apt/lists/*
+
+<span class="cm"># Then Python dependencies</span>
+<span class="kw">COPY</span> requirements.txt /tmp/requirements.txt
+<span class="kw">RUN</span> pip install --no-cache-dir -r /tmp/requirements.txt
+
+<span class="cm"># Then artifacts that change most often</span>
+<span class="kw">COPY</span> models/classifier.joblib /opt/models/classifier.joblib
+<span class="kw">ENV</span> MODEL_PATH=/opt/models/classifier.joblib
+
+<span class="cm"># Do NOT override ENTRYPOINT — it starts the SDK harness</span></pre>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:14px;margin-bottom:6px">Image naming</p>
+      <p style="font-size:12.5px;color:#5f6368;margin-bottom:12px"><code>apache/beam_&lt;lang&gt;&lt;ver&gt;_sdk:&lt;beam&gt;</code><br><code>beam_python3.12_sdk:2.75.0</code><br><code>beam_java17_sdk:2.75.0</code> · <code>beam_go_sdk:2.75.0</code></p>
+      <p style="font-weight:600;font-size:14px;margin-bottom:6px">Rules that will bite you</p>
+      <ol class="steps" style="font-size:12.5px">
+        <li><strong>Pin the tag.</strong> Never <code>:latest</code></li>
+        <li><strong>Match versions.</strong> Container Python + Beam must match the submitting environment</li>
+        <li><strong>Don't touch the ENTRYPOINT.</strong> It launches the SDK harness</li>
+      </ol>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The Dockerfile">
+  <summary>Speaker notes &mdash; The Dockerfile</summary>
+  <div class="n-body"><ul>
+    <li><strong>The layer ordering isn't cosmetic</strong> &mdash; Docker caches layers, so putting the slowest-changing things first means a model-file change rebuilds one small layer instead of reinstalling every dependency. Students iterating on a pipeline will feel this immediately.</li>
+    <li><strong>Rule 2 is the error students will actually hit</strong>, so make the failure concrete: submit from Python 3.11 with a <code>beam_python3.12_sdk</code> image and you get serialization errors &mdash; your DoFns are serialized by the submitting interpreter and deserialized by the container's. Mismatched versions produce confusing failures deep in the job, not a clean error at submission.</li>
+    <li><strong>Rule 3</strong> catches people who treat this like an ordinary application image. The entrypoint <em>is</em> the SDK harness process from the intro diagram &mdash; override it and the runner has nothing to talk to.</li>
+    <li>If students have older internal Dockerfiles: <code>FROM apache/beam_python3.8_sdk:2.25.0</code>-era bases are a real migration item &mdash; Python 3.8 is long gone and 3.9 was dropped in Beam 2.75.0.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. BUILD AND PUSH ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Build and push to Artifact Registry</h1>
+  <div class="cols">
+    <div style="flex:0 0 56%">
+      <pre class="term" style="font-size:11px;line-height:1.5">export PROJECT=$(gcloud config get-value project)
+export REGION=us-central1
+export REPO=dataflow-images
+
+<span style="color:#9aa0a6"># One-time: create the repository</span>
+gcloud artifacts repositories create $REPO \
+  <span class="flag">--repository-format</span>=docker <span class="flag">--location</span>=$REGION
+
+export IMAGE_URI=$REGION-docker.pkg.dev/$PROJECT/$REPO/order-classifier:1.0.0
+
+<span style="color:#9aa0a6"># Build and push in one step</span>
+gcloud builds submit <span class="flag">--tag</span> $IMAGE_URI .</pre>
+    </div>
+    <div>
+      <div class="callout warn" style="font-size:12.5px;padding:10px 12px"><strong>Container Registry (gcr.io) is shut down</strong> — writes ended Mar 2025, reads Jun 2025. Use Artifact Registry:<br><code>REGION-docker.pkg.dev/PROJECT/REPO/IMAGE:TAG</code></div>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Repository in the <strong>same region</strong> as the job — cross-region pulls are slow and cost egress</li>
+        <li>Tag with a <strong>version, not latest</strong> — know exactly which image a job ran</li>
+        <li>Build in CI, not from a laptop, so images are reproducible</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Build and push to Artifact Registry">
+  <summary>Speaker notes &mdash; Build and push to Artifact Registry</summary>
+  <div class="n-body"><ul>
+    <li><strong>The registry change is the most concretely actionable correction in this module.</strong> Any student following an older tutorial that pushes to gcr.io will fail outright &mdash; the service is gone, not deprecated. Existing gcr.io <em>URLs</em> have been served from Artifact Registry since October 2025, so old references may resolve; new pushes do not.</li>
+    <li><strong><code>gcloud builds submit</code> versus local <code>docker build &amp;&amp; docker push</code> is worth thirty seconds:</strong> Cloud Build needs no local Docker, produces consistent images, and is architecture-safe. Apple Silicon developers who build locally get an arm64 image Dataflow workers cannot run &mdash; a genuinely common and baffling failure. If building locally, <code>--platform linux/amd64</code> is mandatory.</li>
+    <li>Same-region placement is a real performance item, not a nicety: every worker pulls the image at startup, so a cross-region pull is paid per worker on every autoscale event.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. LAUNCH WITH YOUR CONTAINER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Launch with your container</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="term" style="font-size:12px;line-height:1.6">python orders.py \
+  <span class="flag">--runner</span>=DataflowRunner \
+  <span class="flag">--project</span>=$PROJECT <span class="flag">--region</span>=$REGION \
+  <span class="flag">--temp_location</span>=gs://$BUCKET/tmp/ \
+  <span class="flag">--sdk_container_image</span>=$IMAGE_URI</pre>
+      <div class="vgap-s"></div>
+      <pre class="term" style="font-size:11.5px;line-height:1.5"><span class="lbl">Same image on Flink / Spark — different flag</span><span class="flag">--environment_type</span>=DOCKER \
+<span class="flag">--environment_config</span>=$IMAGE_URI</pre>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>SDK</th><th>Flag</th></tr>
+        <tr><td>Python</td><td><code>--sdk_container_image</code> (2.30.0+)</td></tr>
+        <tr><td>Java</td><td><code>--sdkContainerImage</code><br><span class="muted" style="font-size:11px">streaming also needs <code>enable_portable_runner</code></span></td></tr>
+        <tr><td>Go</td><td><code>--sdk_container_image</code> (2.40.0+)</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:9px 12px"><strong><code>--worker_harness_container_image</code> is deprecated.</strong> It's the old spelling; setting both is an error. New pipelines use <code>--sdk_container_image</code>.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Launch with your container">
+  <summary>Speaker notes &mdash; Launch with your container</summary>
+  <div class="n-body"><ul>
+    <li><strong>The flag rename is the second concrete correction.</strong> <code>--worker_harness_container_image</code> appears throughout older material including the previous version of this deck; the Beam SDK now errors if both are set, and the Python option help redirects to <code>sdk_container_image</code>.</li>
+    <li>Java's extra requirement: custom containers need the Dataflow portable runner (formerly "Runner v2"). It is the default for Python and for Java batch (since Beam 2.54.0), but not yet for Java streaming &mdash; so streaming Java pipelines with custom containers set the experiment explicitly.</li>
+    <li><strong>The Flink/Spark block is a genuine portability caveat and honest to include:</strong> the <em>image</em> is portable, the <em>flag</em> is not. Runners specify environments differently. Mildly ironic in a portability module; students appreciate the candor.</li>
+    <li>Local testing tip: the DirectRunner can use your image too (requires local Docker), so you can validate the container before spending money on a Dataflow submission.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. USING WHAT'S IN THE CONTAINER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">Using what's in the container</h1>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python</span><span class="kw">import</span> os
+<span class="kw">import</span> joblib
+<span class="kw">import</span> apache_beam <span class="kw">as</span> beam
+
+<span class="kw">class</span> <span class="fn">ClassifyFn</span>(beam.DoFn):
+    <span class="kw">def</span> <span class="fn">setup</span>(self):
+        <span class="cm"># Once per DoFn instance — NOT once per element.</span>
+        <span class="cm"># The model is already in the image.</span>
+        self.model = joblib.load(os.environ[<span class="st">"MODEL_PATH"</span>])
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, product):
+        label = self.model.predict([product.description])[0]
+        <span class="kw">yield</span> product._replace(category=label)
+
+classified = products | <span class="st">"Classify"</span> &gt;&gt; beam.ParDo(ClassifyFn())</pre>
+    </div>
+    <div style="align-self:center">
+      <div class="figure">
+      <svg width="300" height="150" viewBox="0 0 300 150">
+        <defs>
+          <marker id="arrE" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/>
+          </marker>
+        </defs>
+        <line x1="4"   y1="70" x2="70"  y2="70" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrE)"/>
+        <line x1="226" y1="70" x2="292" y2="70" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrE)"/>
+        <text x="36"  y="58" text-anchor="middle" font-size="9.5" fill="#5f6368">products</text>
+        <text x="260" y="58" text-anchor="middle" font-size="9.5" fill="#5f6368">classified</text>
+        <rect x="74" y="24" width="148" height="96" rx="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="148" y="46" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1a73e8">ClassifyFn</text>
+        <rect x="88" y="56" width="120" height="24" rx="6" fill="#fff" stroke="#34A853"/>
+        <text x="148" y="72" text-anchor="middle" font-size="10" fill="#188038">setup() — 1×</text>
+        <rect x="88" y="86" width="120" height="24" rx="6" fill="#fff" stroke="#dadce0"/>
+        <text x="148" y="102" text-anchor="middle" font-size="10" fill="#5f6368">process() — per element</text>
+      </svg>
+      </div>
+      <div class="callout" style="font-size:12.5px;padding:9px 12px"><strong>The pattern:</strong> heavy, immutable things (models, clients, lookup files) go in the image and are loaded in <code>setup()</code>. Never in <code>process()</code>.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Using what's in the container">
+  <summary>Speaker notes &mdash; Using what's in the container</summary>
+  <div class="n-body"><ul>
+    <li>Closing the loop matters &mdash; building an image is pointless if students don't know how to use what's inside it.</li>
+    <li><strong><code>setup()</code> versus <code>process()</code> is the performance lesson.</strong> <code>setup()</code> runs once per DoFn instance; <code>process()</code> once per element. Loading a 40&nbsp;MB model in <code>process()</code> means loading it millions of times &mdash; the single most common performance bug in ML-adjacent Beam pipelines. The DoFn lifecycle gets full treatment in Module 5; here just plant the rule.</li>
+    <li>The <code>ENV MODEL_PATH</code> from the Dockerfile pays off here: the path lives in the image, not hardcoded in the pipeline, so a new model version is an image rebuild rather than a code change.</li>
+    <li>If asked why <code>joblib</code>: it's the scikit-learn convention and handles large NumPy arrays efficiently. Either way, serialized model files execute code at load time &mdash; only load artifacts you built and control; baking them into the image is part of what makes that guarantee hold.</li>
+    <li>Very large or frequently changing models: loading from GCS in <code>setup()</code> is the alternative &mdash; slower startup, but decoupled from the image lifecycle. Both are legitimate; the trade is image size and rebuild frequency versus worker startup time.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. WHEN TO REACH FOR A CUSTOM CONTAINER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">When to reach for a custom container</h1>
+  <div class="cols">
+    <div style="flex:0 0 58%">
+      <table class="tbl" style="font-size:13px">
+        <tr><th>Situation</th><th>Container?</th></tr>
+        <tr><td>Pure Python, 2–3 small dependencies</td><td><span class="no">No</span> — <code>--requirements_file</code> is fine</td></tr>
+        <tr class="hl"><td>Native / system libraries required</td><td><span class="yes">Yes</span> — no alternative</td></tr>
+        <tr><td>Large or many Python dependencies</td><td><span class="yes">Yes</span> — worker startup time</td></tr>
+        <tr><td>Model files or static data to bake in</td><td><span class="yes">Yes</span></td></tr>
+        <tr><td>Specific Python version needed</td><td><span class="yes">Yes</span></td></tr>
+        <tr><td>Reproducible, auditable builds</td><td><span class="yes">Yes</span></td></tr>
+        <tr><td>Multi-language pipeline</td><td><strong>Often</strong> — each language has its own image</td></tr>
+      </table>
+    </div>
+    <div style="align-self:center">
+      <div class="callout good" style="font-size:14.5px;line-height:1.6"><strong>The one-line heuristic:</strong> if worker startup is doing work that could have been done at build time, build an image.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="When to reach for a custom container">
+  <summary>Speaker notes &mdash; When to reach for a custom container</summary>
+  <div class="n-body"><ul>
+    <li><strong>The judgment slide.</strong> Custom containers add real overhead &mdash; a build step, a registry, versioning discipline, and a new way for version mismatches to bite. Don't sell them as universally correct.</li>
+    <li>The heuristic generalizes cleanly and is worth repeating: <strong>move work from run time to build time.</strong> Every second of per-worker startup is paid again on every autoscale event, and streaming pipelines autoscale continuously.</li>
+    <li>The last row previews the cross-language section &mdash; a multi-language pipeline has more than one SDK harness image in play. Not a bolted-on feature; the same environment mechanism doing exactly what it was designed for.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. SECTION 3 DIVIDER ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 3</div>
+    <h1>Cross-Language Pipelines</h1>
+    <div class="sub">Using a transform written in another language, from your pipeline &mdash; and Managed I/O, the config-driven way in.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Any runner</span><span>Containers</span><span class="current">Cross-language</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Cross-Language Pipelines">
+  <summary>Speaker notes &mdash; Section 3: Cross-Language Pipelines</summary>
+  <div class="n-body"><ul>
+    <li>Problem first, then solution, then mechanism &mdash; the capability is unremarkable until you've felt the alternative.</li>
+    <li>This is the second payoff of the harness model: nothing requires all the containers in one job to be the same language.</li>
+  </ul></div>
+</details>
+<!-- ============ 18. THE CONNECTOR IS IN THE WRONG LANGUAGE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:8px">The problem: the connector is in the wrong language</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14px">Scenario: your team writes Python. You need to read from <strong>Kafka</strong>, enrich the events, and write to BigQuery. The mature, battle-tested KafkaIO connector is written in <strong>Java</strong>.</p>
+  <div class="cols">
+    <div style="flex:0 0 58%">
+      <table class="tbl" style="font-size:13px">
+        <tr><th>Option, before cross-language</th><th>Cost</th></tr>
+        <tr><td>Rewrite the pipeline in Java</td><td>Your team doesn't write Java</td></tr>
+        <tr><td>Reimplement KafkaIO in Python</td><td>Months of work; you now own a connector</td></tr>
+        <tr><td>Two pipelines: Java &rarr; Pub/Sub &rarr; Python</td><td>Extra hop, extra cost, extra failure mode</td></tr>
+      </table>
+    </div>
+    <div style="align-self:center">
+      <div class="callout good" style="font-size:14px;line-height:1.6"><strong>Beam's answer:</strong> call the Java connector directly from your Python pipeline &mdash; no FFI, no bindings, no second pipeline.<div class="vgap-s"></div>The next slide is the entire scenario, in code.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The connector is in the wrong language">
+  <summary>Speaker notes &mdash; The connector is in the wrong language</summary>
+  <div class="n-body"><ul>
+    <li>The original module opened this topic with a mesh diagram of every SDK connected to every other SDK &mdash; a picture of a <em>capability</em>, with no problem attached. This version leads with the problem, because the capability is unremarkable until you've felt the alternative.</li>
+    <li>Kafka is the canonical example because the asymmetry is real and long-standing: Java's I/O ecosystem is by far the most mature, and Python teams were locked out of it. The same applies to JDBC, Spanner, and Snowflake connectors.</li>
+    <li><strong>Ask the room which of the three "before" options they'd have picked.</strong> The two-pipeline hop is the one experienced people choose &mdash; name what it costs: an extra Pub/Sub topic, its throughput bill, another deployment to monitor, and end-to-end latency that's now the sum of two pipelines.</li>
+    <li>Don't reveal the mechanism yet &mdash; the next slide shows the scenario as ordinary-looking Python code, and the two slides after that explain how the Java gets in and how it runs.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. THE SOLUTION IN CODE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:4px">The solution: one Python pipeline, Kafka to BigQuery</h1>
+  <div class="cols">
+    <div style="flex:0 0 62%">
+      <pre class="code small" style="font-size:10.5px;line-height:1.45"><span class="lang">Python — kafka_orders.py</span><span class="kw">import</span> json
+<span class="kw">import</span> apache_beam <span class="kw">as</span> beam
+<span class="kw">from</span> apache_beam.io.kafka <span class="kw">import</span> ReadFromKafka
+
+<span class="kw">def</span> <span class="fn">parse_order</span>(kv):
+    key, value = kv          <span class="cm"># Kafka records arrive as (key, value) bytes</span>
+    <span class="kw">return</span> json.loads(value)
+
+<span class="kw">with</span> beam.Pipeline(options=options) <span class="kw">as</span> p:
+    (p
+     | <span class="st">"ReadOrders"</span> &gt;&gt; ReadFromKafka(       <span class="cm"># Java — KafkaIO</span>
+           consumer_config={<span class="st">"bootstrap.servers"</span>: BOOTSTRAP},
+           topics=[<span class="st">"orders"</span>])
+     | <span class="st">"Parse"</span>     &gt;&gt; beam.Map(parse_order)  <span class="cm"># Python</span>
+     | <span class="st">"LargeOnly"</span> &gt;&gt; beam.Filter(            <span class="cm"># Python</span>
+           <span class="kw">lambda</span> o: o[<span class="st">"amount"</span>] &gt;= 100)
+     | <span class="st">"WriteToBQ"</span> &gt;&gt; beam.io.WriteToBigQuery(<span class="cm"># Python</span>
+           <span class="st">"my_project.analytics.large_orders"</span>,
+           schema=<span class="st">"order_id:STRING,amount:NUMERIC"</span>))</pre>
+    </div>
+    <div style="align-self:center">
+      <div class="figure">
+      <svg width="250" height="252" viewBox="0 0 250 252">
+        <defs>
+          <marker id="arrG" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/>
+          </marker>
+        </defs>
+        <rect x="55" y="6" width="140" height="32" rx="16" fill="#fce8e6" stroke="#EA4335" stroke-width="1.8"/>
+        <text x="125" y="26" text-anchor="middle" font-size="11" font-weight="600" fill="#c5221f">ReadOrders</text>
+        <rect x="55" y="58" width="140" height="32" rx="16" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.8"/>
+        <text x="125" y="78" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">Parse</text>
+        <rect x="55" y="110" width="140" height="32" rx="16" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.8"/>
+        <text x="125" y="130" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">LargeOnly</text>
+        <rect x="55" y="162" width="140" height="32" rx="16" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.8"/>
+        <text x="125" y="182" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">WriteToBQ</text>
+        <line x1="125" y1="38" x2="125" y2="54" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrG)"/>
+        <line x1="125" y1="90" x2="125" y2="106" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrG)"/>
+        <line x1="125" y1="142" x2="125" y2="158" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrG)"/>
+        <rect x="20" y="214" width="10" height="10" rx="2" fill="#fce8e6" stroke="#EA4335"/>
+        <text x="36" y="223" font-size="10" fill="#5f6368">runs in the Java container</text>
+        <rect x="20" y="232" width="10" height="10" rx="2" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="36" y="241" font-size="10" fill="#5f6368">runs in the Python container</text>
+      </svg>
+      </div>
+      <div class="callout" style="font-size:12px;padding:8px 12px"><code>ReadFromKafka</code> is a thin Python <strong>wrapper</strong> &mdash; the code it stands for is Java. Next two slides: how the Java gets into your graph, and how it runs.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The solution: one Python pipeline, Kafka to BigQuery">
+  <summary>Speaker notes &mdash; The solution: one Python pipeline, Kafka to BigQuery</summary>
+  <div class="n-body"><ul>
+    <li><strong>The punchline: it looks like ordinary Python.</strong> No FFI, no bindings, no subprocess management, nothing to install beyond the Beam SDK (and a local JRE &mdash; that gotcha gets its own slide). Have the room find anything in the code that looks Java-flavored; there isn't anything except the transform's pedigree.</li>
+    <li>Walk the diagram: one node is red. Recall the intro &mdash; every transform in the graph is tagged with the container environment it runs in. This pipeline is simply a graph whose transforms carry <em>two different tags</em>. That sentence is the entire definition of a multi-language pipeline.</li>
+    <li>Small real-world detail worth a sentence: <code>ReadFromKafka</code> emits <strong>(key, value) byte pairs</strong>, so the first Python step is always a parse/decode &mdash; that's why <code>parse_order</code> exists.</li>
+    <li><code>WriteToBigQuery</code> here is the Python transform &mdash; the point of the example is one Java transform at the edge, Python everywhere else.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. BUILD TIME: EXPANSION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">At build time: expansion</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ol class="steps" style="font-size:13px">
+        <li>Your script reaches <code>ReadFromKafka</code> &mdash; a thin wrapper with <strong>no Kafka code inside</strong></li>
+        <li>The wrapper starts the <strong>expansion service</strong>, a small local Java helper process, and asks it to <em>expand</em> the transform: "give me the real KafkaIO"</li>
+        <li>The service returns KafkaIO as <strong>language-neutral proto</strong>, tagged with the <strong>Java container</strong> it needs</li>
+        <li>Those transforms are <strong>spliced into your graph</strong> beside your Python ones &mdash; and you submit as usual</li>
+      </ol>
+    </div>
+    <div style="align-self:center">
+      <div class="figure">
+      <svg width="360" height="240" viewBox="0 0 360 240">
+        <defs>
+          <marker id="arrH" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+            <path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/>
+          </marker>
+        </defs>
+        <text x="180" y="14" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5f6368">your machine, while the graph is being built</text>
+        <rect x="8" y="30" width="150" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="83" y="53" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">your script</text>
+        <text x="83" y="70" text-anchor="middle" font-size="9.5" fill="#5f6368">Python SDK</text>
+        <rect x="202" y="30" width="150" height="56" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="277" y="53" text-anchor="middle" font-size="11" font-weight="600" fill="#c5221f">expansion service</text>
+        <text x="277" y="70" text-anchor="middle" font-size="9.5" fill="#5f6368">local Java process, auto-started</text>
+        <line x1="158" y1="46" x2="198" y2="46" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrH)"/>
+        <text x="178" y="38" text-anchor="middle" font-size="9" fill="#5f6368"><tspan font-weight="700" fill="#1a73e8">2</tspan> expand</text>
+        <line x1="198" y1="72" x2="158" y2="72" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrH)"/>
+        <text x="178" y="92" text-anchor="middle" font-size="9" fill="#5f6368"><tspan font-weight="700" fill="#1a73e8">3</tspan> KafkaIO as proto</text>
+        <rect x="50" y="130" width="260" height="72" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="180" y="150" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">the merged graph</text>
+        <rect x="72" y="160" width="46" height="24" rx="12" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="95" y="176" text-anchor="middle" font-size="9" font-weight="600" fill="#c5221f">Read</text>
+        <rect x="128" y="160" width="46" height="24" rx="12" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="151" y="176" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">Parse</text>
+        <rect x="184" y="160" width="46" height="24" rx="12" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="207" y="176" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">Filter</text>
+        <rect x="240" y="160" width="46" height="24" rx="12" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="263" y="176" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">Write</text>
+        <text x="180" y="196" text-anchor="middle" font-size="9" fill="#5f6368">each transform tagged with its container</text>
+        <line x1="83" y1="86" x2="110" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrH)"/>
+        <line x1="277" y1="86" x2="250" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrH)"/>
+        <text x="180" y="228" text-anchor="middle" font-size="9.5" fill="#5f6368"><tspan font-weight="700" fill="#1a73e8">4</tspan> submit the merged graph &mdash; same as any other pipeline</text>
+      </svg>
+      </div>
+    </div>
+  </div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">From the intro: <strong>every transform in the graph names the container it runs in.</strong> "Expansion" just splices in transforms that name the <strong>Java</strong> container.</div>
+</section>
+<details class="notes" data-title="At build time: expansion">
+  <summary>Speaker notes &mdash; At build time: expansion</summary>
+  <div class="n-body"><ul>
+    <li><strong>Define the terms before leaning on them</strong> &mdash; this slide exists so "expansion service" and "expand" are never used un-introduced. The expansion service is a helper process that knows the Java transform catalog; "expanding" a transform means asking it for the transform's real subgraph, returned as the same language-neutral proto everything else in the graph is made of.</li>
+    <li><strong>Expansion happens once, at build time, on your machine</strong> &mdash; not per element, and not on the workers. This is also the setup for the next-but-one slide: building a multi-language pipeline needs a local JRE precisely because this Java helper runs on the submitting machine.</li>
+    <li><code>--experiments=use_portable_job_submission</code> will show up in job details if anyone looks &mdash; the Dataflow runner adds it automatically for multi-language pipelines. An artifact to recognize, not a flag to set.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. RUN TIME: TWO HARNESSES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">At run time: two harnesses, side by side</h1>
+  <div class="figure">
+    <svg width="840" height="216" viewBox="0 0 840 216">
+      <defs>
+        <marker id="arrI" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/>
+        </marker>
+      </defs>
+      <rect x="6" y="70" width="92" height="56" rx="8" fill="#f1f3f4"/>
+      <text x="52" y="94" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">Kafka</text>
+      <text x="52" y="110" text-anchor="middle" font-size="9.5" fill="#5f6368">orders topic</text>
+      <rect x="742" y="70" width="92" height="56" rx="8" fill="#f1f3f4"/>
+      <text x="788" y="94" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">BigQuery</text>
+      <text x="788" y="110" text-anchor="middle" font-size="9.5" fill="#5f6368">large_orders</text>
+      <rect x="130" y="16" width="580" height="184" rx="12" fill="#f8f9fa" stroke="#9aa0a6" stroke-width="1.5"/>
+      <text x="420" y="38" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5f6368">worker VM</text>
+      <rect x="152" y="56" width="160" height="110" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <text x="232" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#c5221f">Java harness</text>
+      <text x="232" y="98" text-anchor="middle" font-size="9.5" fill="#5f6368">(container)</text>
+      <text x="232" y="120" text-anchor="middle" font-size="10" fill="#3c4043">KafkaIO —</text>
+      <text x="232" y="136" text-anchor="middle" font-size="10" fill="#3c4043">reads records</text>
+      <rect x="352" y="56" width="136" height="110" rx="8" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+      <text x="420" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">runner harness</text>
+      <text x="420" y="104" text-anchor="middle" font-size="10" fill="#5f6368">hands out work,</text>
+      <text x="420" y="120" text-anchor="middle" font-size="10" fill="#5f6368">routes elements</text>
+      <text x="420" y="136" text-anchor="middle" font-size="10" fill="#5f6368">between harnesses</text>
+      <rect x="528" y="56" width="160" height="110" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.8" stroke-dasharray="5 3"/>
+      <text x="608" y="80" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">Python harness</text>
+      <text x="608" y="98" text-anchor="middle" font-size="9.5" fill="#5f6368">(container)</text>
+      <text x="608" y="120" text-anchor="middle" font-size="10" fill="#3c4043">Parse · LargeOnly</text>
+      <text x="608" y="136" text-anchor="middle" font-size="10" fill="#3c4043">· WriteToBQ</text>
+      <line x1="98" y1="98" x2="148" y2="98" stroke="#5f6368" stroke-width="1.8" marker-end="url(#arrI)"/>
+      <line x1="312" y1="111" x2="348" y2="111" stroke="#188038" stroke-width="2" marker-end="url(#arrI)"/>
+      <text x="330" y="101" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="700">Fn API</text>
+      <line x1="488" y1="111" x2="524" y2="111" stroke="#188038" stroke-width="2" marker-end="url(#arrI)"/>
+      <text x="506" y="101" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="700">Fn API</text>
+      <line x1="688" y1="98" x2="738" y2="98" stroke="#5f6368" stroke-width="1.8" marker-end="url(#arrI)"/>
+      <text x="420" y="188" text-anchor="middle" font-size="9.5" fill="#5f6368">elements are serialized to cross each gRPC hop, and deserialized on the other side</text>
+    </svg>
+  </div>
+  <ul class="body" style="font-size:13px;margin-top:4px">
+    <li>The runner reads the merged graph and starts <strong>one container per environment</strong> on each worker &mdash; here, one Java and one Python</li>
+    <li>There is <strong>no Python-to-Java bridge</strong> inside either process: two containers, each running its own transforms, exchanging elements over gRPC</li>
+  </ul>
+  <div class="callout" style="font-size:12.5px;padding:8px 14px">The intro's model, unchanged &mdash; the runner talks to containers over a wire, so it doesn't care that one job now has two kinds.</div>
+</section>
+<details class="notes" data-title="At run time: two harnesses, side by side">
+  <summary>Speaker notes &mdash; At run time: two harnesses, side by side</summary>
+  <div class="n-body"><ul>
+    <li><strong>The misconception to kill: students assume a live Python-to-Java bridge</strong> (JNI, a subprocess, py4j). There isn't one. At run time there are two peer containers; the runner hands Kafka-reading work to the Java harness and Parse/Filter/Write work to the Python harness, and elements flow between them over the Fn API data channel.</li>
+    <li><strong>The element crossing is real work</strong> &mdash; serialize on one side, deserialize on the other. For a connector at the edge of the pipeline it's paid once per element and is negligible; a cross-language transform in the middle of a hot path pays it twice. This is the setup for the closing advice: <strong>cross-language at the edges, native in the middle.</strong></li>
+    <li>Everything else about the job is normal: autoscaling, monitoring, and draining don't care how many harness environments a worker runs.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. THE GOTCHA: JAVA LOCALLY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The gotcha: you need Java locally</h1>
+  <pre class="term" style="font-size:12.5px"><span style="color:#f28b82">Error: Java not found. Please install Java or set JAVA_HOME.</span></pre>
+  <div class="vgap-s"></div>
+  <div class="cols">
+    <div>
+      <p style="font-size:14px;line-height:1.55;margin-bottom:10px">You do not write Java. You do not deploy Java. But <strong>the machine that <em>builds</em> the pipeline needs a Java runtime</strong>, because it starts the expansion service locally.</p>
+      <pre class="term" style="font-size:11.5px;line-height:1.5"><span class="lbl">Verify before you start</span>java -version
+<span style="color:#9aa0a6"># Debian/Ubuntu:</span>
+sudo apt-get install -y default-jre</pre>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:14px;margin-bottom:8px">Alternatives if a local JRE isn't possible</p>
+      <ul class="body" style="font-size:13px">
+        <li><strong>Transform Service</strong> — a Docker-hosted expansion service; you need Docker instead of every SDK installed locally</li>
+        <li><strong>A remote expansion service</strong> — point at one already running:<br><code>ReadFromKafka(..., expansion_service="localhost:8097")</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The gotcha: you need Java locally">
+  <summary>Speaker notes &mdash; The gotcha: you need Java locally</summary>
+  <div class="n-body"><ul>
+    <li><strong>The single most common cross-language support question, and it will happen in the lab.</strong> Frontloading it converts a confusing failure into a recognized one.</li>
+    <li>The distinction that resolves the confusion: <strong>build-time dependency, not a run-time one.</strong> Your workers get Java through a container the runner pulls automatically. Only the machine constructing the pipeline needs a JRE, because that's where the expansion service starts.</li>
+    <li><strong>A real CI/CD trap worth naming:</strong> a containerized build environment that includes Python but not Java will fail to submit multi-language pipelines, with an error that looks nothing like "your build image is missing a package."</li>
+    <li>Transform Service is the newer, cleaner answer for teams that can't install a JRE. Mention it, point at the Beam programming guide, don't teach it in depth.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. MANAGED I/O ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Managed I/O: the current best practice</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:13px"><code>ReadFromKafka</code> is one hand-built wrapper, with its own API shape &mdash; and every connector has a different one. <strong>Managed I/O</strong> is the same cross-language machinery behind one uniform API: name a connector, pass a config map.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python</span><span class="kw">from</span> apache_beam.transforms <span class="kw">import</span> managed
+
+<span class="cm"># Read from Iceberg</span>
+rows = p | managed.Read(
+    managed.ICEBERG,
+    config={
+        <span class="st">"table"</span>: <span class="st">"warehouse.sales.orders"</span>,
+        <span class="st">"catalog_name"</span>: <span class="st">"my_catalog"</span>,
+        <span class="st">"catalog_properties"</span>: {...},
+    })
+
+<span class="cm"># Write to BigQuery</span>
+rows | managed.Write(
+    managed.BIGQUERY,
+    config={<span class="st">"table"</span>: <span class="st">"my_project.analytics.orders"</span>})</pre>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:12px">
+        <tr><th>Connector</th><th>Read</th><th>Write</th></tr>
+        <tr><td><code>ICEBERG</code> / <code>ICEBERG_CDC</code></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span> / —</td></tr>
+        <tr><td><code>KAFKA</code></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td><code>BIGQUERY</code></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td><code>POSTGRES</code> / <code>MYSQL</code> / <code>SQLSERVER</code></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+        <tr><td><code>DELTA</code></td><td><span class="yes">✓</span></td><td>—</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li><strong>One API shape</strong> — a name and a config map, across every connector and both languages</li>
+        <li><strong>The runner can see your intent</strong> — and tune, optimize, or upgrade the implementation underneath</li>
+        <li><strong>Config, not code</strong> — the same transform is expressible in Beam YAML</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Managed I/O">
+  <summary>Speaker notes &mdash; Managed I/O</summary>
+  <div class="n-body"><ul>
+    <li><strong>Land the transition first:</strong> nothing new is happening underneath &mdash; <code>managed.Read(KAFKA, ...)</code> expands through the same expansion service and runs in the same Java harness the previous slides explained. What changes is the front door: one API shape for every connector, instead of one hand-built wrapper per connector.</li>
+    <li>Managed I/O didn't exist when the original module was written; it's now the recommended entry point for these sources and sinks.</li>
+    <li><strong>The intent bullet is the deepest one.</strong> When you call <code>ReadFromKafka</code> directly, the runner sees an opaque transform. With <code>managed.Read(KAFKA, ...)</code>, it sees "this pipeline wants to read Kafka" as structured intent &mdash; and can substitute a better implementation, tune parallelism, or upgrade the connector without you changing code. That's a materially different relationship between pipeline and runner.</li>
+    <li><strong>Connect it back:</strong> Managed I/O is built on cross-language transforms. The Java-versus-Python question disappears into the config map. This is what the portability framework was for &mdash; students should see the harness model, cross-language, and Managed I/O as one arc landing here.</li>
+    <li>Also worth noting: the Python-native SpannerIO is deprecated in favor of the cross-language version. The direction of travel is clear.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. CROSS-LANGUAGE: WHEN AND WHY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Cross-language: when and why</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:14.5px;margin-bottom:8px;color:#188038">Reach for it when</p>
+      <ul class="body" style="font-size:13px">
+        <li>The connector you need exists in another SDK (usually Java I/O from Python)</li>
+        <li>A specific library only exists in one language</li>
+        <li>Teams in different languages need to share transforms</li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:14.5px;margin-bottom:8px;color:#c5221f">Costs to know about</p>
+      <ul class="body" style="font-size:13px">
+        <li>A local runtime for the other language at <strong>build time</strong></li>
+        <li>More containers at run time — slightly higher worker memory, slower startup</li>
+        <li>Elements cross a <strong>process boundary</strong> — serialization on both sides</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap"></div>
+  <div class="callout good" style="font-size:14px"><strong>Practical guidance:</strong> prefer <strong>Managed I/O</strong> where it covers your connector. Use direct wrappers (<code>ReadFromKafka</code>, <code>ReadFromJdbc</code>) where it doesn't. Hand-written <code>ExternalTransform</code> only for genuinely custom cases.</div>
+</section>
+<details class="notes" data-title="Cross-language: when and why">
+  <summary>Speaker notes &mdash; Cross-language: when and why</summary>
+  <div class="n-body"><ul>
+    <li>The judgment slide, matching the containers section's shape. Cross-language is not free and shouldn't be presented as such.</li>
+    <li><strong>The serialization cost is the one people underestimate.</strong> Elements crossing between a Python and a Java harness get encoded and decoded on both sides. For an I/O connector at the edge of the pipeline this is negligible &mdash; it happens once. For a transform in the middle of a hot path, it's real overhead. <strong>Cross-language at the edges, native in the middle</strong> is the rule of thumb.</li>
+    <li>The three-tier guidance is the actionable takeaway: Managed I/O first, wrappers second, <code>ExternalTransform</code> only when you must. Most students will only ever need the first tier.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. MODULE SUMMARY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Module summary</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:6px">The portability framework</p>
+      <ul class="body" style="font-size:12.5px">
+        <li>An <strong>abstraction layer</strong> between SDKs and runners &mdash; one shared contract instead of N×M integrations</li>
+        <li>Build time: the pipeline becomes a <strong>language-neutral proto</strong> (Runner API); each transform declares its container environment</li>
+        <li>Run time: your code runs in an <strong>SDK harness container</strong> the runner drives over gRPC (Fn API)</li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:13.5px;margin-bottom:6px">What it buys you</p>
+      <ul class="body" style="font-size:12.5px">
+        <li><strong>Different SDKs, different runners</strong> &mdash; the same pipeline on your laptop, Dataflow, or Flink</li>
+        <li><strong>Custom containers</strong> &mdash; <code>--sdk_container_image</code>, built to Artifact Registry</li>
+        <li><strong>Cross-language pipelines</strong> &mdash; Java connectors from Python via the expansion service; prefer <strong>Managed I/O</strong></li>
+      </ul>
+      <div class="vgap-s"></div>
+      <pre class="term" style="font-size:10.5px;line-height:1.5"><span class="lbl">Three flags worth remembering</span><span class="flag">--runner</span>=DataflowRunner        <span style="color:#9aa0a6"># which engine</span>
+<span class="flag">--sdk_container_image</span>=$IMAGE  <span style="color:#9aa0a6"># your runtime</span>
+<span class="flag">--experiments</span>=enable_portable_runner
+                    <span style="color:#9aa0a6"># only Java streaming</span></pre>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Module summary">
+  <summary>Speaker notes &mdash; Module summary</summary>
+  <div class="n-body"><ul>
+    <li>Walk it as one arc: the framework is an abstraction layer between SDKs and runners (two slides), and everything else was what it buys you (three sections). If a student can retell that arc, the module landed.</li>
+    <li>The next module (Separating Compute and Storage) covers the Dataflow-specific services: Shuffle and Streaming Engine.</li>
+  </ul></div>
+</details>
+<!-- ============ 26. CHECK YOUR UNDERSTANDING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Check your understanding</h1>
+  <ol class="steps" style="font-size:14px">
+    <li>Your Python pipeline needs a native C library. Which is the right tool: <code>--requirements_file</code>, a custom container, or a cross-language transform?</li>
+    <li>You get <strong>ModuleNotFoundError</strong> for a package that's in your container image. What are the two most likely causes?</li>
+    <li>Why does <em>building</em> a multi-language pipeline require Java locally, but <em>running</em> it doesn't?</li>
+    <li>A pipeline written with the <strong>Go SDK</strong> runs on Flink, an engine written in Java. Name the two pieces of the framework that make that possible.</li>
+    <li>When would you choose a <code>CoGroupByKey</code> join over Managed I/O? <span class="muted">(Careful…)</span></li>
+  </ol>
+</section>
+<details class="notes" data-title="Check your understanding">
+  <summary>Speaker notes &mdash; Check your understanding</summary>
+  <div class="n-body"><ul>
+    <li><strong>Answers:</strong></li>
+    <li>(1) Custom container &mdash; pip can't install system packages.</li>
+    <li>(2) Either the image wasn't actually used (<code>--sdk_container_image</code> missing or misspelled), or a Python/Beam version mismatch between the submitting environment and the image.</li>
+    <li>(3) Expansion happens at build time on your machine; at run time, workers get the Java SDK harness as a container the runner pulls.</li>
+    <li>(4) The pipeline graph crosses as a language-neutral proto (Runner API), and a Go SDK harness container executes the code while the runner drives it over gRPC (Fn API).</li>
+    <li>(5) Trick question &mdash; they're unrelated. Managed I/O reads and writes <em>external systems</em>; CoGroupByKey joins two PCollections <em>already in the pipeline</em>. It exists to catch students pattern-matching on names rather than reasoning about what each thing does.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. ADDITIONAL MATERIAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Docs — current best practice</p>
+      <ul class="body" style="font-size:14px">
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/portable-runner" style="color:#1a73e8">Dataflow Portable Runner</a> (formerly Runner v2)</li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/guides/run-custom-container" style="color:#1a73e8">Run with custom containers</a> · <a href="https://docs.cloud.google.com/dataflow/docs/guides/build-container-image" style="color:#1a73e8">build the image</a></li>
+        <li><a href="https://beam.apache.org/documentation/io/managed-io/" style="color:#1a73e8">Managed I/O</a> · <a href="https://docs.cloud.google.com/dataflow/docs/guides/managed-io" style="color:#1a73e8">on Dataflow</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/support/beam-runtime-support" style="color:#1a73e8">Beam / runtime support matrix</a></li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Reference</p>
+      <ul class="body" style="font-size:14px">
+        <li><a href="https://beam.apache.org/roadmap/portability/" style="color:#1a73e8">Beam portability framework</a> (Fn API, Runner API, services)</li>
+        <li><a href="https://beam.apache.org/documentation/programming-guide/#multi-language-pipelines" style="color:#1a73e8">Multi-language pipelines</a></li>
+        <li><a href="https://beam.apache.org/documentation/sdks/yaml/" style="color:#1a73e8">Beam YAML</a></li>
+        <li><a href="https://beam.apache.org/case-studies/" style="color:#1a73e8">Beam case studies</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li>The left column is deliberately "current best practice" &mdash; these are the pages that supersede the older material students will find via search (Runner v2 blog posts, gcr.io tutorials, <code>worker_harness_container_image</code> examples).</li>
+    <li>The portability roadmap page is the canonical source for the framework architecture from the intro &mdash; good homework for students who want the full design docs.</li>
+  </ul></div>
+</details>
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

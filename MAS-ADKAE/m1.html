@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Module 1 — Introducing ADK (2.x)</title>
+<style>
+  :root{
+    --page-bg:#e8eaed; --page-ink:#3c4043; --chrome-bg:#ffffff; --chrome-border:#dadce0;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-yellow:#fbbc04; --g-green:#34a853;
+    --ink:#202124; --ink-2:#5f6368; --ink-3:#80868b; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --badge-new:#188038; --badge-new-bg:#e6f4ea; --badge-chg:#b06000; --badge-chg-bg:#fef7e0;
+    --badge-2x:#1a73e8; --badge-2x-bg:#e8f0fe; --badge-risk:#c5221f; --badge-risk-bg:#fce8e6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --page-bg:#1f1f1f; --page-ink:#bdc1c6; --chrome-bg:#2d2e30; --chrome-border:#3c4043; }
+  }
+  :root[data-theme="dark"]{ --page-bg:#1f1f1f; --page-ink:#bdc1c6; --chrome-bg:#2d2e30; --chrome-border:#3c4043; }
+  :root[data-theme="light"]{ --page-bg:#e8eaed; --page-ink:#3c4043; --chrome-bg:#ffffff; --chrome-border:#dadce0; }
+
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);font-family:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;}
+  .stage{position:fixed;inset:0 0 46px 0;display:flex;overflow:auto;padding:14px;box-sizing:border-box;}
+  .frame{width:1280px;height:720px;position:relative;margin:auto;flex:none;}
+
+  .slide{position:absolute;inset:0;background:#fff;color:var(--ink);border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,.18);padding:52px 64px 56px;box-sizing:border-box;
+    display:none;flex-direction:column;overflow:hidden;}
+  .slide.on{display:flex;}
+  .slide .conf{position:absolute;top:16px;right:24px;font-size:10px;color:#bdc1c6;letter-spacing:.02em;}
+  .slide .gcloud{position:absolute;bottom:18px;right:28px;font-size:14px;color:#5f6368;font-weight:500;}
+  .slide .gcloud .g1{color:#4285f4}.slide .gcloud .g2{color:#ea4335}.slide .gcloud .g3{color:#fbbc04}.slide .gcloud .g4{color:#4285f4}.slide .gcloud .g5{color:#34a853}.slide .gcloud .g6{color:#ea4335}
+
+  h1.t{font-size:30px;font-weight:500;color:var(--ink);margin:0 0 26px;letter-spacing:-.01em;text-wrap:balance;}
+  .sub{font-size:15px;color:var(--ink-2);margin:-18px 0 22px;}
+
+  .checks{display:flex;flex-direction:column;gap:0;margin:6px 0;position:relative;}
+  .checkrow{display:flex;gap:16px;align-items:flex-start;position:relative;padding:9px 0;}
+  .checkrow::before{content:"";position:absolute;left:13px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;}
+  .checkrow:only-child::before{display:none;}
+  .cdot{width:26px;height:26px;border-radius:50%;background:var(--g-blue);flex:0 0 26px;position:relative;z-index:1;}
+  .cdot::after{content:"";position:absolute;left:7px;top:8px;width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .checkrow p{margin:3px 0 0;font-size:16.5px;line-height:1.45;color:var(--ink-2);max-width:960px;}
+  .checkrow p b, .checkrow p strong{color:var(--ink);font-weight:500;}
+
+  .numrows{display:flex;flex-direction:column;gap:8px;max-width:640px;}
+  .numrow{display:flex;align-items:center;gap:0;}
+  .numrow .n{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    font-size:22px;color:var(--ink);width:56px;flex:0 0 56px;font-weight:500;}
+  .numrow.dim .n{color:#bdc1c6;} .numrow.hot .n{color:var(--g-blue-deep);}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:11px 16px;font-size:15.5px;color:var(--ink);}
+  .numrow.dim .body{color:#9aa0a6;background:transparent;border-left-color:var(--line);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  .code{background:var(--panel);border-radius:6px;padding:18px 22px;font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    font-size:13.5px;line-height:1.55;color:var(--ink);white-space:pre;overflow-x:auto;margin:4px 0;}
+  .code b{font-weight:700;} .code .cm{color:#137333;} .code .chg{background:#fef7e0;border-radius:3px;padding:0 3px;}
+  .code.sm{font-size:12.5px;line-height:1.5;}
+  code.i{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;font-size:.92em;background:var(--panel);border-radius:4px;padding:1px 6px;color:var(--ink);}
+
+  .chip{display:inline-block;border:1.5px solid var(--g-blue);color:var(--g-blue-deep);border-radius:18px;
+    padding:6px 18px;font-size:14px;background:#fff;box-shadow:0 1px 3px rgba(66,133,244,.18);white-space:nowrap;}
+  .chipcol{display:flex;flex-direction:column;gap:14px;align-items:flex-start;}
+
+  .bdg{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:2px 7px;vertical-align:2px;margin-left:8px;}
+  .bdg.new{color:var(--badge-new);background:var(--badge-new-bg);}
+  .bdg.chg{color:var(--badge-chg);background:var(--badge-chg-bg);}
+  .bdg.x2{color:var(--badge-2x);background:var(--badge-2x-bg);}
+  .bdg.risk{color:var(--badge-risk);background:var(--badge-risk-bg);}
+  .bdg.dep{color:var(--badge-risk);background:var(--badge-risk-bg);}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .cell h4{margin:0 0 4px;font-size:14.5px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:12px;line-height:1.4;color:var(--ink-2);}
+
+  .cols{display:flex;gap:36px;align-items:flex-start;}
+  .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+
+  table.cmp{border-collapse:collapse;width:100%;font-size:13.5px;}
+  table.cmp th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+    font-weight:600;padding:8px 14px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp code, table.cmp .m{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;font-size:12.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+
+  .divider{justify-content:center;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,monospace;font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;text-wrap:balance;}
+  .divider .dsub{font-size:16px;color:var(--ink-2);margin-top:16px;max-width:480px;line-height:1.5;}
+
+  .labcard{display:flex;gap:20px;align-items:center;background:var(--row);border:1px solid var(--line);border-radius:10px;padding:20px 26px;margin-bottom:20px;}
+  .labcard .flask{width:52px;height:52px;border-radius:50%;background:#e8f0fe;flex:0 0 52px;display:flex;align-items:center;justify-content:center;color:var(--g-blue-deep);font-size:24px;font-weight:700;}
+  .labcard h3{margin:0 0 3px;font-size:19px;font-weight:600;color:var(--ink);}
+  .labcard p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  .drow{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);align-items:flex-start;}
+  .drow:last-child{border-bottom:none;}
+  .dtag{flex:0 0 84px;font-size:10.5px;font-weight:700;letter-spacing:.05em;border-radius:4px;padding:3px 0;text-align:center;margin-top:2px;}
+  .dtag.keep{color:var(--badge-new);background:var(--badge-new-bg);}
+  .dtag.fix{color:var(--badge-chg);background:var(--badge-chg-bg);}
+  .dtag.x2{color:var(--badge-2x);background:var(--badge-2x-bg);}
+  .dtag.risk{color:var(--badge-risk);background:var(--badge-risk-bg);}
+  .drow p{margin:0;font-size:14px;line-height:1.45;color:var(--ink);}
+  .drow p .why{color:var(--ink-2);}
+
+  .note{background:#fef7e0;border-left:4px solid var(--g-yellow);border-radius:0 6px 6px 0;padding:12px 18px;font-size:14px;color:var(--ink);line-height:1.5;margin-top:14px;}
+  .note.blue{background:#e8f0fe;border-left-color:var(--g-blue);}
+  .note.red{background:#fce8e6;border-left-color:var(--g-red);}
+
+  /* agent tree diagram */
+  .tree{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .tnode{border:1.5px solid var(--g-blue);color:var(--ink);border-radius:8px;padding:8px 18px;font-size:13.5px;background:#e8f0fe;font-weight:500;}
+  .tnode.wf{border-color:var(--g-green);background:#e6f4ea;}
+  .tnode.leaf{background:#fff;border-color:var(--line);font-weight:400;}
+  .tkids{display:flex;gap:22px;margin-top:0;}
+  .tv{width:1px;height:18px;background:var(--ink-3);}
+  .tbranch{display:flex;flex-direction:column;align-items:center;}
+
+  /* diagram: absolute-positioned boxes over an SVG arrow layer */
+  .dia{position:relative;}
+  .dia .dbox{position:absolute;border:1.5px solid var(--g-blue);background:#e8f0fe;border-radius:8px;
+    padding:7px 14px;font-size:13px;font-weight:500;color:var(--ink);z-index:2;text-align:center;}
+  .dia .dbox small{display:block;font-weight:400;font-size:10.5px;color:var(--ink-2);}
+  .dia .dlbl{position:absolute;font-size:10.5px;color:var(--ink-2);z-index:2;background:#fff;padding:0 4px;border-radius:3px;white-space:nowrap;}
+  .dia svg{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+
+  /* era strip on hierarchy slide */
+  .eras{display:flex;gap:14px;margin-top:10px;}
+  .era{flex:1;background:var(--row);border:1px solid var(--line);border-radius:8px;padding:11px 14px;}
+  .era h5{margin:0 0 4px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:700;}
+  .era p{margin:0;font-size:12.5px;line-height:1.45;color:var(--ink);}
+
+  /* sequence diagram */
+  .seq{position:relative;background:var(--row);border:1px solid var(--line);border-radius:8px;}
+  .seq .lane{position:absolute;top:38px;bottom:12px;width:1px;background:var(--line);z-index:1;}
+  .seq .lh{position:absolute;top:9px;transform:translateX(-50%);background:#e8f0fe;border:1px solid #c6dafc;
+    border-radius:13px;padding:3px 11px;font-size:11px;color:var(--g-blue-deep);font-weight:600;z-index:3;white-space:nowrap;}
+  .seq .lh.task{background:#e6f4ea;border-color:#ceead6;color:#188038;}
+  .seq .msg{position:absolute;height:0;border-top:1.6px solid #5f6368;z-index:2;}
+  .seq .msg.dash{border-top-style:dashed;}
+  .seq .msg.r::after{content:"";position:absolute;right:-2px;top:-5px;border:4.5px solid transparent;border-left:8px solid #5f6368;}
+  .seq .msg.l::before{content:"";position:absolute;left:-2px;top:-5px;border:4.5px solid transparent;border-right:8px solid #5f6368;}
+  .seq .msg span{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);font-size:10.5px;color:var(--ink);white-space:nowrap;}
+  .seq .loop{position:absolute;border:1.6px solid #5f6368;border-left:none;border-radius:0 8px 8px 0;width:26px;z-index:2;}
+  .seq .loop::after{content:"";position:absolute;left:-2px;bottom:-5px;border:4.5px solid transparent;border-right:8px solid #5f6368;}
+  .seq .loop span{position:absolute;left:32px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--ink);white-space:nowrap;}
+
+  /* controls */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:46px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;box-sizing:border-box;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);
+    color:var(--page-ink);overflow:hidden;white-space:nowrap;}
+  .bar .name{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--page-ink);border-radius:6px;
+    width:32px;height:27px;font-size:14px;cursor:pointer;line-height:1;}
+  .bar button:hover{background:rgba(128,128,128,.12);}
+  .bar button:focus-visible{outline:2px solid var(--g-blue);outline-offset:1px;}
+  .bar .cnt{font-size:12px;font-variant-numeric:tabular-nums;min-width:8ch;text-align:center;}
+  .bar .hint{font-size:11px;color:var(--ink-3);}
+  @media (prefers-reduced-motion: no-preference){ .slide.on{animation:fade .18s ease;} }
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+</style>
+
+<div class="stage"><div class="frame" id="frame">
+
+<!-- 1 : AGENDA -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <div style="display:flex;height:100%;align-items:center;gap:70px;">
+    <div style="flex:0 0 330px;">
+      <div style="position:relative;height:120px;margin-bottom:30px;">
+        <div style="position:absolute;left:30px;top:26px;width:150px;height:34px;border-radius:17px;background:#4285f4;transform:rotate(-18deg);"></div>
+        <div style="position:absolute;left:78px;top:14px;width:52px;height:52px;border-radius:50%;background:#f1f3f4;border:5px solid #5f6368;"></div>
+        <div style="position:absolute;left:190px;top:0;width:70px;height:60px;background:#fbbc04;border-radius:6px;transform:rotate(9deg);"></div>
+      </div>
+      <h1 style="font-size:40px;font-weight:500;margin:0;color:var(--ink);">Agenda</h1>
+    </div>
+    <div class="numrows" style="flex:1;">
+      <div class="numrow plain hot"><div class="n">01</div><div class="body" style="font-weight:600;">Introducing Agent Development Kit</div></div>
+      <div class="numrow plain"><div class="n">02</div><div class="body">Develop agents with ADK</div></div>
+      <div class="numrow plain"><div class="n">03</div><div class="body">Build multi-agent systems with ADK</div></div>
+      <div class="numrow plain"><div class="n">04</div><div class="body">Deploy ADK agents to Agent Runtime</div></div>
+      <div class="numrow plain"><div class="n">05</div><div class="body">Evaluate ADK agent systems</div></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 2 : SECTION DIVIDER -->
+<section class="slide divider">
+  <div class="conf">Proprietary + Confidential</div>
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">01</div><div class="sh red"></div></div>
+    <div>
+      <h1>Introducing Agent<br>Development Kit</h1>
+      <div class="dsub">Updated for the ADK 2.x era &mdash; validated against <b>google-adk 2.4.0</b> (July 2026). This module positions ADK in the Google Cloud agent landscape and inventories what the framework includes today.</div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 3 : OBJECTIVES -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Module objectives</h1>
+  <div class="numrows" style="max-width:780px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Describe what AI agents are and the kinds of work they take on.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Compare the ways to build agents on Google Cloud.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Position ADK on the ease-versus-flexibility spectrum.</div></div>
+    <div class="numrow"><div class="n">04</div><div class="body">Identify what ADK includes in the 2.x era. <span class="bdg x2">2.x</span></div></div>
+    <div class="numrow"><div class="n">05</div><div class="body">Know where ADK agents run and where to learn more.</div></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 4 : WHY AI AGENTS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Why AI agents?</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p>Generative AI has moved from <b>answering questions</b> to <b>completing tasks</b>: an agent pairs a model with instructions and tools, then reasons and acts toward a goal across multiple steps.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Customer agents</b> handle external conversations (support, commerce, booking); <b>employee agents</b> boost internal productivity over a company's own processes and knowledge.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Creative agents</b> assist with content and design; <b>data agents</b> query, analyze, and summarize; <b>code agents</b> write, review, and fix software.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Security agents</b> triage alerts and investigate threats faster than humans can read logs.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Every category is built from the same ingredients &mdash; models, tools, orchestration, evaluation, deployment &mdash; which is exactly the inventory this course teaches with ADK.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 5 : FOUR WAYS TO BUILD -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Four ways to build agents on Google Cloud</h1>
+  <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:16px;">
+    <div class="cell" style="padding:18px 22px;">
+      <h4 style="font-size:16.5px;">Conversational Agents</h4>
+      <p style="font-size:13.5px;">External-facing virtual agents for customer channels, with built-in <b>telephony</b> and contact-center integration. Low-code design, deterministic flows where compliance demands them.</p>
+    </div>
+    <div class="cell" style="padding:18px 22px;">
+      <h4 style="font-size:16.5px;">Gemini Enterprise</h4>
+      <p style="font-size:13.5px;">An out-of-the-box assistant and agent platform over your organization's <b>internal knowledge</b> &mdash; connect data sources, configure agents, no code required.</p>
+    </div>
+    <div class="cell" style="padding:18px 22px;">
+      <h4 style="font-size:16.5px;">Open-source frameworks, or from scratch</h4>
+      <p style="font-size:13.5px;">Bring LangChain, LangGraph, CrewAI, or hand-written code against the model APIs &mdash; and deploy the result to <b>Agent Runtime</b>, which is framework-agnostic.</p>
+    </div>
+    <div class="cell" style="padding:18px 22px;border-color:var(--g-blue);background:#e8f0fe;">
+      <h4 style="font-size:16.5px;">ADK + Agent Runtime <span class="bdg x2">THIS COURSE</span></h4>
+      <p style="font-size:13.5px;">Google's open-source, <b>code-first</b> framework for developing, evaluating, and deploying multi-agent systems &mdash; paired with a managed runtime built for it.</p>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 6 : EASE VS FLEXIBILITY -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Ease of use vs. flexibility: where ADK sits</h1>
+  <table class="cmp" style="max-width:1100px;">
+    <tr><th>Approach</th><th>What you work with</th><th>Trade-off</th></tr>
+    <tr><td>Build your own</td><td>Direct model APIs and <b>function calling</b>; you write the reasoning loop, tool dispatch, and state handling</td><td>Maximum flexibility, maximum effort &mdash; you own every line</td></tr>
+    <tr><td>Low-level orchestration frameworks</td><td>LangChain, GenKit &mdash; primitives for chaining model calls and tools</td><td>Flexible building blocks, but the agent behavior is still hand-assembled</td></tr>
+    <tr><td><b>Agent frameworks</b></td><td><b>ADK</b> &mdash; agents, tools, orchestration, evaluation, and deployment as first-class concepts. Peers: CrewAI, LangGraph, AG2</td><td>The balance point: <b>deterministic control</b> where you need it, convenience everywhere else</td></tr>
+    <tr><td>Agent solutions</td><td>Gemini Enterprise, Conversational Agents &mdash; configure rather than code</td><td>Fastest to value, least room to customize</td></tr>
+  </table>
+  <div class="note blue">This landscape chart survives from the 1.x course unchanged &mdash; what changed is ADK's differentiator list, which now leads with the <b>Workflow graph engine</b>, the <b>Task API</b>, and <b>pause/resume</b>.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 7 : WHAT IS ADK -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What is Agent Development Kit? <span class="bdg chg">POSITIONING CORRECTED</span></h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p>An <b>open-source, code-first framework</b> for developing, evaluating, and deploying AI agents. The previous deck called it "a client-side, Python SDK" &mdash; retire that line.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Multi-language:</b> Python, Go, Java, Kotlin, and TypeScript. Python remains the flagship and is what this course uses.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Since 2.0, ADK describes itself as built on <b>two main classes</b>: <code class="i">Agent</code> (an LLM that reasons and uses tools) and <code class="i">Workflow</code> (a deterministic graph that orchestrates). <span class="bdg new">NEW IN 2.0</span></p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Documentation moved to <b>adk.dev</b> (from google.github.io/adk-docs) &mdash; multi-language docs, one home.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Releases ship on a roughly <b>bi-weekly cadence</b>; a maintained 1.x line exists for teams not ready to migrate: <code class="i">pip install "google-adk~=1.0"</code>.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 8 : WHAT ADK INCLUDES - CLASSICS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What does ADK include? The classics</h1>
+  <p class="sub" style="margin:-18px 0 20px;">Everything the original slide listed still belongs &mdash; all eight carry into 2.x.</p>
+  <div class="grid">
+    <div class="cell"><h4>Multi-agent systems</h4><p>Hierarchical agent teams: parents, sub-agents, and LLM-driven transfer between them.</p></div>
+    <div class="cell"><h4>Tools</h4><p>Prebuilt (Google Search, code execution), custom Python functions, and community integrations (MCP, LangChain).</p></div>
+    <div class="cell"><h4>Evaluation</h4><p>Assess final responses and step-by-step tool trajectories against saved test cases.</p></div>
+    <div class="cell"><h4>Local Dev UI</h4><p><code class="i">adk web</code> &mdash; a browser UI for chatting with agents, with debugging and trace views built in.</p></div>
+    <div class="cell"><h4>Callbacks</h4><p>Hooks before and after agent, model, and tool execution for validation and guardrails.</p></div>
+    <div class="cell"><h4>Sessions, state &amp; memory</h4><p>Conversation history, working state shared between agents, and long-term memory services.</p></div>
+    <div class="cell"><h4>Artifacts</h4><p>Named, versioned files (documents, images) that agents and tools save and load.</p></div>
+    <div class="cell"><h4>Managed deployment</h4><p>Ship the same agent to <b>Agent Runtime</b>, Cloud Run, or GKE with <code class="i">adk deploy</code>.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 9 : WHAT ADK INCLUDES - MODERN 1 -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What does ADK include? The 2.x-era additions (1 of 2)</h1>
+  <p class="sub" style="margin:-18px 0 20px;">Badge shows when each capability shipped. Blue = new in 2.x; amber = arrived during 1.x, after the original course was written.</p>
+  <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:14px;">
+    <div class="cell" style="padding:16px 18px;"><h4>Workflow graph engine <span class="bdg x2">2.0</span></h4><p style="font-size:12.5px;">A <code class="i">Workflow</code> is a directed graph of nodes (agents, functions, tools, nested workflows); edges express sequence, fan-out, and routing. Replaces the deprecated <b>SequentialAgent</b> / <b>ParallelAgent</b> / <b>LoopAgent</b> trio &mdash; the headline of 2.0.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Collaboration modes (Task API) <span class="bdg x2">2.0</span></h4><p style="font-size:12.5px;">Agents gain a <code class="i">mode</code>: <b>chat</b>, <b>task</b> (runs to completion, validates output, auto-returns to the parent), or <b>single_turn</b>. The first-class answer to "delegate a bounded job to a sub-agent."</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Pause/resume &amp; HITL <span class="bdg chg">1.16 &rarr; 2.0</span></h4><p style="font-size:12.5px;">Interrupt an invocation (approval gates, <code class="i">request_input</code>) and resume it later, surviving restarts. Deterministic <i>workflow</i> resume deepened in 2.0.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Plugins <span class="bdg chg">1.x</span></h4><p style="font-size:12.5px;">Cross-cutting behavior packaged once on the <code class="i">App</code> container instead of callback-by-callback: 16 hook points for logging, retries, quota fallbacks, and analytics.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Context caching <span class="bdg chg">1.15</span></h4><p style="font-size:12.5px;">Opt-in Gemini caching of the static request prefix (instruction, tool declarations) &mdash; a cost and latency lever for agents with large prompts.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Events compaction <span class="bdg chg">1.16</span></h4><p style="font-size:12.5px;">Automatic LLM summarization of older conversation events, keeping long-running sessions inside the context window.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 10 : WHAT ADK INCLUDES - MODERN 2 -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What does ADK include? The 2.x-era additions (2 of 2)</h1>
+  <div class="grid" style="grid-template-columns:repeat(2,1fr);gap:14px;">
+    <div class="cell" style="padding:16px 18px;"><h4>Skills <span class="bdg chg">1.25 &middot; EXPERIMENTAL</span></h4><p style="font-size:12.5px;">Reusable packets of procedural knowledge in the <b>SKILL.md</b> format, activated on demand via <code class="i">SkillToolset</code> &mdash; plus a Google Cloud Skill Registry for sharing across teams.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Environments &amp; computer use <span class="bdg chg">1.27&ndash;1.29</span> <span class="bdg x2">SANDBOXES 2.3/2.4</span></h4><p style="font-size:12.5px;">Agents get a workspace: bash and file tools over a local or remote sandbox (<b>E2B</b> in 2.3, <b>Daytona</b> in 2.4, Agent Engine Sandbox), and a browser/GUI toolset via Gemini computer use.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Prompt optimization <span class="bdg chg">1.18&ndash;1.20</span></h4><p style="font-size:12.5px;"><code class="i">adk optimize</code> &mdash; GEPA-based automatic instruction tuning: iteratively rewrites an agent's instruction using an eval set as the fitness function.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Conformance testing <span class="bdg chg">1.19</span></h4><p style="font-size:12.5px;"><code class="i">adk conformance record</code> captures real runs as YAML test cases; <code class="i">adk conformance test</code> replays them deterministically to catch regressions without live LLM calls.</p></div>
+  </div>
+  <div class="note"><b>Teach the vintages honestly:</b> of these ten additions, only the <b>Workflow engine</b> and the <b>Task API</b> are genuinely new in 2.x. The rest shipped during later 1.x &mdash; frame them as "new relative to this course," not "new in 2.0."</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 11 : WHERE ADK AGENTS RUN -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Where do ADK agents run?</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Agent Runtime</b> &mdash; the fully managed runtime, part of the <b>Google Cloud Agent Platform</b> (formerly Vertex AI Agent Engine). This is the deployment target Module 4 covers in depth.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Managed <b>sessions</b>, <b>memory</b>, and a console <b>UI</b> (Playground, Traces, Sessions, Evaluation tabs) have now shipped &mdash; the old "coming soon" claims are stale.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Anywhere containers run: <b>Cloud Run</b> and <b>GKE</b> are first-class targets via <code class="i">adk deploy cloud_run</code> and <code class="i">adk deploy gke</code> &mdash; or run locally during development with <code class="i">adk web</code>.</p></div>
+  </div>
+  <div class="note blue"><b>Tell students explicitly:</b> the marketing name and the API surface disagree. The CLI command is still <code class="i">adk deploy agent_engine</code>, and deployed resource names still read <b>.../reasoningEngines/NNNN</b>. Students will hit both old names the first time they deploy.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 12 : MODELS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Which models can ADK agents use?</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Where</th><th>Model support</th><th>Notes</th></tr>
+    <tr><td>ADK default</td><td><span class="m">gemini-3.5-flash</span></td><td>The <span class="m">LlmAgent</span> default when no model is set</td></tr>
+    <tr><td>Quickstart docs</td><td><span class="m">gemini-flash-latest</span></td><td>A floating alias &mdash; tracks the current flash model</td></tr>
+    <tr><td>Other providers, native</td><td>Claude (Anthropic), OpenAI, Gemma</td><td>OpenAI support (<span class="m">OpenAILlm</span>, Responses API) became native in 2.4</td></tr>
+    <tr><td>Everything else</td><td>LiteLLM adapter</td><td>Any LiteLLM-supported model plugs in via the <b>Base LLM interface</b></td></tr>
+  </table>
+  <div class="note red"><b>Warning:</b> the <b>gemini-2.5</b> model family shuts down in <b>October 2026</b>. Any gemini-2.0 or gemini-2.5 string still sitting in lab code or shipped <code class="i">.env</code> files is a time bomb &mdash; check yours before delivery.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 13 : LEARN MORE -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Where to learn more</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>adk.dev</b> &mdash; the documentation home for all five languages. It also publishes <code class="i">llms.txt</code>, so AI coding assistants can consume the docs directly.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>adk.dev/2.0</b> &mdash; the "what's new in 2.0" page: the Workflow engine, the Task API, and the migration story in one place.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>github.com/google/adk-python</b> &mdash; source, issues, and the release notes that track the bi-weekly cadence. Watch releases to stay ahead of deprecations.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 14 : RECAP -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What changed in this module vs. the previous deck</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Previous deck taught</th><th>This deck teaches</th><th>Why</th></tr>
+    <tr><td>"A client-side, Python SDK"</td><td>Open-source, code-first framework in <b>five languages</b> (Python flagship)</td><td>Positioning was already stale in the 1.x era</td></tr>
+    <tr><td>"What ADK includes": 8 items</td><td>18 capabilities: the 8 classics plus <b>10 additions</b> with vintages</td><td>Most arrived during 1.x; two are 2.x-new</td></tr>
+    <tr><td>Workflow agents in the differentiator list</td><td><b>Workflow graph engine</b> as the headline; the classes are deprecated</td><td>The defining change of ADK 2.0</td></tr>
+    <tr><td>Docs at google.github.io/adk-docs</td><td>Docs at <b>adk.dev</b> (with <span class="m">llms.txt</span>)</td><td>Docs moved in the 2.0 era</td></tr>
+    <tr><td>gemini-2.x era model guidance</td><td><span class="m">gemini-3.5-flash</span> default; <b>gemini-2.5 EOL October 2026</b></td><td>Old model strings stop working this fall</td></tr>
+  </table>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+</div></div>
+
+<div class="bar">
+  <div class="name">Agent Development Kit &middot; Module 1: Introducing ADK &middot; updated for ADK 2.x</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous slide">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next slide">&#8594;</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; F fullscreen &middot; Ctrl/Cmd &plusmn; zoom</div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, cnt = document.getElementById('cnt');
+  function clamp(n){ return Math.max(0, Math.min(slides.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    slides.forEach(function(s,k){ s.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + slides.length;
+    if (history.replaceState) history.replaceState(null,'','#'+(i+1));
+  }
+  // Scale is computed against the UNZOOMED viewport (approximated via the
+  // devicePixelRatio measured at load), so browser zoom genuinely enlarges
+  // the slide; the stage scrolls when the zoomed slide overflows.
+  var baseDPR = window.devicePixelRatio || 1;
+  var supportsZoom = ('zoom' in document.documentElement.style);
+  function fit(){
+    var f = document.getElementById('frame');
+    var z = (window.devicePixelRatio || 1) / baseDPR;
+    var availW = (window.innerWidth - 44) * z;
+    var availH = (window.innerHeight - 46 - 44) * z;
+    var s = Math.min(availW/1280, availH/720);
+    if (supportsZoom) { f.style.zoom = s; }
+    else { f.style.transformOrigin = 'top left'; f.style.transform = 'scale(' + s + ')'; }
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') show(0);
+    else if (e.key==='End') show(slides.length-1);
+    else if (e.key==='f'||e.key==='F'){
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    }
+  });
+  window.addEventListener('resize', fit);
+  var h = parseInt((location.hash||'').replace('#',''),10);
+  show(isNaN(h) ? 0 : h-1);
+  fit();
+})();
+</script>
+</body>
+</html>

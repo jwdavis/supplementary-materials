@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>Module 4 — Deploy ADK Agents to Agent Runtime (2.x)</title>
+<style>
+  :root{
+    --page-bg:#e8eaed; --page-ink:#3c4043; --chrome-bg:#ffffff; --chrome-border:#dadce0;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-yellow:#fbbc04; --g-green:#34a853;
+    --ink:#202124; --ink-2:#5f6368; --ink-3:#80868b; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --badge-new:#188038; --badge-new-bg:#e6f4ea; --badge-chg:#b06000; --badge-chg-bg:#fef7e0;
+    --badge-2x:#1a73e8; --badge-2x-bg:#e8f0fe; --badge-risk:#c5221f; --badge-risk-bg:#fce8e6;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --page-bg:#1f1f1f; --page-ink:#bdc1c6; --chrome-bg:#2d2e30; --chrome-border:#3c4043; }
+  }
+  :root[data-theme="dark"]{ --page-bg:#1f1f1f; --page-ink:#bdc1c6; --chrome-bg:#2d2e30; --chrome-border:#3c4043; }
+  :root[data-theme="light"]{ --page-bg:#e8eaed; --page-ink:#3c4043; --chrome-bg:#ffffff; --chrome-border:#dadce0; }
+
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);font-family:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden;}
+  .stage{position:fixed;inset:0 0 46px 0;display:flex;overflow:auto;padding:14px;box-sizing:border-box;}
+  .frame{width:1280px;height:720px;position:relative;margin:auto;flex:none;}
+
+  .slide{position:absolute;inset:0;background:#fff;color:var(--ink);border-radius:8px;
+    box-shadow:0 2px 10px rgba(0,0,0,.18);padding:52px 64px 56px;box-sizing:border-box;
+    display:none;flex-direction:column;overflow:hidden;}
+  .slide.on{display:flex;}
+  .slide .conf{position:absolute;top:16px;right:24px;font-size:10px;color:#bdc1c6;letter-spacing:.02em;}
+  .slide .gcloud{position:absolute;bottom:18px;right:28px;font-size:14px;color:#5f6368;font-weight:500;}
+  .slide .gcloud .g1{color:#4285f4}.slide .gcloud .g2{color:#ea4335}.slide .gcloud .g3{color:#fbbc04}.slide .gcloud .g4{color:#4285f4}.slide .gcloud .g5{color:#34a853}.slide .gcloud .g6{color:#ea4335}
+
+  h1.t{font-size:30px;font-weight:500;color:var(--ink);margin:0 0 26px;letter-spacing:-.01em;text-wrap:balance;}
+  .sub{font-size:15px;color:var(--ink-2);margin:-18px 0 22px;}
+
+  .checks{display:flex;flex-direction:column;gap:0;margin:6px 0;position:relative;}
+  .checkrow{display:flex;gap:16px;align-items:flex-start;position:relative;padding:9px 0;}
+  .checkrow::before{content:"";position:absolute;left:13px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;}
+  .checkrow:only-child::before{display:none;}
+  .cdot{width:26px;height:26px;border-radius:50%;background:var(--g-blue);flex:0 0 26px;position:relative;z-index:1;}
+  .cdot::after{content:"";position:absolute;left:7px;top:8px;width:9px;height:5px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .checkrow p{margin:3px 0 0;font-size:16.5px;line-height:1.45;color:var(--ink-2);max-width:960px;}
+  .checkrow p b, .checkrow p strong{color:var(--ink);font-weight:500;}
+
+  .numrows{display:flex;flex-direction:column;gap:8px;max-width:640px;}
+  .numrow{display:flex;align-items:center;gap:0;}
+  .numrow .n{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    font-size:22px;color:var(--ink);width:56px;flex:0 0 56px;font-weight:500;}
+  .numrow.dim .n{color:#bdc1c6;} .numrow.hot .n{color:var(--g-blue-deep);}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:11px 16px;font-size:15.5px;color:var(--ink);}
+  .numrow.dim .body{color:#9aa0a6;background:transparent;border-left-color:var(--line);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  .code{background:var(--panel);border-radius:6px;padding:18px 22px;font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    font-size:13.5px;line-height:1.55;color:var(--ink);white-space:pre;overflow-x:auto;margin:4px 0;}
+  .code b{font-weight:700;} .code .cm{color:#137333;} .code .chg{background:#fef7e0;border-radius:3px;padding:0 3px;}
+  .code.sm{font-size:12.5px;line-height:1.5;}
+  code.i{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;font-size:.92em;background:var(--panel);border-radius:4px;padding:1px 6px;color:var(--ink);}
+
+  .chip{display:inline-block;border:1.5px solid var(--g-blue);color:var(--g-blue-deep);border-radius:18px;
+    padding:6px 18px;font-size:14px;background:#fff;box-shadow:0 1px 3px rgba(66,133,244,.18);white-space:nowrap;}
+  .chipcol{display:flex;flex-direction:column;gap:14px;align-items:flex-start;}
+
+  .bdg{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:2px 7px;vertical-align:2px;margin-left:8px;}
+  .bdg.new{color:var(--badge-new);background:var(--badge-new-bg);}
+  .bdg.chg{color:var(--badge-chg);background:var(--badge-chg-bg);}
+  .bdg.x2{color:var(--badge-2x);background:var(--badge-2x-bg);}
+  .bdg.risk{color:var(--badge-risk);background:var(--badge-risk-bg);}
+  .bdg.dep{color:var(--badge-risk);background:var(--badge-risk-bg);}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:13px 15px;}
+  .cell h4{margin:0 0 4px;font-size:14.5px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:12px;line-height:1.4;color:var(--ink-2);}
+
+  .cols{display:flex;gap:36px;align-items:flex-start;}
+  .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+
+  table.cmp{border-collapse:collapse;width:100%;font-size:13.5px;}
+  table.cmp th{text-align:left;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+    font-weight:600;padding:8px 14px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 14px;border-bottom:1px solid var(--line);color:var(--ink);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp code, table.cmp .m{font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;font-size:12.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+
+  .divider{justify-content:center;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;
+    display:flex;align-items:center;justify-content:center;color:#fff;font-family:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,monospace;font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;text-wrap:balance;}
+  .divider .dsub{font-size:16px;color:var(--ink-2);margin-top:16px;max-width:480px;line-height:1.5;}
+
+  .labcard{display:flex;gap:20px;align-items:center;background:var(--row);border:1px solid var(--line);border-radius:10px;padding:20px 26px;margin-bottom:20px;}
+  .labcard .flask{width:52px;height:52px;border-radius:50%;background:#e8f0fe;flex:0 0 52px;display:flex;align-items:center;justify-content:center;color:var(--g-blue-deep);font-size:24px;font-weight:700;}
+  .labcard h3{margin:0 0 3px;font-size:19px;font-weight:600;color:var(--ink);}
+  .labcard p{margin:0;font-size:13.5px;color:var(--ink-2);}
+
+  .drow{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--line);align-items:flex-start;}
+  .drow:last-child{border-bottom:none;}
+  .dtag{flex:0 0 84px;font-size:10.5px;font-weight:700;letter-spacing:.05em;border-radius:4px;padding:3px 0;text-align:center;margin-top:2px;}
+  .dtag.keep{color:var(--badge-new);background:var(--badge-new-bg);}
+  .dtag.fix{color:var(--badge-chg);background:var(--badge-chg-bg);}
+  .dtag.x2{color:var(--badge-2x);background:var(--badge-2x-bg);}
+  .dtag.risk{color:var(--badge-risk);background:var(--badge-risk-bg);}
+  .drow p{margin:0;font-size:14px;line-height:1.45;color:var(--ink);}
+  .drow p .why{color:var(--ink-2);}
+
+  .note{background:#fef7e0;border-left:4px solid var(--g-yellow);border-radius:0 6px 6px 0;padding:12px 18px;font-size:14px;color:var(--ink);line-height:1.5;margin-top:14px;}
+  .note.blue{background:#e8f0fe;border-left-color:var(--g-blue);}
+  .note.red{background:#fce8e6;border-left-color:var(--g-red);}
+
+  /* agent tree diagram */
+  .tree{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .tnode{border:1.5px solid var(--g-blue);color:var(--ink);border-radius:8px;padding:8px 18px;font-size:13.5px;background:#e8f0fe;font-weight:500;}
+  .tnode.wf{border-color:var(--g-green);background:#e6f4ea;}
+  .tnode.leaf{background:#fff;border-color:var(--line);font-weight:400;}
+  .tkids{display:flex;gap:22px;margin-top:0;}
+  .tv{width:1px;height:18px;background:var(--ink-3);}
+  .tbranch{display:flex;flex-direction:column;align-items:center;}
+
+  /* diagram: absolute-positioned boxes over an SVG arrow layer */
+  .dia{position:relative;}
+  .dia .dbox{position:absolute;border:1.5px solid var(--g-blue);background:#e8f0fe;border-radius:8px;
+    padding:7px 14px;font-size:13px;font-weight:500;color:var(--ink);z-index:2;text-align:center;}
+  .dia .dbox small{display:block;font-weight:400;font-size:10.5px;color:var(--ink-2);}
+  .dia .dlbl{position:absolute;font-size:10.5px;color:var(--ink-2);z-index:2;background:#fff;padding:0 4px;border-radius:3px;white-space:nowrap;}
+  .dia svg{position:absolute;inset:0;width:100%;height:100%;z-index:1;}
+
+  /* era strip on hierarchy slide */
+  .eras{display:flex;gap:14px;margin-top:10px;}
+  .era{flex:1;background:var(--row);border:1px solid var(--line);border-radius:8px;padding:11px 14px;}
+  .era h5{margin:0 0 4px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:700;}
+  .era p{margin:0;font-size:12.5px;line-height:1.45;color:var(--ink);}
+
+  /* sequence diagram */
+  .seq{position:relative;background:var(--row);border:1px solid var(--line);border-radius:8px;}
+  .seq .lane{position:absolute;top:38px;bottom:12px;width:1px;background:var(--line);z-index:1;}
+  .seq .lh{position:absolute;top:9px;transform:translateX(-50%);background:#e8f0fe;border:1px solid #c6dafc;
+    border-radius:13px;padding:3px 11px;font-size:11px;color:var(--g-blue-deep);font-weight:600;z-index:3;white-space:nowrap;}
+  .seq .lh.task{background:#e6f4ea;border-color:#ceead6;color:#188038;}
+  .seq .msg{position:absolute;height:0;border-top:1.6px solid #5f6368;z-index:2;}
+  .seq .msg.dash{border-top-style:dashed;}
+  .seq .msg.r::after{content:"";position:absolute;right:-2px;top:-5px;border:4.5px solid transparent;border-left:8px solid #5f6368;}
+  .seq .msg.l::before{content:"";position:absolute;left:-2px;top:-5px;border:4.5px solid transparent;border-right:8px solid #5f6368;}
+  .seq .msg span{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);font-size:10.5px;color:var(--ink);white-space:nowrap;}
+  .seq .loop{position:absolute;border:1.6px solid #5f6368;border-left:none;border-radius:0 8px 8px 0;width:26px;z-index:2;}
+  .seq .loop::after{content:"";position:absolute;left:-2px;bottom:-5px;border:4.5px solid transparent;border-right:8px solid #5f6368;}
+  .seq .loop span{position:absolute;left:32px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--ink);white-space:nowrap;}
+
+  /* controls */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:46px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px;box-sizing:border-box;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);
+    color:var(--page-ink);overflow:hidden;white-space:nowrap;}
+  .bar .name{font-size:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--page-ink);border-radius:6px;
+    width:32px;height:27px;font-size:14px;cursor:pointer;line-height:1;}
+  .bar button:hover{background:rgba(128,128,128,.12);}
+  .bar button:focus-visible{outline:2px solid var(--g-blue);outline-offset:1px;}
+  .bar .cnt{font-size:12px;font-variant-numeric:tabular-nums;min-width:8ch;text-align:center;}
+  .bar .hint{font-size:11px;color:var(--ink-3);}
+  @media (prefers-reduced-motion: no-preference){ .slide.on{animation:fade .18s ease;} }
+  @keyframes fade{from{opacity:.4}to{opacity:1}}
+</style>
+
+<div class="stage"><div class="frame" id="frame">
+
+<!-- 1 : AGENDA -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <div style="display:flex;height:100%;align-items:center;gap:70px;">
+    <div style="flex:0 0 330px;">
+      <div style="position:relative;height:120px;margin-bottom:30px;">
+        <div style="position:absolute;left:30px;top:26px;width:150px;height:34px;border-radius:17px;background:#4285f4;transform:rotate(-18deg);"></div>
+        <div style="position:absolute;left:78px;top:14px;width:52px;height:52px;border-radius:50%;background:#f1f3f4;border:5px solid #5f6368;"></div>
+        <div style="position:absolute;left:190px;top:0;width:70px;height:60px;background:#fbbc04;border-radius:6px;transform:rotate(9deg);"></div>
+      </div>
+      <h1 style="font-size:40px;font-weight:500;margin:0;color:var(--ink);">Agenda</h1>
+    </div>
+    <div class="numrows" style="flex:1;">
+      <div class="numrow plain dim"><div class="n">01</div><div class="body">Introducing Agent Development Kit</div></div>
+      <div class="numrow plain dim"><div class="n">02</div><div class="body">Develop agents with ADK</div></div>
+      <div class="numrow plain dim"><div class="n">03</div><div class="body">Build multi-agent systems with ADK</div></div>
+      <div class="numrow plain hot"><div class="n">04</div><div class="body" style="font-weight:600;">Deploy ADK agents to Agent Runtime</div></div>
+      <div class="numrow plain"><div class="n">05</div><div class="body">Evaluate ADK agent systems</div></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 2 : SECTION DIVIDER -->
+<section class="slide divider">
+  <div class="conf">Proprietary + Confidential</div>
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">04</div><div class="sh red"></div></div>
+    <div>
+      <h1>Deploy ADK agents<br>to Agent Runtime</h1>
+      <div class="dsub">Updated for the ADK 2.x era &mdash; validated against <b>google-adk 2.4.0</b> (July 2026). The deploy story is where the previous deck was most out of date: it deployed a <b>LangChain</b> agent through the SDK. This deck teaches the <code class="i">adk deploy</code> flow the lab already uses.</div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 3 : OBJECTIVES -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Module objectives</h1>
+  <div class="numrows" style="max-width:780px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Describe Agent Runtime and its place in <b>Google Cloud Agent Platform</b>.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Prepare an ADK agent project for deployment: requirements and environment.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Deploy an agent with <code class="i">adk deploy agent_engine</code>.</div></div>
+    <div class="numrow"><div class="n">04</div><div class="body">Query and manage a deployed agent from the Vertex AI SDK and the console.</div></div>
+    <div class="numrow"><div class="n">05</div><div class="body">Understand how sessions behave in production vs. local development.</div></div>
+    <div class="numrow"><div class="n">06</div><div class="body">Know the modern deploy options: API-key deploys, redeploys, triggers. <span class="bdg x2">2.x</span></div></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 4 : WHAT IS AGENT RUNTIME -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What is Agent Runtime?</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>A managed runtime for agents in production:</b> deploy, run, and scale agentic applications without provisioning servers or building your own API layer.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Part of <b>Google Cloud Agent Platform</b> (formerly <b>Vertex AI Agent Engine</b>) &mdash; the umbrella that also holds the console tooling, evaluation, and managed agents.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Fully managed infrastructure:</b> autoscaling, authenticated endpoints, IAM integration, and VPC Service Controls support.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Framework-agnostic:</b> ADK is the first-party path, but LangGraph, LangChain, CrewAI, and custom Python agents deploy to the same runtime.</p></div>
+  </div>
+  <div class="note blue"><b>Three names, one service &mdash; teach this explicitly.</b> The docs and console say <b>Agent Runtime</b>; the CLI command is still <code class="i">adk deploy agent_engine</code>; and the underlying resources are still named <b>projects/*/locations/*/reasoningEngines/*</b>. Students will meet all three within ten minutes of the lab.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 5 : WHAT YOU GET -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What you get when you deploy</h1>
+  <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:14px;">
+    <div class="cell" style="padding:16px 18px;"><h4>Scalable deployment + API</h4><p style="font-size:12.5px;">Your agent becomes an autoscaled, authenticated endpoint. Query it from any client via the SDK or REST &mdash; no serving code to write.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Managed sessions &amp; memory <span class="bdg new">SHIPPED</span></h4><p style="font-size:12.5px;">Persistent multi-turn state with zero configuration. The old deck listed this as "coming soon" &mdash; it shipped, including session TTL (2.4).</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Console UI</h4><p style="font-size:12.5px;">Each deployed agent gets a dashboard: <b>Playground</b> to converse, plus <b>Traces</b>, <b>Sessions</b>, and <b>Evaluation</b> tabs.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Observability</h4><p style="font-size:12.5px;">Integrated with Cloud Trace, Cloud Logging, and Cloud Monitoring; OpenTelemetry export via <code class="i">--otel_to_cloud</code>.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Evaluation integration</h4><p style="font-size:12.5px;">Run evaluations against the deployed agent from the console &mdash; same service, production traffic shapes.</p></div>
+    <div class="cell" style="padding:16px 18px;"><h4>Event-driven triggers <span class="bdg x2">2.x</span></h4><p style="font-size:12.5px;">Invoke deployed agents from Pub/Sub or Eventarc via <code class="i">--trigger_sources</code> &mdash; agents as event handlers, not just chat endpoints.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 6 : ADK DEPLOY OVERVIEW -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">One CLI, three targets: <code class="i">adk deploy</code></h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Target</th><th>What it gives you</th><th>Notable flags</th></tr>
+    <tr><td><span class="m">adk deploy agent_engine</span></td><td>The fully managed path: Agent Runtime hosts, scales, and sessions your agent. This module's focus and the lab's flow.</td><td><span class="m">--staging_bucket</span>, <span class="m">--display_name</span>, <span class="m">--agent_engine_id</span>, <span class="m">--api_key</span>, <span class="m">--trigger_sources</span></td></tr>
+    <tr><td><span class="m">adk deploy cloud_run</span></td><td>A container you own on Cloud Run: full control over scaling, networking, and cost knobs.</td><td><span class="m">--a2a</span>, <span class="m">--with_ui</span>, <span class="m">--trigger_sources</span>, <span class="m">--allow_origins</span>, <span class="m">--otel_to_cloud</span></td></tr>
+    <tr><td><span class="m">adk deploy gke</span></td><td>Kubernetes deployment for teams already operating clusters.</td><td><span class="m">--cluster_name</span>, <span class="m">--service_type</span>, <span class="m">--with_ui</span>, <span class="m">--adk_version</span></td></tr>
+  </table>
+  <div class="note blue">Rule of thumb: <b>agent_engine</b> unless you have a reason &mdash; managed sessions, the console tooling, and evaluation come only with the managed runtime. Cloud Run and GKE trade those away for infrastructure control.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 7 : PREPARE THE AGENT -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Prepare the agent for deployment (from the lab)</h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm">adk_to_agent_engine/
+&#9500;&#9472;&#9472; agent_engine_utils.py            <span class="cm"># list/delete helper (later slide)</span>
+&#9500;&#9472;&#9472; requirements.txt                 <span class="cm"># local install</span>
+&#9492;&#9472;&#9472; transcript_summarization_agent/  <span class="cm"># what gets deployed</span>
+    &#9500;&#9472;&#9472; __init__.py                  <span class="cm"># from . import agent</span>
+    &#9500;&#9472;&#9472; agent.py                     <span class="cm"># exports root_agent</span>
+    &#9500;&#9472;&#9472; requirements.txt             <span class="cm"># the agent's own deps</span>
+    &#9492;&#9472;&#9472; .env                         <span class="cm"># project, location, MODEL</span>
+
+<span class="cm"># requirements.txt &mdash; as shipped in the lab today</span>
+google-cloud-aiplatform[agent_engines,adk] == 1.156.0
+cloudpickle == 3.1.2
+fire==0.7.0</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p>The deployable unit is the <b>agent directory</b> &mdash; the same <code class="i">root_agent</code> convention used by <code class="i">adk web</code> and <code class="i">adk run</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>The agent directory carries its <b>own</b> <code class="i">requirements.txt</code>: that file defines what the runtime installs on the server side.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>The <code class="i">.env</code> travels with the agent, so the deployed copy knows its project, location, and model.</p></div>
+    </div>
+  </div>
+  <div class="note"><b>Watch the <code class="i">[adk]</code> extra.</b> It declares <b>google-adk&gt;=1.0,&lt;2.0</b>: a fresh install resolves the newest 1.x (1.36.1 as of July 2026) and <b>floats</b> as 1.x patches land. Pin <code class="i">google-adk</code> explicitly for reproducible deploys &mdash; and note that a 2.x deployment can <b>never</b> be reached by bumping aiplatform.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 8 : DEPLOY -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Deploy: one command</h1>
+  <div class="cols c64">
+    <div>
+<div class="code">adk deploy agent_engine transcript_summarization_agent \
+    --display_name "Transcript Summarizer" \
+    --region us-central1 \
+    --staging_bucket gs://PROJECT_ID-bucket
+
+<span class="cm"># ~10 minutes later, from the command output:</span>
+<span class="cm"># AgentEngine created. Resource name:</span>
+<span class="cm">#   projects/430282503153/locations/us-central1/</span>
+<span class="cm">#     reasoningEngines/2902138951282196480</span>
+
+<span class="cm"># To use this AgentEngine in another session:</span>
+agent_engine = vertexai.agent_engines.get(
+    'projects/.../locations/us-central1/reasoningEngines/NNNN')</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>Packages</b> the agent: source, its <code class="i">requirements.txt</code>, and extra dependencies are bundled locally.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Stages</b> the bundle in the Cloud Storage bucket; the service builds containers and spins up HTTP servers.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Creates</b> a <b>reasoningEngines</b> resource &mdash; the handle for querying, updating, and deleting.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><code class="i">--project</code> and <code class="i">--region</code> can load from the agent's <code class="i">.env</code> when present.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 9 : MODERN DEPLOY OPTIONS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Deploy options beyond the basics</h1>
+  <div class="drow"><div class="dtag keep">OPTION</div><p><code class="i">--api_key</code> &mdash; deploy with <b>just an API key</b>, no GCP project, against the Gemini API backend. <span class="why">The fastest path from prototype to hosted endpoint.</span></p></div>
+  <div class="drow"><div class="dtag keep">OPTION</div><p><code class="i">--agent_engine_id</code> &mdash; <b>update-in-place</b>: redeploy onto an existing instance instead of creating a new resource. <span class="why">This is how iteration works in practice; the lab's quiz already asks about it.</span></p></div>
+  <div class="drow"><div class="dtag x2">2.x</div><p><code class="i">--trigger_sources pubsub,eventarc</code> &mdash; exposes <b>/trigger/*</b> endpoints so Pub/Sub messages or Eventarc events invoke the agent. <span class="why">Event-driven and batch invocation, not just request/response.</span></p></div>
+  <div class="drow"><div class="dtag keep">OPTION</div><p><code class="i">--adk_version</code> &mdash; pin which ADK version the managed runtime runs, independent of your local install.</p></div>
+  <div class="drow"><div class="dtag risk">DEPRECATED</div><p><code class="i">--adk_app</code>, <code class="i">--adk_app_object</code>, <code class="i">--absolutize_imports</code> &mdash; the <b>AdkApp wrapper</b> mental model is retired (2.2). <span class="why">Your agent or App deploys directly; there is no wrapper class to explain anymore.</span></p></div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 10 : SESSIONS IN PRODUCTION -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Sessions in production</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Locally</b>, ADK defaults to <code class="i">InMemorySessionService</code>: state vanishes when the process exits. Fine for development, wrong for production.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Deployed apps automatically use</b> <code class="i">VertexAiSessionService</code>: persistent, managed, multi-turn state with zero configuration &mdash; the same agent code gains durable sessions just by being deployed.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Session TTL / expiration</b> arrived in 2.4 &mdash; expire stale sessions instead of accumulating them forever. <span class="bdg x2">2.x</span></p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Clients create and reference sessions explicitly: <code class="i">create_session(user_id=...)</code>, then pass the session ID with each query &mdash; next slide.</p></div>
+  </div>
+  <div class="note"><b>Upgrade awareness:</b> sessions written by ADK 2.0 are readable by <b>1.28 and later only</b>. For database-backed session stores, <code class="i">adk migrate session</code> upgrades stored data &mdash; plan for it when moving a production deployment across the 2.0 line.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 11 : QUERY THE DEPLOYED AGENT -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Query the deployed agent (the lab's query_agent_engine.py)</h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm">import vertexai
+from vertexai import <b>agent_engines</b>
+
+vertexai.init(project=project_id, location="us-central1",
+              staging_bucket=f"gs://{project_id}-bucket")
+
+<span class="cm"># Find the deployed app by display name</span>
+ae_apps = agent_engines.<b>list</b>(
+    filter=f'display_name="Transcript Summarizer"')
+remote_app = next(ae_apps)
+
+<span class="cm"># Sessions are created on the managed service</span>
+remote_session = remote_app.<b>create_session</b>(user_id="u_456")
+
+<span class="cm"># Stream the response as a series of dict events</span>
+for event in remote_app.<b>stream_query</b>(
+        user_id="u_456",
+        session_id=remote_session["id"],
+        message=transcript_to_summarize):
+    for part in event.get("content", {}).get("parts", []):
+        if part.get("text"):
+            print("[remote response]", part["text"])</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>Discovery by display name:</b> <code class="i">agent_engines.list(filter=...)</code> finds the app without hard-coding the resource name.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Remote sessions:</b> <code class="i">create_session</code> runs on the managed session service, not in your process.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Streaming events:</b> <code class="i">stream_query</code> yields plain dicts &mdash; dig out <b>content.parts[].text</b> for the response.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Same agent, new transport: nothing in <code class="i">agent.py</code> changed to go remote.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 12 : CONSOLE TOUR -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">The console: every deployed agent gets a dashboard</h1>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Playground</b> &mdash; converse with the deployed agent directly in the console; the fastest smoke test after a deploy.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Traces</b> &mdash; per-invocation traces of model calls and tool calls, without wiring up your own exporter.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Sessions</b> &mdash; inspect the managed sessions the runtime is storing for each user.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Evaluation</b> &mdash; run evaluations against the deployed agent (Module 5 covers evaluation in depth).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Service Configuration &gt; Deployment details</b> &mdash; where you find the <b>Resource name</b>: <b>projects/PROJECT/locations/REGION/reasoningEngines/ID</b>. You need it for updates and deletion.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 13 : IAM -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">IAM: who is the deployed agent?</h1>
+  <div class="cols c64">
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>By default</b>, the deployed agent runs as a Google-managed service agent: the <b>AI Platform Reasoning Engine Service Agent</b>. This is what the lab uses.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Before the agent can call models, grant that service agent the <b>Agent Platform User</b> role &mdash; the lab does this in the <b>IAM</b> console page. (Service agents are hidden by default: check <b>Include Google-provided role grants</b>.)</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>The identity is configurable:</b> set <code class="i">service_account</code> in the agent config (<code class="i">.agent_engine_config.json</code> or <code class="i">--agent_engine_config_file</code>) to run as a custom service account you own. The deployer needs <code class="i">iam.serviceAccounts.actAs</code> on it.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Why you'd configure it:</b> the default service agent is <b>shared by every agent engine in the project</b> &mdash; granting it BigQuery access grants it to all of them. A per-agent custom service account is the least-privilege pattern for tools that reach other services.</p></div>
+    </div>
+    <div>
+<div class="code sm"><span class="cm"># Default identity (the lab):</span>
+service-PROJECT_NUMBER@
+  gcp-sa-aiplatform-re
+  .iam.gserviceaccount.com
+
+<span class="cm"># Role to grant (from the lab):</span>
+Agent Platform User
+
+<span class="cm"># Custom identity (production):</span>
+<span class="cm"># .agent_engine_config.json</span>
+{"service_account":
+ "my-agent@PROJECT.iam
+  .gserviceaccount.com"}</div>
+      <div class="note blue" style="margin-top:14px;">A deploy that succeeds but returns permission errors on the first query is almost always a missing grant &mdash; on whichever identity the agent runs as.</div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 14 : MANAGE AND CLEAN UP -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:16px;">Manage and clean up from the SDK</h1>
+  <div class="cols c64">
+    <div>
+<div class="code"><span class="cm"># agent_engine_utils.py &mdash; the lab's helper (exposed via fire)</span>
+from vertexai import agent_engines
+
+def list():
+    for agent in agent_engines.<b>list</b>():
+        print(agent.display_name)
+        print(agent.resource_name + "\n")
+
+def delete(resource_name):
+    agent_engines.<b>delete</b>(resource_name, <b>force=True</b>)
+
+<span class="cm"># Usage in the lab:</span>
+<span class="cm">$ python3 agent_engine_utils.py delete \</span>
+<span class="cm">    projects/.../locations/us-central1/reasoningEngines/NNNN</span></div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p>Deletion takes the full <b>resource name</b> &mdash; copy it from <b>Deployment details</b> or from <code class="i">list()</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><code class="i">force=True</code> deletes even with child resources (sessions) attached.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>Deployed agents bill while they exist &mdash; <b>clean up is part of the workflow</b>, not an afterthought.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 15 : BEYOND SELF-MANAGED DEPLOYS -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:14px;">Beyond self-managed deploys (1 of 2): ManagedAgent <span class="bdg x2">NEW IN 2.4</span> <span class="bdg chg">PRE-GA PREVIEW</span></h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm"><span class="cm"># .env — these lines SELECT the Agent Platform (GEAP) backend;</span>
+<span class="cm"># without them, ManagedAgent uses the Gemini API (GEMINI_API_KEY)</span>
+GOOGLE_GENAI_USE_ENTERPRISE=TRUE
+GOOGLE_CLOUD_PROJECT=my-project
+GOOGLE_CLOUD_LOCATION=global   <span class="cm"># Managed Agents API is global-only</span>
+
+<span class="cm"># agent.py — a local PROXY to Google's hosted agent</span>
+from google.adk.agents import <b>ManagedAgent</b>
+from google.adk.tools import google_search
+
+managed_search = ManagedAgent(
+    name="managed_search",
+    description="Answers questions needing fresh web data.",
+    <b>agent_id</b>="antigravity-preview-05-2026",  <span class="cm"># the only agent</span>
+    <b>environment</b>={"type": "remote"},          <span class="cm"># on Agent Platform</span>
+    tools=[google_search],   <span class="cm"># per-interaction override</span>
+)</div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p style="font-size:14px;"><b>Scenario:</b> your agent needs web grounding and server-side code execution &mdash; capabilities that need managed sandboxes. <code class="i">ManagedAgent</code> is a <b>local proxy</b> to an agent running entirely on Google's servers.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p style="font-size:14px;"><b>Backend is chosen by environment</b> &mdash; this example is Agent Platform (Cloud credentials, <b>global</b> only). Omit those lines and set <code class="i">GEMINI_API_KEY</code> for the Gemini API backend, which offers additional first-party agents (e.g., Deep Research).</p></div>
+      <div class="checkrow"><div class="cdot"></div><p style="font-size:14px;"><b>You consume Google's agent; you never deploy anything.</b> On Agent Platform, <b>antigravity is the agent</b> &mdash; the only supported base. <code class="i">agents.create</code> can layer a named configuration over it (your <code class="i">system_instruction</code>, a tool subset, sandbox settings), referenced as <code class="i">agents/ID</code> &mdash; but it's still antigravity underneath. No model choice, no code of yours.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p style="font-size:14px;"><b>Per-interaction override</b> = <code class="i">tools</code>/<code class="i">environment</code> are sent with <i>each request</i> and apply to that request only; the hosted configuration is unchanged. No client-side Python or MCP tools &mdash; though MCP servers and skills <i>can</i> be configured into the server-side sandbox at creation.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p style="font-size:14px;"><b>Compose and state:</b> wrap in <code class="i">AgentTool</code> (coordinator chooses) or use as a Workflow node (<code class="i">mode="single_turn"</code>). Its conversation and sandbox persist server-side; your session stores only <code class="i">previous_interaction_id</code> + <code class="i">environment_id</code>.</p></div>
+    </div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 15b : AGENTS-CLI -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t" style="margin-bottom:14px;">Beyond self-managed deploys (2 of 2): agents-cli <span class="bdg x2">2.x</span></h1>
+  <div class="cols c64">
+    <div>
+<div class="code sm"><span class="cm"># One-time: add deployment scaffolding to your project</span>
+agents-cli <b>scaffold enhance</b> --deployment-target agent_engine
+<span class="cm"># generates Terraform IaC, CI/CD pipelines, deploy artifacts</span>
+
+<span class="cm"># Connect to the target project</span>
+gcloud auth application-default login
+gcloud config set project my-prod-project
+
+<span class="cm"># Deploy — builds a container, pushes it, deploys to</span>
+<span class="cm"># the target configured in pyproject.toml</span>
+agents-cli <b>deploy</b>
+
+<span class="cm"># Optional: terraform-apply the full stack — the agent app itself,</span>
+<span class="cm"># service account + IAM, logs bucket, BigQuery telemetry sinks</span>
+agents-cli <b>infra single-project</b></div>
+    </div>
+    <div class="checks">
+      <div class="checkrow"><div class="cdot"></div><p><b>Scenario:</b> the lab's summarizer graduates to production. Now you need dev/staging/prod environments that match, infrastructure someone can review, and a deploy that runs on every merge &mdash; not a hand-typed <code class="i">adk deploy</code> from a laptop.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>What it generates:</b> Terraform for the Google Cloud resources, CI/CD pipeline config, and deployment artifacts added to your existing ADK project (it backs the project up first). Review the generated config against your org's standards before production.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Targets:</b> the same three as <code class="i">adk deploy</code> &mdash; Agent Runtime, Cloud Run, or GKE &mdash; read from <code class="i">pyproject.toml</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Roles:</b> <b>Agent Platform User</b> suffices to deploy; the full Terraform + CI/CD setup needs <b>Owner</b>.</p></div>
+    </div>
+  </div>
+  <div class="note blue"><b>Where this module's flow fits:</b> <code class="i">adk deploy agent_engine</code> remains the interactive and teaching path; agents-cli is what production teams graduate to, and ManagedAgent is for consuming Google-hosted agents rather than deploying your own.</div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 16 : LAB CARD -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Lab: Deploy ADK agents to Agent Engine</h1>
+  <div class="labcard"><div class="flask">4</div><div><h3>Deploy ADK agents to Agent Engine &nbsp;<span style="font-weight:400;color:var(--ink-2);">scbl143 &middot; 45 min &middot; currently pins google-cloud-aiplatform[agent_engines,adk]==1.156.0</span></h3><p>Deploy a transcript-summarization agent to the managed runtime, query it remotely, inspect it in the console, and delete it.</p></div></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Task 1:</b> install ADK, download the agent project, and create the <code class="i">.env</code> (project, location, model).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Task 2:</b> author the agent's <code class="i">requirements.txt</code>, then run <code class="i">adk deploy agent_engine</code> with a display name, region, and staging bucket.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Task 3:</b> grant the service agent the <b>Agent Platform User</b> role, then query with <code class="i">create_session</code> + <code class="i">stream_query</code> from the SDK.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Task 4:</b> tour the console tabs, copy the resource name from <b>Deployment details</b>, and delete the agent with the fire-based utility.</p></div>
+  </div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 17 : LAB DELTAS 1 -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Lab deltas: deploy lab &mdash; current state (1 of 2)</h1>
+  <div class="drow"><div class="dtag keep">CURRENT</div><p>The lab already teaches the modern <code class="i">adk deploy agent_engine</code> path. <span class="why">The OLD SLIDES were behind the lab &mdash; not the other way around. The deck you are looking at closes that gap.</span></p></div>
+  <div class="drow"><div class="dtag keep">CURRENT</div><p>The query flow &mdash; <code class="i">agent_engines.list(filter=...)</code>, <code class="i">create_session</code>, <code class="i">stream_query</code> over dict events &mdash; is still the correct SDK surface.</p></div>
+  <div class="drow"><div class="dtag fix">UPDATE 1.x</div><p>Stale model strings: the shipped <code class="i">.env</code> has <code class="i">gemini-2.0-flash-exp</code> and the code fallback is <code class="i">gemini-2.5-flash</code> &mdash; <b>both shut down October 2026</b>. The lab instructions template the model at provision time; the shipped files must match.</p></div>
+  <div class="drow"><div class="dtag fix">UPDATE 1.x</div><p>Pin <code class="i">google-adk</code> directly instead of relying on the floating <code class="i">[adk]</code> extra. <span class="why">Today's requirements resolve a different ADK on different days.</span></p></div>
+  <div class="drow"><div class="dtag fix">UPDATE 1.x</div><p>The in-lab quiz links point at a pinned, old <b>adk-python</b> commit on GitHub &mdash; repoint the reading exercise at <b>adk.dev</b>.</p></div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 18 : LAB DELTAS 2 -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">Lab deltas: deploy lab &mdash; the 2.x picture (2 of 2)</h1>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>Drop the <b>AdkApp</b>-wrapper explanation: the lab prose says the CLI "wraps your agent in an AdkApp," but the wrapper flags (<code class="i">--adk_app</code>, <code class="i">--adk_app_object</code>, <code class="i">--absolutize_imports</code>) are deprecated in 2.x &mdash; the agent or App deploys directly. <span class="why">One of the quiz questions is about --adk_app and needs replacing too.</span></p></div>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>The <code class="i">[adk]</code> extra's <b>&lt;2.0</b> cap means bumping aiplatform can <b>never</b> reach ADK 2.x. <span class="why">A 2.x refresh is a requirements-strategy change, not a version bump: pin google-adk itself.</span></p></div>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>Teach the new capabilities: <code class="i">--agent_engine_id</code> redeploys (the quiz already touches it &mdash; promote it to a hands-on step) and <code class="i">--trigger_sources</code> for event-driven invocation.</p></div>
+  <div class="drow"><div class="dtag x2">ADK 2.x</div><p>Add session-schema migration awareness for production upgrades: 2.0 sessions are readable by <b>1.28+ only</b>, and <code class="i">adk migrate session</code> exists for database-backed stores.</p></div>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+<!-- 19 : RECAP -->
+<section class="slide">
+  <div class="conf">Proprietary + Confidential</div>
+  <h1 class="t">What changed in this module vs. the previous deck</h1>
+  <table class="cmp" style="max-width:1080px;">
+    <tr><th>Previous deck taught</th><th>This deck teaches</th><th>Why</th></tr>
+    <tr><td><span class="m">reasoning_engines.LangchainAgent</span> + <span class="m">agent_engines.create()</span> walkthrough</td><td><span class="m">adk deploy agent_engine</span> &mdash; deploying the kind of agent this course builds</td><td>Matches Lab scbl143's actual flow</td></tr>
+    <tr><td>Managed sessions / memory / UI as "coming soon"</td><td><b>Shipped</b>: VertexAiSessionService auto-wiring, TTL, console tooling</td><td>The keystone diagram's claims went stale</td></tr>
+    <tr><td>Quiz: Agent Runtime "does not provide a UI"</td><td><b>Playground / Traces / Sessions / Evaluation</b> tabs exist today</td><td>The quiz contradicted the feature table; the console won</td></tr>
+    <tr><td><b>AdkApp</b> wrapper framing</td><td>Direct agent / App deploy</td><td>Wrapper flags deprecated in 2.2</td></tr>
+    <tr><td>No 2.x deploy options</td><td>API-key deploys, update-in-place, triggers, <b>ManagedAgent</b></td><td>The modern deploy surface is bigger</td></tr>
+  </table>
+  <div class="gcloud"><span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud</div>
+</section>
+
+</div></div>
+
+<div class="bar">
+  <div class="name">Agent Development Kit &middot; Module 4: Deploy ADK agents to Agent Runtime &middot; updated for ADK 2.x</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous slide">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next slide">&#8594;</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; F fullscreen &middot; Ctrl/Cmd &plusmn; zoom</div>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var i = 0, cnt = document.getElementById('cnt');
+  function clamp(n){ return Math.max(0, Math.min(slides.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    slides.forEach(function(s,k){ s.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + slides.length;
+    if (history.replaceState) history.replaceState(null,'','#'+(i+1));
+  }
+  // Scale is computed against the UNZOOMED viewport (approximated via the
+  // devicePixelRatio measured at load), so browser zoom genuinely enlarges
+  // the slide; the stage scrolls when the zoomed slide overflows.
+  var baseDPR = window.devicePixelRatio || 1;
+  var supportsZoom = ('zoom' in document.documentElement.style);
+  function fit(){
+    var f = document.getElementById('frame');
+    var z = (window.devicePixelRatio || 1) / baseDPR;
+    var availW = (window.innerWidth - 44) * z;
+    var availH = (window.innerHeight - 46 - 44) * z;
+    var s = Math.min(availW/1280, availH/720);
+    if (supportsZoom) { f.style.zoom = s; }
+    else { f.style.transformOrigin = 'top left'; f.style.transform = 'scale(' + s + ')'; }
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  document.addEventListener('keydown', function(e){
+    if (e.key==='ArrowRight'||e.key==='PageDown'||e.key===' ') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') show(0);
+    else if (e.key==='End') show(slides.length-1);
+    else if (e.key==='f'||e.key==='F'){
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    }
+  });
+  window.addEventListener('resize', fit);
+  var h = parseInt((location.hash||'').replace('#',''),10);
+  show(isNaN(h) ? 0 : h-1);
+  fit();
+})();
+</script>
+</body>
+</html>

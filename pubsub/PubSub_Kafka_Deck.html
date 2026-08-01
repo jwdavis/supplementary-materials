@@ -1,0 +1,2560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pub/Sub and Managed Service for Apache Kafka: The Front Door for Streaming Data</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-45-55 > div:first-child { flex: 0 0 45%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list for skew slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Pub/Sub and Managed Service for Apache Kafka</h1>
+    <div class="sub">The front door for streaming data</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li>This module sits between the architecture module and the Dataflow module. One question: how does an event get from a device into the platform, reliably, when nobody is watching?</li>
+    <li>Say up front: Pub/Sub is the approved product and gets ~75% of the time. Managed Service for Apache Kafka is covered so students know what it does and when it is the right call.</li>
+    <li>Rough timing: 60&ndash;75 minutes across five sections plus the close.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. WHERE THE BIGQUERY MODULE LEFT OFF ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Where the architecture module <span class="accent">left off</span></h1>
+  <div class="lede">In the BigQuery module, <code>clearmeet_analytics.qos_events</code> was already full. 5&nbsp;billion rows a day had to get there somehow.</div>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body">
+        <li>Every participant&rsquo;s client uploads a QoS sample <strong>every 10 seconds</strong></li>
+        <li>~6M meetings &times; ~4 participants &times; ~200 samples &asymp; <strong>5B messages/day</strong></li>
+        <li>Weekday peak &asymp; <strong>90,000 messages/second</strong>; each message &asymp; 350 bytes</li>
+        <li>Four different systems want those messages, for four different reasons</li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="440" height="250" viewBox="0 0 440 250">
+        <defs><marker id="ar2" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <!-- devices -->
+        <rect x="10" y="30" width="86" height="34" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/><text x="53" y="51" text-anchor="middle" font-size="10.5" fill="#3c4043">laptop client</text>
+        <rect x="10" y="100" width="86" height="34" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/><text x="53" y="121" text-anchor="middle" font-size="10.5" fill="#3c4043">phone client</text>
+        <rect x="10" y="170" width="86" height="34" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/><text x="53" y="191" text-anchor="middle" font-size="10.5" fill="#3c4043">web client</text>
+        <!-- sample chip -->
+        <rect x="104" y="108" width="176" height="20" rx="4" fill="#fff" stroke="#dadce0"/>
+        <text x="192" y="122" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#202124">mtg_58d1 &middot; ios &middot; mos 4.1 &middot; 14:02:10</text>
+        <!-- arrows into ? -->
+        <line x1="100" y1="47" x2="288" y2="105" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <line x1="284" y1="118" x2="296" y2="118" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <line x1="100" y1="187" x2="288" y2="131" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <text x="180" y="80" text-anchor="middle" font-size="10" fill="#5f6368">90K msg/s at peak</text>
+        <!-- question box -->
+        <rect x="298" y="92" width="52" height="52" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.8"/>
+        <text x="324" y="127" text-anchor="middle" font-size="26" font-weight="700" fill="#b3261e">?</text>
+        <line x1="352" y1="118" x2="372" y2="118" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar2)"/>
+        <!-- table -->
+        <rect x="376" y="76" width="58" height="84" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="405" y="98" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1a73e8">qos_events</text>
+        <line x1="382" y1="106" x2="428" y2="106" stroke="#c6dafc"/><line x1="382" y1="120" x2="428" y2="120" stroke="#c6dafc"/><line x1="382" y1="134" x2="428" y2="134" stroke="#c6dafc"/>
+        <text x="405" y="152" text-anchor="middle" font-size="8" fill="#1a73e8">5B rows/day</text>
+      </svg>
+      <div class="figcap">The architecture module started at the blue table. This module is the red question mark.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Where the architecture module left off">
+  <summary>Speaker notes &mdash; Where the architecture module left off</summary>
+  <div class="n-body"><ul>
+    <li>Deliberate callback: same table, same numbers, same company as the BigQuery Architecture deck. Students who took that module should recognize the box on the right immediately.</li>
+    <li>The four consumers (dashboard, alerting, BigQuery, archive) are the whole reason this is not just an HTTP endpoint writing rows &mdash; the next slide makes that concrete.</li>
+    <li>Napkin math is intentional: 6M &times; 4 &times; 200 &asymp; 5B. Let them redo it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. THE NAIVE VERSION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The naive version, and what breaks</h1>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body">
+        <li>First design: the participant clients POST their samples to a receiver service, which writes to BigQuery and calls the alerting service inline</li>
+        <li>Monday 9am: 90K samples/s arrive &mdash; and the alerting service is mid-redeploy</li>
+        <li>Every request now blocks on a dead dependency; the receiver backs up; clients retry; the retries make it worse</li>
+        <li>Adding a fourth consumer means changing the receiver again</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn">The producer&rsquo;s availability is the <strong>product</strong> of every consumer&rsquo;s availability. That is the coupling a broker removes.</div>
+    </div>
+    <div class="figure">
+      <svg width="430" height="270" viewBox="0 0 430 270">
+        <defs><marker id="ar3" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <rect x="6" y="6" width="418" height="240" rx="10" fill="none" stroke="#EA4335" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <!-- clients -->
+        <rect x="20" y="96" width="26" height="16" rx="3" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <rect x="20" y="118" width="26" height="16" rx="3" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <rect x="20" y="140" width="26" height="16" rx="3" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="33" y="88" text-anchor="middle" font-size="9.5" fill="#5f6368">clients</text>
+        <line x1="50" y1="126" x2="88" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <!-- receiver -->
+        <rect x="92" y="98" width="110" height="56" rx="8" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="147" y="122" text-anchor="middle" font-size="11" font-weight="600" fill="#3c4043">receiver service</text>
+        <text x="147" y="140" text-anchor="middle" font-size="9.5" fill="#b3261e">queue growing&hellip;</text>
+        <!-- consumers -->
+        <line x1="206" y1="112" x2="266" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <line x1="206" y1="126" x2="266" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <line x1="206" y1="140" x2="266" y2="196" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar3)"/>
+        <rect x="270" y="38" width="116" height="40" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="328" y="56" text-anchor="middle" font-size="10.5" font-weight="600" fill="#188038">BigQuery</text>
+        <text x="328" y="70" text-anchor="middle" font-size="9" fill="#188038">fine ✓</text>
+        <rect x="270" y="106" width="116" height="40" rx="8" fill="#fce8e6" stroke="#EA4335" stroke-width="1.8"/>
+        <text x="328" y="124" text-anchor="middle" font-size="10.5" font-weight="600" fill="#b3261e">alerting</text>
+        <text x="328" y="138" text-anchor="middle" font-size="9" fill="#b3261e">redeploying ✕</text>
+        <rect x="270" y="176" width="116" height="40" rx="8" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="328" y="194" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5f6368">dashboard</text>
+        <text x="328" y="208" text-anchor="middle" font-size="9" fill="#5f6368">waiting&hellip;</text>
+        <!-- bracket -->
+        <path d="M398 40 L 408 40 L 408 214 L 398 214" stroke="#EA4335" stroke-width="1.5" fill="none"/>
+        <text x="414" y="122" font-size="8" fill="#b3261e" transform="rotate(90 414 122)" text-anchor="middle">one slow consumer blocks the producer</text>
+        <text x="215" y="238" text-anchor="middle" font-size="10" fill="#b3261e">&hellip;and every new consumer is a code change</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The naive version">
+  <summary>Speaker notes &mdash; The naive version</summary>
+  <div class="n-body"><ul>
+    <li>Ask the room how many have shipped this exact design. Most hands.</li>
+    <li>Three distinct couplings are failing here, and they map to the three decouplings on the next slide: <strong>time</strong> (the consumer must be up right now), <strong>rate</strong> (the consumer must be as fast as the producer), and <strong>space</strong> (the producer must know each consumer exists).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. WHAT A BROKER BUYS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Put a <span class="accent">message broker</span> in the middle</h1>
+  <div class="lede" style="font-size:15px">A <strong>message broker</strong> is a service that accepts messages from producers and holds a copy for each consumer until that consumer has taken it. The clients publish straight to it &mdash; it <em>is</em> the ingestion point.</div>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Decoupled in time:</strong> alerting can be down for its 4-minute redeploy; its messages wait for it</li>
+        <li><strong>Decoupled in rate:</strong> samples keep arriving at 90K/s even though alerting only manages 20K/s. Alerting falls behind, then catches up</li>
+        <li><strong>Decoupled in space:</strong> a publishing client names the broker and never a consumer. Adding the raw archive is a change to the broker&rsquo;s configuration &mdash; no client is redeployed</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout">Each consumer gets its <strong>own queue and its own position in it</strong>. One slow consumer no longer affects the others &mdash; or the producers.</div>
+    </div>
+    <div class="figure">
+      <svg width="430" height="276" viewBox="0 0 430 276">
+        <defs><marker id="ar4" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <text x="42" y="26" text-anchor="middle" font-size="8.5" fill="#5f6368">millions of</text>
+        <text x="42" y="37" text-anchor="middle" font-size="8.5" fill="#5f6368">participants</text>
+        <g fill="#f1f3f4" stroke="#9aa0a6">
+          <rect x="18" y="48" width="44" height="15" rx="3"/><rect x="18" y="68" width="44" height="15" rx="3"/><rect x="18" y="88" width="44" height="15" rx="3"/>
+          <rect x="18" y="132" width="44" height="15" rx="3"/><rect x="18" y="152" width="44" height="15" rx="3"/><rect x="18" y="172" width="44" height="15" rx="3"/>
+        </g>
+        <text x="40" y="118" text-anchor="middle" font-size="10" fill="#9aa0a6">&vellip;</text>
+        <text x="40" y="204" text-anchor="middle" font-size="8" fill="#5f6368">1 sample / 10 s each</text>
+        <path d="M66 62 L 132 100" stroke="#9aa0a6" stroke-width="1.3" marker-end="url(#ar4)"/>
+        <path d="M66 96 L 132 112" stroke="#9aa0a6" stroke-width="1.3" marker-end="url(#ar4)"/>
+        <path d="M66 140 L 132 124" stroke="#9aa0a6" stroke-width="1.3" marker-end="url(#ar4)"/>
+        <path d="M66 176 L 132 136" stroke="#9aa0a6" stroke-width="1.3" marker-end="url(#ar4)"/>
+        <text x="99" y="158" text-anchor="middle" font-size="8.5" fill="#5f6368">90K/s</text>
+        <text x="99" y="169" text-anchor="middle" font-size="8.5" fill="#5f6368">in total</text>
+        <rect x="136" y="70" width="76" height="96" rx="8" fill="#4285F4"/>
+        <text x="174" y="104" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">message</text>
+        <text x="174" y="118" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">broker</text>
+        <text x="174" y="138" text-anchor="middle" font-size="8" fill="#d2e3fc">one copy</text>
+        <text x="174" y="149" text-anchor="middle" font-size="8" fill="#d2e3fc">per consumer</text>
+        <path d="M216 90 L 300 48" stroke="#4285F4" stroke-width="2.5" fill="none" marker-end="url(#ar4)"/>
+        <path d="M216 118 L 300 117" stroke="#4285F4" stroke-width="2.5" fill="none" marker-end="url(#ar4)"/>
+        <path d="M216 146 L 300 200" stroke="#EA4335" stroke-width="2.5" fill="none" marker-end="url(#ar4)"/>
+        <rect x="304" y="26" width="120" height="42" rx="7" fill="#fff" stroke="#34A853" stroke-width="1.4"/>
+        <text x="364" y="42" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">BigQuery writer</text>
+        <g fill="#e6f4ea" stroke="#34A853"><rect x="316" y="48" width="12" height="11" rx="2"/></g>
+        <text x="380" y="57" text-anchor="middle" font-size="7.5" fill="#188038">1 waiting</text>
+        <rect x="304" y="96" width="120" height="42" rx="7" fill="#fff" stroke="#34A853" stroke-width="1.4"/>
+        <text x="364" y="112" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">dashboard</text>
+        <g fill="#e6f4ea" stroke="#34A853"><rect x="316" y="118" width="12" height="11" rx="2"/><rect x="331" y="118" width="12" height="11" rx="2"/></g>
+        <text x="386" y="127" text-anchor="middle" font-size="7.5" fill="#188038">2 waiting</text>
+        <rect x="304" y="176" width="120" height="56" rx="7" fill="#fff" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="364" y="192" text-anchor="middle" font-size="8.5" fill="#b3261e" font-weight="600">alerting</text>
+        <g fill="#fce8e6" stroke="#EA4335">
+          <rect x="312" y="198" width="12" height="11" rx="2"/><rect x="327" y="198" width="12" height="11" rx="2"/><rect x="342" y="198" width="12" height="11" rx="2"/><rect x="357" y="198" width="12" height="11" rx="2"/><rect x="372" y="198" width="12" height="11" rx="2"/>
+          <rect x="312" y="212" width="12" height="11" rx="2"/><rect x="327" y="212" width="12" height="11" rx="2"/><rect x="342" y="212" width="12" height="11" rx="2"/><rect x="357" y="212" width="12" height="11" rx="2"/>
+        </g>
+        <text x="398" y="221" text-anchor="middle" font-size="7.5" fill="#b3261e">9 waiting</text>
+        <text x="364" y="246" text-anchor="middle" font-size="8" fill="#b3261e">redeploying &mdash; falling behind</text>
+        <text x="215" y="268" text-anchor="middle" font-size="9" fill="#5f6368">No tier in between: the clients publish, the broker holds, the consumers take.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Put a message broker in the middle">
+  <summary>Speaker notes &mdash; Put a message broker in the middle</summary>
+  <div class="n-body"><ul>
+    <li>&ldquo;Message broker&rdquo; is the generic industry term for this category of service &mdash; Pub/Sub, Apache Kafka, RabbitMQ, and Amazon SQS/SNS are all brokers. Define it here because the deck uses it throughout, and because section 5 compares two of them.</li>
+    <li>Say plainly that the broker replaces the ingest service from the previous slide. It is not something you put <em>behind</em> an ingestion tier &mdash; it is the ingestion endpoint, a global API the clients call directly.</li>
+    <li>Deliberately generic: no Pub/Sub vocabulary on this slide. Topics and subscriptions arrive on the next two slides, and students should already want them by then.</li>
+    <li>The differing queue depths are the single most important visual in the module. Everything in the &ldquo;when it breaks&rdquo; section is about reading those depths.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. DIVIDER: SECTION 1 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 5</div>
+    <h1>The model</h1>
+    <div class="sub">Four nouns, one message, and the round trip from publish to ack.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">The model</span><span>Publishing</span><span>Delivery</span><span>When it breaks</span><span>Kafka</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: The model">
+  <summary>Speaker notes &mdash; Section 1: The model</summary>
+  <div class="n-body"><ul>
+    <li>Pulse-check: who has published to Pub/Sub before? Many hands &rarr; move quickly to slide 9 (the message-lifecycle diagram) and slow down there; it is the module&rsquo;s map.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. FOUR NOUNS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Four nouns</h1>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body">
+        <li><strong>Publisher</strong> &mdash; anything that can call the API; ClearMeet&rsquo;s clients publish through an edge service</li>
+        <li><strong>Topic</strong> &mdash; a named resource messages are sent to. Not a queue; it holds nothing on its own</li>
+        <li><strong>Subscription</strong> &mdash; the queue. Attached to one topic; holds unacknowledged messages; tracks what has been acked</li>
+        <li><strong>Subscriber</strong> &mdash; the code that receives and acknowledges</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn">A message published to a topic with <strong>zero</strong> subscriptions is dropped immediately. Create the subscription before the publisher starts.</div>
+    </div>
+    <div class="figure">
+      <svg width="430" height="258" viewBox="0 0 430 258">
+        <defs><marker id="ar6" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <rect x="8" y="106" width="88" height="40" rx="8" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="52" y="130" text-anchor="middle" font-size="10.5" font-weight="600" fill="#3c4043">publisher</text>
+        <line x1="100" y1="126" x2="132" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <!-- topic: thin -->
+        <rect x="136" y="114" width="96" height="24" rx="12" fill="#4285F4"/>
+        <text x="184" y="130" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">topic</text>
+        <text x="184" y="156" text-anchor="middle" font-size="9" fill="#5f6368">a name, not a buffer</text>
+        <line x1="236" y1="120" x2="272" y2="52" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <line x1="236" y1="126" x2="272" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <line x1="236" y1="132" x2="272" y2="200" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <!-- subs: trays -->
+        <g>
+          <rect x="276" y="30" width="88" height="42" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+          <rect x="283" y="50" width="13" height="12" rx="2" fill="#e8f0fe" stroke="#4285F4"/><rect x="299" y="50" width="13" height="12" rx="2" fill="#e8f0fe" stroke="#4285F4"/><rect x="315" y="50" width="13" height="12" rx="2" fill="#e8f0fe" stroke="#4285F4"/>
+          <text x="320" y="44" text-anchor="middle" font-size="8.5" fill="#1a73e8">subscription A</text>
+        </g>
+        <g>
+          <rect x="276" y="104" width="88" height="42" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+          <rect x="283" y="124" width="13" height="12" rx="2" fill="#e8f0fe" stroke="#4285F4"/>
+          <text x="320" y="118" text-anchor="middle" font-size="8.5" fill="#1a73e8">subscription B</text>
+        </g>
+        <g>
+          <rect x="276" y="178" width="88" height="42" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+          <rect x="283" y="198" width="13" height="12" rx="2" fill="#e8f0fe" stroke="#4285F4"/><rect x="299" y="198" width="13" height="12" rx="2" fill="#e8f0fe" stroke="#4285F4"/>
+          <text x="320" y="192" text-anchor="middle" font-size="8.5" fill="#1a73e8">subscription C</text>
+        </g>
+        <line x1="368" y1="51" x2="392" y2="51" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <line x1="368" y1="125" x2="392" y2="125" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <line x1="368" y1="199" x2="392" y2="199" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar6)"/>
+        <rect x="396" y="37" width="28" height="28" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <rect x="396" y="111" width="28" height="28" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <rect x="396" y="185" width="28" height="28" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="410" y="236" text-anchor="middle" font-size="8" fill="#5f6368">subscribers</text>
+      </svg>
+      <div class="figcap">The topic is a router. The subscriptions are the queues.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Four nouns">
+  <summary>Speaker notes &mdash; Four nouns</summary>
+  <div class="n-body"><ul>
+    <li>The zero-subscription rule bites everyone once; it is the most common &ldquo;where did my messages go&rdquo; support question, and there is no error &mdash; the messages are simply gone. Make them write it down.</li>
+    <li>Warn against the mental model &ldquo;the topic stores messages and subscribers read from it.&rdquo; Kafka works closer to that; Pub/Sub does not. Section 5 makes the contrast explicit.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. CREATE THE PIPE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Create the pipe</h1>
+  <pre class="term" style="margin-bottom:10px;font-size:11.5px;line-height:1.45"><span class="lbl">Cloud Shell &mdash; project clearmeet-prod</span>gcloud pubsub topics create qos-samples
+<span class="cm">  Created topic [projects/clearmeet-prod/topics/qos-samples].</span>
+
+gcloud pubsub subscriptions create qos-dashboard-sub \
+    <span class="flag">--topic</span>=qos-samples \
+    <span class="flag">--ack-deadline</span>=30
+<span class="cm">  Created subscription [projects/clearmeet-prod/subscriptions/qos-dashboard-sub].</span></pre>
+  <ul class="body" style="font-size:14px">
+    <li>You typed a short name; the service echoes back the <strong>full resource name</strong>. Names are scoped to the project, so another project can have its own <code>qos-samples</code></li>
+    <li>Topic and subscription are separate resources with separate IAM</li>
+    <li><code>--ack-deadline</code> is the one setting worth choosing deliberately at creation; it defaults to <strong>10 seconds</strong> (range 10&ndash;600)</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="callout">Ordering, exactly-once, and filters are also set <strong>at creation</strong> and cannot be changed later. Plan the subscription, not just the topic.</div>
+</section>
+<details class="notes" data-title="Create the pipe">
+  <summary>Speaker notes &mdash; Create the pipe</summary>
+  <div class="n-body"><ul>
+    <li>Default ack deadline 10&nbsp;s, range 10&ndash;600&nbsp;s: docs.cloud.google.com/pubsub/docs/subscription-properties. Ten seconds is short for anything that writes to another system inside the callback &mdash; the ack-deadline slide explains why 30 is a sensible starting point here.</li>
+    <li>The immutable-at-creation list gets repeated on each relevant slide; it is a theme, not trivia.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. PUBLISH AND RECEIVE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Publish and receive, in full</h1>
+  <div class="cols">
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">python &middot; publisher</span>
+<span class="kw">from</span> concurrent <span class="kw">import</span> futures
+<span class="kw">from</span> google.cloud <span class="kw">import</span> pubsub_v1
+
+publisher = pubsub_v1.<span class="fn">PublisherClient</span>()
+topic_path = publisher.<span class="fn">topic_path</span>(
+    <span class="st">"clearmeet-prod"</span>, <span class="st">"qos-samples"</span>)
+publish_futures = []
+
+<span class="kw">for</span> sample <span class="kw">in</span> batch_of_samples:
+    data = json.<span class="fn">dumps</span>(sample).<span class="fn">encode</span>(<span class="st">"utf-8"</span>)
+    f = publisher.<span class="fn">publish</span>(topic_path, data,
+                          device=<span class="st">"web"</span>)
+    f.<span class="fn">add_done_callback</span>(on_publish_done)
+    publish_futures.<span class="fn">append</span>(f)
+
+futures.<span class="fn">wait</span>(publish_futures,
+             return_when=futures.ALL_COMPLETED)</pre>
+    </div>
+    <div>
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">python &middot; subscriber</span>
+subscriber = pubsub_v1.<span class="fn">SubscriberClient</span>()
+subscription_path = subscriber.<span class="fn">subscription_path</span>(
+    <span class="st">"clearmeet-prod"</span>, <span class="st">"qos-dashboard-sub"</span>)
+
+<span class="kw">def</span> <span class="fn">callback</span>(message):
+    <span class="fn">handle</span>(json.<span class="fn">loads</span>(message.data))
+    message.<span class="fn">ack</span>()
+
+streaming_pull_future = subscriber.<span class="fn">subscribe</span>(
+    subscription_path, callback=callback)
+
+<span class="kw">with</span> subscriber:
+    <span class="kw">try</span>:
+        streaming_pull_future.<span class="fn">result</span>()
+    <span class="kw">except</span> TimeoutError:
+        streaming_pull_future.<span class="fn">cancel</span>()
+        streaming_pull_future.<span class="fn">result</span>()</pre>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:12.5px">Both are <strong>asynchronous</strong>. <code>publish()</code> hands the message to a background batching thread and returns a future; <code>subscribe()</code> starts a background stream that calls your callback. The <code>wait</code> and the <code>with</code> block exist to make sure nothing is still in flight when the process exits.</div>
+</section>
+<details class="notes" data-title="Publish and receive">
+  <summary>Speaker notes &mdash; Publish and receive</summary>
+  <div class="n-body"><ul>
+    <li>This is the whole API. Everything after this slide is a setting on one of these two calls or on the subscription. Both snippets follow the handwritten samples in <code>googleapis/python-pubsub/samples/snippets/</code> (<code>publisher.py</code>, <code>subscriber.py</code>) &mdash; the same repo the client defaults come from.</li>
+    <li><strong>Warn them about the other sample family, because they will find it first.</strong> That repo also contains <code>generated_samples/</code>, produced automatically from the protobuf service definition, one file per RPC. Those look like <code>client.publish(request=PublishRequest(topic=...))</code> and <code>client.pull(request=PullRequest(...))</code>. They demonstrate the raw API surface, not real usage &mdash; the generated publish sample sends no messages at all, and its pull is unary pull rather than StreamingPull. Production code uses the handwritten form on this slide.</li>
+    <li>The quickstart at docs.cloud.google.com/pubsub/docs/publish-receive-messages-client-library shows <code>print(future.result())</code> <em>inside</em> the publish loop. That is fine for ten messages, but it blocks until the server confirms each one, so every message travels in a batch of one &mdash; which defeats the batching on the next slide. The collect-then-<code>wait</code> form here is what the same repo&rsquo;s <code>publish_messages_with_batch_settings</code> sample uses.</li>
+    <li>The subscriber&rsquo;s <code>with subscriber:</code> block closes the client cleanly; the <code>TimeoutError</code> path applies when <code>result(timeout=...)</code> is given a timeout, and <code>cancel()</code> then <code>result()</code> waits for the shutdown to finish.</li>
+    <li>Java equivalents: <code>Publisher.newBuilder(topic).build()</code> and <code>Subscriber.newBuilder(subscription, receiver).build()</code>; <code>ApiFutures.addCallback(...)</code> plays the role of <code>add_done_callback</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. DIVIDER: SECTION 2 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 5</div>
+    <h1>Publishing</h1>
+    <div class="sub">The publish path is a batching problem, a schema problem, and an ordering problem.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The model</span><span class="current">Publishing</span><span>Delivery</span><span>When it breaks</span><span>Kafka</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Publishing">
+  <summary>Speaker notes &mdash; Section 2: Publishing</summary>
+  <div class="n-body"><ul>
+    <li>Three slides of mechanism, one of tradeoff. The ordering pair is the heart of the section.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. THE CLIENT BATCHES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Batching depends on one publisher&rsquo;s rate</h1>
+  <div class="lede" style="font-size:14px;margin-bottom:8px">The publisher client does not send each message immediately &mdash; it holds them briefly and sends a group in one request. The code is identical everywhere; what changes the outcome is how fast <em>that one process</em> calls <code>publish()</code>.</div>
+  <div class="cols c-40-60">
+    <div>
+      <pre class="code small">publisher = pubsub_v1.<span class="fn">PublisherClient</span>(
+  batch_settings=pubsub_v1.types
+    .<span class="fn">BatchSettings</span>(
+      max_messages=<span class="st">100</span>,    <span class="cm"># default</span>
+      max_bytes=<span class="st">1_000_000</span>, <span class="cm"># 1 MB</span>
+      max_latency=<span class="st">0.01</span>,    <span class="cm"># 10 ms</span>
+  )
+)</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li>Whichever limit is hit first sends the batch</li>
+        <li>Nothing waits longer than <code>max_latency</code> &mdash; the timer is a ceiling on delay, not a delay</li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="470" height="250" viewBox="0 0 470 250">
+        <defs><marker id="ar11" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#4285F4"/></marker></defs>
+        <rect x="6" y="6" width="458" height="112" rx="8" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.3"/>
+        <text x="18" y="24" font-size="9.5" font-weight="600" fill="#7a5c00">A &middot; a participant client &mdash; 1 sample every 10 s</text>
+        <rect x="20" y="34" width="64" height="28" rx="5" fill="#fff" stroke="#9aa0a6"/>
+        <text x="52" y="52" text-anchor="middle" font-size="8.5" fill="#3c4043">one laptop</text>
+        <line x1="88" y1="48" x2="118" y2="48" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#ar11)"/>
+        <rect x="122" y="32" width="164" height="32" rx="5" fill="#fff" stroke="#dadce0"/>
+        <text x="204" y="45" text-anchor="middle" font-size="8" fill="#5f6368">buffer holds 1 message;</text>
+        <text x="204" y="57" text-anchor="middle" font-size="8" fill="#5f6368">the 10 ms timer fires first</text>
+        <line x1="290" y1="48" x2="320" y2="48" stroke="#4285F4" stroke-width="2" marker-end="url(#ar11)"/>
+        <rect x="324" y="32" width="130" height="32" rx="5" fill="#fff" stroke="#FBBC04"/>
+        <text x="389" y="45" text-anchor="middle" font-size="8.5" fill="#7a5c00" font-weight="600">1 message per RPC</text>
+        <text x="389" y="57" text-anchor="middle" font-size="8" fill="#7a5c00">sent within 10 ms</text>
+        <text x="18" y="82" font-size="8" fill="#7a5c00">Batching gains nothing &mdash; there is never a second message to group with. That is fine and</text>
+        <text x="18" y="94" font-size="8" fill="#7a5c00">needs no change: same topic, same code, and the sample is on its way within 10 ms.</text>
+        <text x="18" y="110" font-size="8.5" fill="#7a5c00" font-style="italic">Millions of such clients still add up to the 90K/s the topic receives.</text>
+        <rect x="6" y="126" width="458" height="118" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.3"/>
+        <text x="18" y="144" font-size="9.5" font-weight="600" fill="#188038">B &middot; the meeting-lifecycle service &mdash; 45,000 events/s from one process</text>
+        <rect x="20" y="154" width="64" height="28" rx="5" fill="#fff" stroke="#9aa0a6"/>
+        <text x="52" y="166" text-anchor="middle" font-size="8" fill="#3c4043">one server,</text>
+        <text x="52" y="177" text-anchor="middle" font-size="8" fill="#3c4043">high volume</text>
+        <line x1="88" y1="168" x2="118" y2="168" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#ar11)"/>
+        <rect x="122" y="150" width="164" height="38" rx="5" fill="#fff" stroke="#dadce0"/>
+        <text x="204" y="164" text-anchor="middle" font-size="8" fill="#5f6368">a message every 0.022 ms &mdash;</text>
+        <text x="204" y="176" text-anchor="middle" font-size="8" fill="#5f6368">100 accumulate in 2.22 ms,</text>
+        <text x="204" y="185" text-anchor="middle" font-size="7.5" fill="#188038">long before the 10 ms timer</text>
+        <line x1="290" y1="168" x2="320" y2="168" stroke="#4285F4" stroke-width="3" marker-end="url(#ar11)"/>
+        <rect x="324" y="148" width="130" height="42" rx="5" fill="#fff" stroke="#34A853"/>
+        <text x="389" y="162" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">100 messages per RPC</text>
+        <text x="389" y="175" text-anchor="middle" font-size="8" fill="#188038">450 RPCs/s, not 45,000</text>
+        <text x="389" y="186" text-anchor="middle" font-size="7.5" fill="#188038">a batch every 2.22 ms</text>
+        <text x="18" y="208" font-size="8.5" fill="#188038">Here <tspan font-weight="600">max_messages</tspan> is the binding limit, and batching cuts publish requests by 100&times;.</text>
+        <text x="18" y="222" font-size="8.5" fill="#188038">Raising <tspan font-family="Roboto Mono, monospace">max_latency</tspan> would change nothing &mdash; the count fills first.</text>
+        <text x="18" y="238" font-size="8.5" fill="#5f6368">At 450/s the same settings give ~4 messages per batch: the timer binds, and the count never fills.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Batching depends on one publisher's rate">
+  <summary>Speaker notes &mdash; Batching depends on one publisher&rsquo;s rate</summary>
+  <div class="n-body"><ul>
+    <li>Defaults verified in googleapis/python-pubsub, <code>google/cloud/pubsub_v1/types.py</code>: <code>BatchSettings(max_bytes=1*1000*1000, max_latency=0.01, max_messages=100)</code>.</li>
+    <li><strong>The point to land:</strong> a fleet total tells you nothing about batching. Batching happens inside one publisher client, so the only number that matters is that process&rsquo;s own publish rate. Case A is the common misconception &mdash; people assume a high-volume system automatically benefits.</li>
+    <li>Arithmetic worth doing on the board, all from the defaults. At 45,000/s: one message every 1/45,000 s = 0.022&nbsp;ms, so 100 messages take 2.22&nbsp;ms and <code>max_messages</code> binds. At 450/s: one message every 2.22&nbsp;ms, so in a 10&nbsp;ms window only about 4 arrive and <code>max_latency</code> binds. At 1 message per 10&nbsp;s (case A): the timer fires on a batch of one.</li>
+    <li>Head off the wrong conclusion about case A: nothing needs fixing there, and the client is <em>not</em> routed through some intermediate service. It publishes directly to the topic, exactly like case B &mdash; identical code and plumbing. It simply gets no batching benefit, and the 10&nbsp;ms ceiling means it loses nothing either.</li>
+    <li>The tradeoff for a longer timer: buffered messages live in the publisher&rsquo;s memory and are lost if the process dies before the batch is sent, which is why a shutdown path should flush.</li>
+    <li>The 1&nbsp;MB byte limit protects you from the 10&nbsp;MB publish-request cap when messages are large.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. DATA VS. ATTRIBUTES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Data vs. attributes &mdash; and the limits</h1>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body">
+        <li><code>data</code> is opaque bytes &mdash; Pub/Sub never parses it. Max <strong>10 MB</strong></li>
+        <li><code>attributes</code> are string pairs the <em>service</em> can read: up to <strong>100</strong> per message; key &le; <strong>256 B</strong>, value &le; <strong>1024 B</strong></li>
+        <li>Anything a subscription filter or routing decision needs must be an attribute, not a payload field</li>
+        <li>A topic can carry an <strong>Avro or Protobuf schema</strong> and reject non-conforming messages at publish time</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout">Put in attributes only what the <strong>service</strong> needs to see. Attributes are delivered with every copy and count toward what you are billed for.</div>
+    </div>
+    <div class="figure">
+      <svg width="410" height="252" viewBox="0 0 410 252">
+        <!-- envelope -->
+        <rect x="30" y="16" width="300" height="216" rx="10" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <!-- attributes strip -->
+        <rect x="30" y="16" width="300" height="76" rx="10" fill="#e8f0fe"/>
+        <rect x="30" y="82" width="300" height="10" fill="#e8f0fe"/>
+        <text x="46" y="36" font-size="10" font-weight="600" fill="#1a73e8">attributes &mdash; service-readable</text>
+        <text x="46" y="54" font-size="9.5" font-family="Roboto Mono, monospace" fill="#202124">device=web   sdk_version=4.2.1</text>
+        <text x="46" y="70" font-size="9.5" font-family="Roboto Mono, monospace" fill="#202124">region=us-east1</text>
+        <!-- data body -->
+        <text x="46" y="112" font-size="10" font-weight="600" fill="#5f6368">data &mdash; opaque to Pub/Sub</text>
+        <text x="46" y="132" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368">{"meeting_id":"mtg_58d1",</text>
+        <text x="46" y="146" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368"> "participant":"amy",</text>
+        <text x="46" y="160" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368"> "audio_mos":2.9,</text>
+        <text x="46" y="174" font-size="9" font-family="Roboto Mono, monospace" fill="#5f6368"> "packet_loss_pct":4.1, &hellip;}</text>
+        <!-- lock -->
+        <rect x="286" y="120" width="22" height="16" rx="3" fill="none" stroke="#9aa0a6" stroke-width="1.6"/>
+        <path d="M291 120 v-5 a6 6 0 0 1 12 0 v5" fill="none" stroke="#9aa0a6" stroke-width="1.6"/>
+        <!-- limits -->
+        <g font-size="8.5" fill="#5f6368">
+          <text x="342" y="40">&le; 100 pairs</text>
+          <text x="342" y="54">key &le; 256 B</text>
+          <text x="338" y="68">value &le; 1024 B</text>
+          <text x="342" y="150">data &le; 10 MB</text>
+        </g>
+        <rect x="338" y="76" width="64" height="14" rx="3" fill="none" stroke="#dadce0"/>
+        <text x="370" y="86" text-anchor="middle" font-size="8" fill="#5f6368">service limit</text>
+        <text x="180" y="248" text-anchor="middle" font-size="9.5" fill="#5f6368">ClearMeet: routing facts are attributes; the QoS reading is payload.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Data vs. attributes">
+  <summary>Speaker notes &mdash; Data vs. attributes</summary>
+  <div class="n-body"><ul>
+    <li>Limits from docs.cloud.google.com/pubsub/quotas &mdash; tagged <strong>service limit</strong> on the face so they read differently from the heuristics later in the deck. Also relevant: a publish request is capped at 10&nbsp;MB and 1,000 messages total, which interacts with the batch settings.</li>
+    <li>The schema mention pays off on the BigQuery-subscription slide, where <code>--use-topic-schema</code> depends on the topic having one.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. THE ORDERING PROBLEM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">When arrival order changes the answer</h1>
+  <div class="lede" style="font-size:14.5px;margin-bottom:8px">ClearMeet&rsquo;s session service consumes <code>meeting-lifecycle</code> and keeps a live roster: who is in meeting <code>mtg_58d1</code> right now. It applies each event as it arrives &mdash; <code>joined</code> adds a name, <code>left</code> removes one.</div>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Two events for amy: she joins at 14:00:09 and leaves at 14:31:02</li>
+        <li>Arrive in that order and the roster ends correct &mdash; amy removed</li>
+        <li>Arrive reversed and <code>left</code> removes a name that is not there yet, then <code>joined</code> adds her back. Amy is now in a meeting she has left, permanently</li>
+        <li>By default Pub/Sub makes <strong>no ordering promise</strong> &mdash; not even between two messages from the same publisher</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:13.5px">Most streams do not care: a QoS sample carries its own timestamp, so late arrival changes nothing. A <strong>state machine</strong> driven by events is the case that cares.</div>
+    </div>
+    <div class="figure">
+      <svg width="430" height="252" viewBox="0 0 430 252">
+        <text x="105" y="16" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">applied in publish order</text>
+        <g font-size="7.5" font-family="Roboto Mono, monospace">
+          <rect x="14" y="26" width="182" height="17" rx="3" fill="#e6f4ea" stroke="#34A853"/><text x="105" y="38" text-anchor="middle" fill="#188038">joined amy  14:00:09</text>
+          <rect x="14" y="48" width="182" height="17" rx="3" fill="#e6f4ea" stroke="#34A853"/><text x="105" y="60" text-anchor="middle" fill="#188038">left   amy  14:31:02</text>
+        </g>
+        <text x="105" y="84" text-anchor="middle" font-size="8" fill="#5f6368">roster: {} &rarr; {amy} &rarr; {}</text>
+        <rect x="14" y="94" width="182" height="34" rx="6" fill="#fff" stroke="#34A853" stroke-width="1.5"/>
+        <text x="105" y="108" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">final roster</text>
+        <text x="105" y="121" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#3c4043">mtg_58d1: (empty)</text>
+        <text x="105" y="146" text-anchor="middle" font-size="9.5" fill="#188038">&#10003; correct</text>
+        <text x="325" y="16" text-anchor="middle" font-size="9.5" font-weight="600" fill="#b3261e">applied as they arrived</text>
+        <g font-size="7.5" font-family="Roboto Mono, monospace">
+          <rect x="234" y="26" width="182" height="17" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="325" y="38" text-anchor="middle" fill="#b3261e">left   amy  14:31:02</text>
+          <rect x="234" y="48" width="182" height="17" rx="3" fill="#fce8e6" stroke="#EA4335"/><text x="325" y="60" text-anchor="middle" fill="#b3261e">joined amy  14:00:09</text>
+        </g>
+        <text x="325" y="84" text-anchor="middle" font-size="8" fill="#5f6368">roster: {} &rarr; {} &rarr; {amy}</text>
+        <text x="325" y="94" text-anchor="middle" font-size="7.5" fill="#b3261e">(removing a name that is not there does nothing)</text>
+        <rect x="234" y="100" width="182" height="34" rx="6" fill="#fff" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="325" y="114" text-anchor="middle" font-size="8.5" fill="#b3261e" font-weight="600">final roster</text>
+        <text x="325" y="127" text-anchor="middle" font-size="8.5" font-family="Roboto Mono, monospace" fill="#3c4043">mtg_58d1: amy</text>
+        <text x="325" y="150" text-anchor="middle" font-size="9.5" fill="#b3261e">&#10007; amy never leaves</text>
+        <line x1="14" y1="168" x2="416" y2="168" stroke="#dadce0"/>
+        <text x="215" y="188" text-anchor="middle" font-size="9" fill="#5f6368">Same two messages. Same code. The order they land in decides the answer,</text>
+        <text x="215" y="202" text-anchor="middle" font-size="9" fill="#5f6368">and the wrong one is not self-correcting &mdash; the roster stays wrong forever.</text>
+        <text x="215" y="228" text-anchor="middle" font-size="9" fill="#3c4043">Why would they land reversed? Different publisher processes, different</text>
+        <text x="215" y="242" text-anchor="middle" font-size="9" fill="#3c4043">network paths, or a redelivery of the first while the second flows past.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="When arrival order changes the answer">
+  <summary>Speaker notes &mdash; When arrival order changes the answer</summary>
+  <div class="n-body"><ul>
+    <li>Be concrete about <em>why</em> two messages can arrive reversed, since &ldquo;the network reorders&rdquo; is too vague to be useful. Three real mechanisms: (1) the join and the leave are published by <strong>different processes</strong> of the meeting-lifecycle service, each with its own batch buffer, so the later message can be flushed first; (2) the two publishes take different network paths and one is simply slower; (3) the join was <strong>redelivered</strong> &mdash; its ack deadline lapsed on the consumer &mdash; and the redelivery lands after the leave.</li>
+    <li>Note the vocabulary carefully: mechanism 3 is a <em>redelivery</em>, the term from the delivery section. Do not call it a publisher retry, which is the separate publish-side case.</li>
+    <li>Ask the room for the fix before revealing the next slide. Good answers: sort by timestamp in the consumer (works only if you can wait for stragglers), or make the consumer order-independent &mdash; here, storing a per-participant last-event timestamp and ignoring older events, which is genuinely the better fix when you can afford it. Ordering keys are the third option.</li>
+    <li>ClearMeet applies ordering to one topic only. The other three streams are order-independent by design.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. ORDERING KEYS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Ordering keys: order <span class="accent">within a conversation</span></h1>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="code small">publisher = pubsub_v1.<span class="fn">PublisherClient</span>(
+  publisher_options=pubsub_v1.types
+    .<span class="fn">PublisherOptions</span>(
+      enable_message_ordering=<span class="kw">True</span>
+  )                  <span class="cm"># not the default</span>
+)
+publisher.<span class="fn">publish</span>(topic, data,
+    ordering_key=<span class="st">"mtg_58d1"</span>)</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li>Pub/Sub delivers messages carrying the <strong>same key</strong> in the order they were published. It promises nothing about two <em>different</em> keys, and does not need to &mdash; <code>mtg_92aa</code>&rsquo;s events have no bearing on <code>mtg_58d1</code>&rsquo;s roster</li>
+        <li>Turn it on in <strong>both</strong> places: the publisher, and the subscription at creation time (it cannot be added later)</li>
+        <li>Publish every message for one key <strong>from the same region</strong></li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="430" height="240" viewBox="0 0 430 240">
+        <defs><marker id="ar13" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#188038"/></marker></defs>
+        <!-- lane 1 -->
+        <text x="10" y="34" font-size="9.5" font-family="Roboto Mono, monospace" fill="#1a73e8" font-weight="600">key mtg_58d1</text>
+        <g font-size="8" font-family="Roboto Mono, monospace">
+          <rect x="10" y="44" width="92" height="18" rx="4" fill="#e8f0fe" stroke="#4285F4"/><text x="56" y="56" text-anchor="middle" fill="#202124">started 14:00:02</text>
+          <rect x="110" y="44" width="96" height="18" rx="4" fill="#e8f0fe" stroke="#4285F4"/><text x="158" y="56" text-anchor="middle" fill="#202124">joined:amy :00:09</text>
+          <rect x="214" y="44" width="92" height="18" rx="4" fill="#e8f0fe" stroke="#4285F4"/><text x="260" y="56" text-anchor="middle" fill="#202124">joined:bo :00:11</text>
+          <rect x="314" y="44" width="84" height="18" rx="4" fill="#e8f0fe" stroke="#4285F4"/><text x="356" y="56" text-anchor="middle" fill="#202124">ended 14:31:40</text>
+        </g>
+        <line x1="10" y1="78" x2="392" y2="78" stroke="#188038" stroke-width="1.6" marker-end="url(#ar13)"/>
+        <text x="200" y="94" text-anchor="middle" font-size="9" fill="#188038">delivered in this order &mdash; guaranteed</text>
+        <!-- gap note -->
+        <text x="215" y="124" text-anchor="middle" font-size="9.5" fill="#5f6368">the two meetings may interleave any way at all</text>
+        <!-- lane 2 -->
+        <text x="10" y="152" font-size="9.5" font-family="Roboto Mono, monospace" fill="#1a73e8" font-weight="600">key mtg_92aa</text>
+        <g font-size="8" font-family="Roboto Mono, monospace">
+          <rect x="60" y="162" width="92" height="18" rx="4" fill="#e8f0fe" stroke="#4285F4"/><text x="106" y="174" text-anchor="middle" fill="#202124">started 14:00:05</text>
+          <rect x="170" y="162" width="96" height="18" rx="4" fill="#e8f0fe" stroke="#4285F4"/><text x="218" y="174" text-anchor="middle" fill="#202124">joined:kai :00:07</text>
+        </g>
+        <line x1="10" y1="196" x2="392" y2="196" stroke="#188038" stroke-width="1.6" marker-end="url(#ar13)"/>
+        <text x="200" y="212" text-anchor="middle" font-size="9" fill="#188038">also in order, independently</text>
+      </svg>
+      <div class="figcap">One roster per meeting, so one ordered lane per meeting.</div>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:2px">Ordering caps publish throughput at <strong>1 MB/s per key</strong> <span class="muted" style="font-size:12px">(service limit)</span>, so the key must divide the traffic finely. <code>meeting_id</code> gives millions of small lanes; keying on <code>region</code> would force a whole region through one 1 MB/s lane.</div>
+</section>
+<details class="notes" data-title="Ordering keys">
+  <summary>Speaker notes &mdash; Ordering keys</summary>
+  <div class="n-body"><ul>
+    <li>All conditions from docs.cloud.google.com/pubsub/docs/ordering. The same-region-on-publish requirement is the one that surprises teams running multi-region edge services: two data centers publishing the same <code>meeting_id</code> get no guarantee between them.</li>
+    <li>The key names the <em>thing whose history matters</em>. Here that is a meeting. In an order system it would be the order ID; in a bank ledger, the account. If the natural key is too coarse to stay under 1&nbsp;MB/s, the stream probably should not be ordered at all.</li>
+    <li>ClearMeet keys <code>meeting-lifecycle</code> on <code>meeting_id</code>; <code>qos-samples</code> uses no key.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. WHAT ORDERING COSTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What ordering costs</h1>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body">
+        <li>A redelivery holds up its key: if message 2 is redelivered, message 3 waits behind it</li>
+        <li>The docs are explicit: ordered delivery &ldquo;<em>decreases publish availability and increases end-to-end message delivery latency</em>&rdquo;</li>
+        <li>With push subscriptions: one outstanding message per key at a time</li>
+        <li>Combined with exactly-once: acks must arrive in order, or the service fails the requests with retryable errors</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn">Use ordering where out-of-order is <strong>wrong</strong>, not where it is merely untidy. At ClearMeet that is one topic out of four.</div>
+    </div>
+    <div class="figure">
+      <svg width="420" height="250" viewBox="0 0 420 250">
+        <text x="10" y="24" font-size="10" font-weight="600" fill="#b3261e">with ordering &mdash; head-of-line blocking</text>
+        <g font-size="9" font-family="Roboto Mono, monospace">
+          <rect x="10" y="36" width="70" height="22" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="45" y="51" text-anchor="middle" fill="#188038">msg 1 ✓</text>
+          <rect x="90" y="36" width="110" height="22" rx="4" fill="#fce8e6" stroke="#EA4335" stroke-width="1.6"/><text x="145" y="51" text-anchor="middle" fill="#b3261e">msg 2 redelivering</text>
+          <rect x="210" y="36" width="106" height="22" rx="4" fill="#fff" stroke="#EA4335" stroke-dasharray="4 3"/><text x="263" y="51" text-anchor="middle" fill="#b3261e">msg 3 waiting&hellip;</text>
+        </g>
+        <path d="M322 47 a14 14 0 1 1 -0.1 0" fill="none" stroke="#b3261e" stroke-width="1.5"/>
+        <line x1="336" y1="47" x2="336" y2="39" stroke="#b3261e" stroke-width="1.5"/>
+        <line x1="336" y1="47" x2="342" y2="50" stroke="#b3261e" stroke-width="1.5"/>
+        <text x="164" y="78" text-anchor="middle" font-size="9" fill="#b3261e">ack deadline expired on 2 &rarr; 3 cannot be delivered yet</text>
+        <line x1="10" y1="100" x2="410" y2="100" stroke="#dadce0"/>
+        <text x="10" y="126" font-size="10" font-weight="600" fill="#188038">without ordering &mdash; independent delivery</text>
+        <g font-size="9" font-family="Roboto Mono, monospace">
+          <rect x="10" y="138" width="70" height="22" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="45" y="153" text-anchor="middle" fill="#188038">msg 1 ✓</text>
+          <rect x="90" y="138" width="110" height="22" rx="4" fill="#fef7e0" stroke="#FBBC04"/><text x="145" y="153" text-anchor="middle" fill="#7a5c00">msg 2 retrying</text>
+          <rect x="210" y="138" width="70" height="22" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="245" y="153" text-anchor="middle" fill="#188038">msg 3 ✓</text>
+        </g>
+        <text x="164" y="180" text-anchor="middle" font-size="9" fill="#188038">3 delivered while 2 is retried</text>
+        <text x="210" y="222" text-anchor="middle" font-size="10.5" fill="#5f6368">Head-of-line blocking is the feature, not a bug.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What ordering costs">
+  <summary>Speaker notes &mdash; What ordering costs</summary>
+  <div class="n-body"><ul>
+    <li>The availability/latency sentence is quoted nearly verbatim from docs.cloud.google.com/pubsub/docs/ordering, and it is on the slide as a quotation deliberately &mdash; it should not read as instructor opinion.</li>
+    <li>Discussion prompt: which of ClearMeet&rsquo;s four streams need ordering? Lifecycle yes. Usage-events no (each event carries its own totals). QoS no. Media telemetry no.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. DIVIDER: SECTION 3 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 5</div>
+    <h1>Delivery</h1>
+    <div class="sub">Four ways to get a message out, one clock that governs all of them.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The model</span><span>Publishing</span><span class="current">Delivery</span><span>When it breaks</span><span>Kafka</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Delivery">
+  <summary>Speaker notes &mdash; Section 3: Delivery</summary>
+  <div class="n-body"><ul>
+    <li>The clock is the ack deadline, and that slide is the most important one in the section. Everything else is a subscription type or a setting.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. FOUR SUBSCRIPTION TYPES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Four subscription types</h1>
+  <table class="tbl" style="font-size:13.5px">
+    <tr><th style="width:14%">Type</th><th style="width:26%">Who does the work</th><th style="width:32%">Use it when</th><th>ClearMeet</th></tr>
+    <tr><td><strong>Pull</strong></td><td>your code, via StreamingPull</td><td>control, throughput, or exactly-once</td><td>Dataflow dashboard job</td></tr>
+    <tr><td><strong>Push</strong></td><td>Pub/Sub POSTs to your HTTPS endpoint</td><td>serverless consumers, low volume, per-event triggers</td><td>Cloud Run alerting</td></tr>
+    <tr class="hl"><td><strong>BigQuery</strong></td><td>Pub/Sub writes directly to a table</td><td>no transformation needed</td><td>raw samples &rarr; <code>qos_events</code></td></tr>
+    <tr><td><strong>Cloud Storage</strong></td><td>Pub/Sub writes files to a bucket</td><td>archival, batch reprocessing</td><td>raw sample archive</td></tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout">The export subscriptions (BigQuery, Cloud Storage) need no subscriber process at all &mdash; but they are <strong>at-least-once only</strong>, and they do not support exactly-once delivery.</div>
+</section>
+<details class="notes" data-title="Four subscription types">
+  <summary>Speaker notes &mdash; Four subscription types</summary>
+  <div class="n-body"><ul>
+    <li>Exactly-once is pull-only; push and export subscriptions do not support it (docs.cloud.google.com/pubsub/docs/exactly-once-delivery). That single fact drives most of the right-hand column.</li>
+    <li>The source module lists these as four &ldquo;main subscription methods&rdquo; with no selection criteria. The criteria are the point of the slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. THE ACK DEADLINE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">The acknowledgement deadline</h1>
+  <div class="lede" style="font-size:14.5px;margin-bottom:8px">A delivered message is not gone from the subscription. It is set aside and hidden from other subscribers for a fixed window &mdash; the <strong>ack deadline</strong>. Ack inside the window and it is deleted. Stay silent and it goes back in the queue for someone else.</div>
+  <div class="figure">
+    <svg width="840" height="240" viewBox="0 0 840 240">
+      <defs><marker id="ar17" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+      <line x1="40" y1="104" x2="800" y2="104" stroke="#dadce0" stroke-width="2"/>
+      <g font-size="9" fill="#5f6368">
+        <text x="40" y="126" text-anchor="middle">t=0</text>
+        <text x="230" y="126" text-anchor="middle">t=30s</text>
+        <text x="420" y="126" text-anchor="middle">t=60s</text>
+        <text x="610" y="126" text-anchor="middle">t=90s</text>
+      </g>
+      <circle cx="40" cy="104" r="6" fill="#4285F4"/>
+      <text x="70" y="84" text-anchor="middle" font-size="9.5" fill="#1a73e8" font-weight="600">delivered to subscriber A</text>
+      <text x="70" y="72" text-anchor="middle" font-size="8.5" fill="#5f6368">hidden from everyone else</text>
+      <rect x="40" y="96" width="190" height="16" rx="3" fill="#4285F4" opacity="0.85"/>
+      <text x="135" y="146" text-anchor="middle" font-size="9" fill="#1a73e8">the 30 s you configured</text>
+      <rect x="230" y="96" width="190" height="16" rx="3" fill="#4285F4" opacity="0.4"/>
+      <rect x="420" y="96" width="130" height="16" rx="3" fill="#4285F4" opacity="0.4"/>
+      <text x="400" y="146" text-anchor="middle" font-size="9" fill="#1a73e8">library keeps asking for 30 s more, every 30 s, because the callback has not returned</text>
+      <circle cx="550" cy="104" r="6" fill="#34A853"/>
+      <line x1="550" y1="96" x2="610" y2="52" stroke="#34A853" stroke-width="1.8" marker-end="url(#ar17)"/>
+      <rect x="614" y="26" width="212" height="42" rx="7" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+      <text x="720" y="42" text-anchor="middle" font-size="9.5" fill="#188038" font-weight="600">callback returns, ack() at t=78</text>
+      <text x="720" y="55" text-anchor="middle" font-size="8.5" fill="#188038">service deletes it from this subscription</text>
+      <text x="720" y="65" text-anchor="middle" font-size="8.5" fill="#188038">&mdash; it will never be delivered here again</text>
+      <line x1="550" y1="112" x2="610" y2="170" stroke="#EA4335" stroke-width="1.8" marker-end="url(#ar17)"/>
+      <rect x="614" y="152" width="212" height="56" rx="7" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+      <text x="720" y="168" text-anchor="middle" font-size="9.5" fill="#b3261e" font-weight="600">no ack, no extension request</text>
+      <text x="720" y="181" text-anchor="middle" font-size="8.5" fill="#b3261e">(process died, or hit max_lease_duration)</text>
+      <text x="720" y="194" text-anchor="middle" font-size="8.5" fill="#b3261e">deadline lapses &rarr; message becomes visible again</text>
+      <text x="720" y="204" text-anchor="middle" font-size="8.5" fill="#b3261e">&rarr; delivered to subscriber B</text>
+    </svg>
+  </div>
+  <div class="cols" style="margin-top:0">
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Default <strong>10 s</strong>, settable <strong>10&ndash;600 s</strong>. You rarely hit it directly: the client library watches your callback and asks for more time on your behalf until it returns</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>It stops extending at <code>max_lease_duration</code> &mdash; <strong>1 hour</strong> in Python &mdash; assuming a callback running that long is stuck, not busy</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout warn" style="margin-top:0;font-size:12.5px">The deadline exists so a <strong>crashed</strong> subscriber cannot swallow a message: the service cannot tell &ldquo;still working&rdquo; from &ldquo;dead.&rdquo;</div>
+</section>
+<details class="notes" data-title="The acknowledgement deadline">
+  <summary>Speaker notes &mdash; The acknowledgement deadline</summary>
+  <div class="n-body"><ul>
+    <li>Deadline default and range: docs.cloud.google.com/pubsub/docs/subscription-properties. <code>max_lease_duration = 1*60*60</code> verified in python-pubsub <code>types.py</code> (<code>FlowControl</code>).</li>
+    <li>Answer the obvious question directly: <strong>acking does not "release" anything back to the queue</strong>. Ack means done &mdash; the service deletes the message from that subscription (other subscriptions on the same topic are unaffected; they hold their own copies).</li>
+    <li>The opposite of ack is <code>message.nack()</code>: give it back <em>now</em> rather than waiting for the deadline to lapse. Useful when your callback knows immediately it cannot handle this message and wants it retried sooner.</li>
+    <li>Two clocks, kept distinct: the <em>subscription&rsquo;s</em> ack deadline is what the service enforces; the <em>client library&rsquo;s</em> automatic extension is what keeps it from lapsing. People conflate them and set the subscription deadline to 600&nbsp;s for no benefit &mdash; the library was already handling it. What raising it does buy you: fewer extension RPCs, and a longer window before a genuinely dead process is noticed.</li>
+    <li><code>subscription/expired_ack_deadlines_count</code> (section 4) is how you see deadlines lapsing in production.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. FLOW CONTROL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Flow control: bounding what the client holds</h1>
+  <div class="lede" style="font-size:14px;margin-bottom:8px">A pull subscription does not fetch one message at a time. <code>subscribe()</code> opens a long-lived <strong>StreamingPull</strong> connection, and while it is open the server sends messages down it as they become available. So the client needs its own brake.</div>
+  <div class="cols c-40-60">
+    <div>
+      <pre class="code small" style="font-size:11.5px">flow = pubsub_v1.types.<span class="fn">FlowControl</span>(
+    max_messages=<span class="st">1000</span>,       <span class="cm"># default</span>
+    max_bytes=<span class="st">100</span>*<span class="st">1024</span>*<span class="st">1024</span>, <span class="cm"># 100 MiB</span>
+)
+streaming = subscriber.<span class="fn">subscribe</span>(
+    subscription_path,
+    callback=callback,
+    flow_control=flow,
+)</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li><strong>Outstanding</strong> = handed to your callback and not yet acked</li>
+        <li>ClearMeet&rsquo;s dashboard: 1,000 &times; 350 B is nothing. A job holding 5 MB per message would reach the 100 MiB byte cap at ~20 messages &mdash; and that cap, not the count, is what stops it</li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="450" height="248" viewBox="-40 0 450 248">
+        <defs><marker id="ar18" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <!-- server -->
+        <rect x="8" y="76" width="74" height="70" rx="8" fill="#4285F4"/>
+        <text x="45" y="104" text-anchor="middle" font-size="9" font-weight="600" fill="#fff">Pub/Sub</text>
+        <text x="45" y="117" text-anchor="middle" font-size="9" font-weight="600" fill="#fff">server</text>
+        <text x="45" y="133" text-anchor="middle" font-size="7.5" fill="#d2e3fc">has backlog</text>
+        <!-- stream -->
+        <path d="M86 100 L 148 100" stroke="#4285F4" stroke-width="3" marker-end="url(#ar18)"/>
+        <path d="M148 122 L 86 122" stroke="#9aa0a6" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar18)"/>
+        <text x="117" y="92" text-anchor="middle" font-size="7.5" fill="#1a73e8">messages</text>
+        <text x="117" y="138" text-anchor="middle" font-size="7.5" fill="#5f6368">acks, modacks,</text>
+        <text x="117" y="148" text-anchor="middle" font-size="7.5" fill="#5f6368">pause / resume</text>
+        <text x="112" y="164" text-anchor="middle" font-size="7.5" fill="#3c4043" font-weight="600">one open StreamingPull</text>
+        <!-- client box -->
+        <rect x="146" y="16" width="300" height="216" rx="9" fill="#f8f9fa" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="296" y="32" text-anchor="middle" font-size="8.5" font-weight="600" fill="#3c4043">your subscriber process &mdash; the client library</text>
+        <!-- on hold -->
+        <rect x="156" y="42" width="126" height="60" rx="6" fill="#fff" stroke="#dadce0"/>
+        <text x="219" y="56" text-anchor="middle" font-size="8" fill="#5f6368">received, held internally</text>
+        <g fill="#f1f3f4" stroke="#9aa0a6">
+          <rect x="168" y="64" width="13" height="10" rx="2"/><rect x="184" y="64" width="13" height="10" rx="2"/><rect x="200" y="64" width="13" height="10" rx="2"/><rect x="216" y="64" width="13" height="10" rx="2"/>
+        </g>
+        <text x="219" y="90" text-anchor="middle" font-size="7.5" fill="#5f6368">released as capacity frees</text>
+        <path d="M219 106 L 219 122" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar18)"/>
+        <!-- outstanding -->
+        <rect x="156" y="126" width="126" height="86" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="219" y="140" text-anchor="middle" font-size="8" fill="#1a73e8" font-weight="600">outstanding &mdash; in your</text>
+        <text x="219" y="151" text-anchor="middle" font-size="8" fill="#1a73e8" font-weight="600">callback, not yet acked</text>
+        <g fill="#fff" stroke="#4285F4">
+          <rect x="166" y="158" width="12" height="10" rx="2"/><rect x="181" y="158" width="12" height="10" rx="2"/><rect x="196" y="158" width="12" height="10" rx="2"/><rect x="211" y="158" width="12" height="10" rx="2"/><rect x="226" y="158" width="12" height="10" rx="2"/><rect x="241" y="158" width="12" height="10" rx="2"/>
+          <rect x="166" y="172" width="12" height="10" rx="2"/><rect x="181" y="172" width="12" height="10" rx="2"/><rect x="196" y="172" width="12" height="10" rx="2"/><rect x="211" y="172" width="12" height="10" rx="2"/>
+        </g>
+        <text x="219" y="198" text-anchor="middle" font-size="7.5" fill="#1a73e8">counts toward max_messages</text>
+        <text x="219" y="208" text-anchor="middle" font-size="7.5" fill="#1a73e8">and max_bytes</text>
+        <!-- load gauge -->
+        <rect x="292" y="48" width="146" height="164" rx="6" fill="#fff" stroke="#dadce0"/>
+        <text x="365" y="64" text-anchor="middle" font-size="8.5" font-weight="600" fill="#3c4043">load = outstanding / limit</text>
+        <rect x="339" y="74" width="52" height="112" rx="4" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <rect x="339" y="130" width="52" height="56" rx="4" fill="#e8f0fe"/>
+        <line x1="331" y1="74" x2="399" y2="74" stroke="#EA4335" stroke-width="2"/>
+        <text x="404" y="72" font-size="7.5" fill="#b3261e">1.0</text>
+        <text x="326" y="72" text-anchor="end" font-size="7.5" fill="#b3261e" font-weight="600">pause</text>
+        <line x1="331" y1="96" x2="399" y2="96" stroke="#34A853" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="404" y="94" font-size="7.5" fill="#188038">0.8</text>
+        <text x="326" y="94" text-anchor="end" font-size="7.5" fill="#188038" font-weight="600">resume</text>
+        <text x="365" y="204" text-anchor="middle" font-size="7.5" fill="#5f6368">at 1.0 the library stops reading</text>
+        <text x="365" y="214" text-anchor="middle" font-size="7.5" fill="#5f6368">the stream until load falls to 0.8</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Flow control">
+  <summary>Speaker notes &mdash; Flow control</summary>
+  <div class="n-body"><ul>
+    <li>Mechanism verified in <code>python-pubsub</code>, <code>google/cloud/pubsub_v1/subscriber/_protocol/streaming_pull_manager.py</code>. <code>load</code> is the max of (outstanding messages / <code>max_messages</code>) and (outstanding bytes / <code>max_bytes</code>). At <code>load &gt;= 1.0</code> the manager pauses the consumer; it resumes below <code>0.8</code>. The gap prevents thrashing.</li>
+    <li>Two layers worth separating: messages arriving off the stream can sit on an internal <em>on-hold</em> queue inside the library, and are released to your callback as capacity frees. So &ldquo;outstanding&rdquo; means delivered to <em>your code</em>, not merely received by the process.</li>
+    <li>Defaults <code>max_messages=1000</code>, <code>max_bytes=100 MiB</code> from <code>pubsub_v1/types.py</code>. Note the docs&rsquo; own sample uses <code>FlowControl(max_messages=10)</code> &mdash; a deliberately tiny value to make the behavior visible in a demo.</li>
+    <li><strong>If asked &ldquo;would a client really take more than it can handle?&rdquo;</strong> &mdash; the client is not requesting messages one at a time; the server pushes down an open stream, and the defaults are generous. It bites with large messages (the byte cap is the real limit), with slow callbacks where 1,000 held messages all need their deadlines extended while your code works through them one at a time, and on restart into a large backlog.</li>
+    <li>Also true and worth saying: the server applies its own limits. Docs note that if the throughput quota is exceeded the server stops sending without breaking the connection, and that Pub/Sub periodically closes and the library transparently reopens the stream.</li>
+    <li>Messages the client does not hold are not lost &mdash; they stay in the subscription backlog, which is durable and is where they should wait.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. REDELIVERY VS. DUPLICATE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Three ways the same event arrives twice</h1>
+  <div class="lede" style="font-size:14px;margin-bottom:8px">ClearMeet&rsquo;s billing job charges the same minute twice. Pub/Sub&rsquo;s documentation draws a sharp line between these cases, and only the middle one is the product&rsquo;s to fix.</div>
+  <table class="tbl" style="font-size:12px">
+    <tr><th style="width:19%">What happened</th><th style="width:27%">Why</th><th style="width:22%">How you can tell</th><th>What fixes it</th></tr>
+    <tr><td><strong>Redelivery</strong><br><span class="muted" style="font-size:11px">the normal case</span></td><td>your ack deadline lapsed, or you called <code>nack()</code>. The message was never completed, so the service sends it again</td><td>same <strong>message ID</strong>, new <strong>ack ID</strong></td><td>Nothing to fix &mdash; the docs call this &ldquo;valid and system working as intended.&rdquo; Your consumer must tolerate it</td></tr>
+    <tr class="hl"><td><strong>Duplicate</strong><br><span class="muted" style="font-size:11px">the anomaly</span></td><td>re-sent <em>after</em> a successful ack, or <em>before</em> the deadline expired &mdash; a window in which no re-send should occur</td><td>same <strong>message ID</strong>, arriving when it should not</td><td><strong>Exactly-once delivery</strong> on the subscription</td></tr>
+    <tr><td><strong>Publish-side duplicate</strong></td><td>the publisher retried a timed-out publish and both copies landed. Two separate messages carrying one event</td><td><strong>different message IDs</strong> &mdash; invisible to Pub/Sub</td><td>An identifier your code puts in the payload, and an idempotent write</td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:13.5px">The common mistake: enabling exactly-once to stop <strong>redeliveries</strong>. It will not. A slow consumer whose deadline lapses still gets the message again &mdash; with exactly-once on.</div>
+</section>
+<details class="notes" data-title="Three ways the same event arrives twice">
+  <summary>Speaker notes &mdash; Three ways the same event arrives twice</summary>
+  <div class="n-body"><ul>
+    <li>Definitions quoted from docs.cloud.google.com/pubsub/docs/exactly-once-delivery. Redelivery: &ldquo;can happen either because of client-initiated negative acknowledgment of a message or when the client doesn&rsquo;t extend the acknowledgment deadline of the message before the acknowledgment deadline expires.&rdquo; Duplicate: &ldquo;when a message is re-sent after a successful acknowledgment or before acknowledgment deadline expiration.&rdquo; And explicitly: &ldquo;Redeliveries are considered valid and system working as intended.&rdquo;</li>
+    <li>The distinguishing variable is <strong>whether the message was still validly outstanding</strong>. Outside that window, a re-send is expected. Inside it &mdash; or after you already acked &mdash; it is an anomaly.</li>
+    <li><strong>Be honest about the limit of our knowledge:</strong> the documentation describes <em>what</em> a duplicate is and that exactly-once prevents it, but does not publish <em>why</em> duplicates occur internally. Do not invent a mechanism. If a student asks, say the causes are not publicly documented.</li>
+    <li>Row 3 is the one no delivery setting can see, because from Pub/Sub&rsquo;s perspective nothing went wrong: two distinct messages, each delivered correctly. That is why an application-level event key remains necessary even with exactly-once enabled.</li>
+    <li>Teaching order is deliberate: rows 1 and 3 are handled by idempotent consumers, which is the general, portable, free solution. Row 2 is the narrow case a product feature addresses.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. EXACTLY-ONCE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Exactly-once delivery</h1>
+  <div class="lede" style="font-size:14px;margin-bottom:8px">ClearMeet&rsquo;s invoicing job adds billable minutes to a running total. It cannot key the write on an event ID without a schema change, so a re-send after it already acked becomes an overcharge. This is the subscription that turns exactly-once on.</div>
+  <div class="cols c-40-60">
+    <div>
+      <pre class="code small" style="font-size:11.5px"><span class="cm"># --enable-exactly-once-delivery</span>
+<span class="kw">def</span> <span class="fn">callback</span>(message):
+    <span class="fn">add_billable_minutes</span>(message)
+    fut = message.<span class="fn">ack_with_response</span>()
+    <span class="kw">try</span>:
+        fut.<span class="fn">result</span>()
+    <span class="kw">except</span> AckError:
+        <span class="cm"># ack failed; it is coming</span>
+        <span class="cm"># back &mdash; undo the write</span>
+        <span class="fn">compensate</span>()</pre>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px">Without this feature <code>ack()</code> is fire-and-forget &mdash; you never learn it failed. Here the future resolves only when the service has <strong>recorded</strong> the ack, so your code can react.</div>
+    </div>
+    <div>
+      <div class="cols">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#188038;margin-bottom:4px">Guarantees</div>
+          <ul class="body" style="font-size:12.5px">
+            <li>No re-send after an ack the service confirmed</li>
+            <li>No re-send while the message is still validly outstanding</li>
+            <li>Only the newest ack ID can ack a message, so a stale one cannot</li>
+          </ul>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#c5221f;margin-bottom:4px">Does not cover</div>
+          <ul class="body" style="font-size:12.5px">
+            <li><strong>Redeliveries</strong> &mdash; a lapsed deadline or a <code>nack()</code> still returns the message</li>
+            <li><strong>Push and export</strong> subscriptions &mdash; pull only</li>
+            <li>Subscribers spread across <strong>more than one region</strong></li>
+            <li><strong>Publish-side duplicates</strong> &mdash; different messages entirely</li>
+          </ul>
+        </div>
+      </div>
+      <div class="figure" style="margin-top:4px">
+        <svg width="450" height="96" viewBox="0 0 450 96">
+          <rect x="96" y="8" width="252" height="76" rx="10" fill="none" stroke="#34A853" stroke-width="2" stroke-dasharray="7 4"/>
+          <text x="222" y="24" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">exactly-once boundary: one subscription, one region</text>
+          <rect x="112" y="36" width="94" height="30" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="159" y="55" text-anchor="middle" font-size="8.5" fill="#1a73e8">subscription</text>
+          <rect x="226" y="36" width="106" height="30" rx="6" fill="#f1f3f4" stroke="#9aa0a6"/>
+          <text x="279" y="50" text-anchor="middle" font-size="8" fill="#3c4043">pull subscribers,</text>
+          <text x="279" y="61" text-anchor="middle" font-size="8" fill="#3c4043">same region</text>
+          <line x1="208" y1="51" x2="222" y2="51" stroke="#5f6368" stroke-width="1.4"/>
+          <line x1="10" y1="51" x2="92" y2="51" stroke="#EA4335" stroke-width="1.6"/>
+          <text x="48" y="42" text-anchor="middle" font-size="7.5" fill="#b3261e">retrying publisher</text>
+          <line x1="428" y1="51" x2="352" y2="51" stroke="#EA4335" stroke-width="1.6"/>
+          <text x="392" y="42" text-anchor="middle" font-size="7" fill="#b3261e">subscriber, region 2</text>
+          <text x="222" y="92" text-anchor="middle" font-size="8" fill="#5f6368">the red arrows cross the boundary &mdash; the guarantee does not reach them</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Exactly-once delivery">
+  <summary>Speaker notes &mdash; Exactly-once delivery</summary>
+  <div class="n-body"><ul>
+    <li>Every claim from docs.cloud.google.com/pubsub/docs/exactly-once-delivery. Note the docs&rsquo; own wording: &ldquo;Subscriptions with exactly-once delivery enabled don&rsquo;t receive <em>duplicate</em> deliveries&rdquo; &mdash; duplicate, not redelivery. The distinction from the previous slide is load-bearing here.</li>
+    <li>Say the headline plainly: <strong>this does not stop your message coming back if you were too slow.</strong> That is a redelivery and it remains expected behavior. Students who enable exactly-once and still see repeats have usually hit exactly this.</li>
+    <li>What <code>ack_with_response()</code> buys is the thing plain <code>ack()</code> cannot give you: confirmation. On a subscription without exactly-once, the returned future resolves immediately regardless of outcome.</li>
+    <li>Combined with ordering, the service expects acks in order; out-of-order acks fail with retryable errors.</li>
+    <li>Costs: added latency and a lower throughput ceiling per subscription. Right for <code>usage-events</code>; wrong for <code>qos-samples</code>, where the volume is high and an idempotent write is easy.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. FILTERS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Filters: pay attention to <span class="accent">where they run</span></h1>
+  <pre class="term" style="margin-bottom:12px">gcloud pubsub subscriptions create qos-web-alerts-sub \
+    <span class="flag">--topic</span>=qos-samples \
+    <span class="flag">--message-filter</span>='attributes.device = "web" AND attributes.region = "us-east1"'</pre>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li>The filter runs <strong>in the service</strong>; non-matching messages are never delivered to that subscription</li>
+        <li>Filters read <strong>attributes only</strong> &mdash; never the payload. Another reason attributes matter</li>
+        <li>Set at creation; cannot be changed afterward</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:14px">A filter is also a <strong>backlog control</strong>: filtered-out messages cannot contribute to this subscription&rsquo;s backlog or its ack load.</div>
+    </div>
+    <div class="figure">
+      <svg width="430" height="196" viewBox="0 0 430 196">
+        <defs><marker id="ar21" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <rect x="10" y="76" width="96" height="32" rx="10" fill="#4285F4"/>
+        <text x="58" y="96" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff" font-family="Roboto Mono, monospace">qos-samples</text>
+        <!-- chips out -->
+        <g font-size="7.5" font-family="Roboto Mono, monospace">
+          <rect x="118" y="46" width="58" height="14" rx="3" fill="#e8f0fe" stroke="#4285F4"/><text x="147" y="56" text-anchor="middle" fill="#1a73e8">web</text>
+          <rect x="118" y="66" width="58" height="14" rx="3" fill="#f1f3f4" stroke="#9aa0a6"/><text x="147" y="76" text-anchor="middle" fill="#5f6368">ios</text>
+          <rect x="118" y="86" width="58" height="14" rx="3" fill="#e8f0fe" stroke="#4285F4"/><text x="147" y="96" text-anchor="middle" fill="#1a73e8">web</text>
+          <rect x="118" y="106" width="58" height="14" rx="3" fill="#f1f3f4" stroke="#9aa0a6"/><text x="147" y="116" text-anchor="middle" fill="#5f6368">macos</text>
+        </g>
+        <!-- sieve -->
+        <line x1="196" y1="34" x2="196" y2="130" stroke="#4285F4" stroke-width="2.5" stroke-dasharray="4 4"/>
+        <text x="196" y="24" text-anchor="middle" font-size="9" fill="#1a73e8" font-weight="600">filter: device = "web"</text>
+        <!-- passed -->
+        <line x1="200" y1="56" x2="238" y2="56" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar21)"/>
+        <line x1="200" y1="96" x2="238" y2="96" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar21)"/>
+        <!-- rejected -->
+        <text x="216" y="76" font-size="10" fill="#b3261e">&#10005;</text>
+        <text x="216" y="116" font-size="10" fill="#b3261e">&#10005;</text>
+        <!-- filtered sub -->
+        <rect x="242" y="40" width="178" height="76" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="331" y="58" text-anchor="middle" font-size="8.5" fill="#1a73e8" font-family="Roboto Mono, monospace">qos-web-alerts-sub</text>
+        <rect x="254" y="70" width="52" height="14" rx="3" fill="#e8f0fe" stroke="#4285F4"/><text x="280" y="80" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#1a73e8">web</text>
+        <rect x="312" y="70" width="52" height="14" rx="3" fill="#e8f0fe" stroke="#4285F4"/><text x="338" y="80" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#1a73e8">web</text>
+        <text x="331" y="106" text-anchor="middle" font-size="8" fill="#5f6368">only web chips enter this queue</text>
+        <text x="215" y="166" text-anchor="middle" font-size="8.5" fill="#5f6368">The ios and macos chips never enter this queue &mdash; or its backlog.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Filters">
+  <summary>Speaker notes &mdash; Filters</summary>
+  <div class="n-body"><ul>
+    <li><strong>Verify before delivery:</strong> whether filtered-out messages are billed as delivery on that subscription. Do not claim a cost saving on the slide until confirmed &mdash; the operational benefit stands either way.</li>
+    <li>Immutability after creation is now a pattern (ordering, exactly-once, filter): planning the subscription matters more than planning the topic.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. STRAIGHT TO BIGQUERY, OR THROUGH DATAFLOW ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Straight to BigQuery, or through Dataflow?</h1>
+  <pre class="term" style="font-size:12px;margin-bottom:10px">gcloud pubsub subscriptions create qos-bq-sub \
+    <span class="flag">--topic</span>=qos-samples  <span class="flag">--bigquery-table</span>=clearmeet-prod:clearmeet_analytics.qos_events \
+    <span class="flag">--use-topic-schema</span>  <span class="flag">--dead-letter-topic</span>=qos-samples-dlq  <span class="flag">--max-delivery-attempts</span>=5</pre>
+  <div class="cols c-55-45">
+    <div class="figure">
+      <svg width="450" height="196" viewBox="0 0 450 196">
+        <defs><marker id="ar22" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <rect x="6" y="80" width="92" height="32" rx="10" fill="#4285F4"/>
+        <text x="52" y="100" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Roboto Mono, monospace">qos-samples</text>
+        <!-- top path -->
+        <line x1="102" y1="88" x2="152" y2="52" stroke="#4285F4" stroke-width="2" marker-end="url(#ar22)"/>
+        <rect x="156" y="30" width="118" height="34" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="215" y="45" text-anchor="middle" font-size="8.5" fill="#1a73e8" font-family="Roboto Mono, monospace">qos-bq-sub</text>
+        <text x="215" y="58" text-anchor="middle" font-size="8" fill="#1a73e8">BigQuery subscription</text>
+        <line x1="278" y1="47" x2="344" y2="47" stroke="#4285F4" stroke-width="2" marker-end="url(#ar22)"/>
+        <text x="311" y="40" text-anchor="middle" font-size="8" fill="#1a73e8" font-weight="600">no code</text>
+        <!-- dlq off top path -->
+        <line x1="215" y1="68" x2="215" y2="98" stroke="#EA4335" stroke-width="1.6" marker-end="url(#ar22)"/>
+        <rect x="162" y="102" width="106" height="26" rx="7" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="215" y="119" text-anchor="middle" font-size="8" font-family="Roboto Mono, monospace" fill="#b3261e">qos-samples-dlq</text>
+        <text x="215" y="142" text-anchor="middle" font-size="7.5" fill="#b3261e">malformed &rarr; DLQ</text>
+        <!-- bottom path -->
+        <line x1="102" y1="104" x2="152" y2="164" stroke="#9aa0a6" stroke-width="1.6" marker-end="url(#ar22)"/>
+        <rect x="156" y="152" width="118" height="34" rx="7" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="215" y="167" text-anchor="middle" font-size="8.5" fill="#3c4043" font-weight="600">Dataflow</text>
+        <text x="215" y="180" text-anchor="middle" font-size="7.5" fill="#5f6368">enrich &middot; validate &middot; window</text>
+        <line x1="278" y1="169" x2="344" y2="100" stroke="#9aa0a6" stroke-width="1.6" marker-end="url(#ar22)"/>
+        <text x="330" y="152" text-anchor="middle" font-size="8" fill="#5f6368">exactly-once, and</text>
+        <text x="330" y="163" text-anchor="middle" font-size="8" fill="#5f6368">something to operate</text>
+        <!-- table -->
+        <rect x="348" y="30" width="94" height="88" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="395" y="52" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1a73e8">qos_events</text>
+        <line x1="356" y1="62" x2="434" y2="62" stroke="#c6dafc"/><line x1="356" y1="78" x2="434" y2="78" stroke="#c6dafc"/><line x1="356" y1="94" x2="434" y2="94" stroke="#c6dafc"/>
+      </svg>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li>The BigQuery subscription writes through the <strong>Storage Write API</strong>; nothing to run, nothing to operate</li>
+        <li><code>--use-topic-schema</code> maps the topic&rsquo;s Avro/Protobuf schema to the table; a malformed field means the message is <strong>not</strong> written</li>
+        <li>It is <strong>at-least-once</strong>; the Dataflow template enforces exactly-once by default</li>
+        <li>Rule: no transformation &rarr; subscription. Enrichment, joins, windowing, or exactly-once &rarr; Dataflow</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:2px">Messages that cannot be written carry the reason in the attribute <code>CloudPubSubDeadLetterSourceDeliveryErrorMessage</code> on the dead-letter topic &mdash; your debugging entry point.</div>
+</section>
+<details class="notes" data-title="Straight to BigQuery, or Dataflow?">
+  <summary>Speaker notes &mdash; Straight to BigQuery, or Dataflow?</summary>
+  <div class="n-body"><ul>
+    <li>Behavior and the attribute name from docs.cloud.google.com/pubsub/docs/bigquery.</li>
+    <li>This is the direct hand-off to the Dataflow module: ClearMeet ends up running both paths, and the next module builds the bottom one.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. DIVIDER: SECTION 4 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 5</div>
+    <h1>When it breaks</h1>
+    <div class="sub">Three metrics, read in order, separate &ldquo;behind&rdquo; from &ldquo;stuck&rdquo; from &ldquo;too slow.&rdquo;</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The model</span><span>Publishing</span><span>Delivery</span><span class="current">When it breaks</span><span>Kafka</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: When it breaks">
+  <summary>Speaker notes &mdash; Section 4: When it breaks</summary>
+  <div class="n-body"><ul>
+    <li>This is the section the source module does not have at all, and the one students will use first in production.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. READING A BACKLOG ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Reading a backlog</h1>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>num_unacked_messages_by_region</strong> &mdash; how <em>many</em> are waiting</li>
+        <li><strong>oldest_unacked_message_age_by_region</strong> &mdash; how <em>long</em> the oldest has waited</li>
+        <li><strong>expired_ack_deadlines_count</strong> &mdash; how often deadlines lapse before an ack</li>
+        <li>The pair is the diagnosis; either one alone is ambiguous</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout">Alert on <strong>oldest unacked age</strong>, not on count. Count scales with traffic; age scales with your problem.</div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="260" viewBox="0 0 470 260">
+        <!-- scenario bands -->
+        <rect x="46" y="18" width="128" height="216" fill="#e6f4ea" opacity="0.55"/>
+        <rect x="174" y="18" width="140" height="216" fill="#fef7e0" opacity="0.6"/>
+        <rect x="314" y="18" width="140" height="216" fill="#fce8e6" opacity="0.55"/>
+        <text x="110" y="34" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">A &middot; healthy</text>
+        <text x="244" y="34" text-anchor="middle" font-size="9.5" font-weight="600" fill="#7a5c00">B &middot; steady lag</text>
+        <text x="384" y="34" text-anchor="middle" font-size="9.5" font-weight="600" fill="#b3261e">C &middot; losing</text>
+        <!-- chart 1: count -->
+        <text x="10" y="66" font-size="8.5" fill="#5f6368" transform="rotate(-90 10 66)"></text>
+        <text x="42" y="52" font-size="9" fill="#3c4043" font-weight="600">unacked count</text>
+        <line x1="46" y1="110" x2="454" y2="110" stroke="#dadce0"/>
+        <path d="M46 104 L 174 104 L 190 78 L 314 74 L 340 66 L 380 50 L 454 30" fill="none" stroke="#4285F4" stroke-width="2"/>
+        <!-- chart 2: age -->
+        <text x="42" y="140" font-size="9" fill="#3c4043" font-weight="600">oldest unacked age</text>
+        <line x1="46" y1="216" x2="454" y2="216" stroke="#dadce0"/>
+        <path d="M46 210 L 174 210 L 200 196 L 314 196 L 344 178 L 390 140 L 454 108" fill="none" stroke="#EA4335" stroke-width="2"/>
+        <!-- annotations -->
+        <text x="110" y="242" text-anchor="middle" font-size="8.5" fill="#188038">both flat</text>
+        <text x="244" y="242" text-anchor="middle" font-size="8.5" fill="#7a5c00">count high &amp; flat, age flat: keeping pace</text>
+        <text x="384" y="242" text-anchor="middle" font-size="8.5" fill="#b3261e">both climbing: unbounded</text>
+      </svg>
+      <div class="figcap">Same subscription, three regimes. Only C is an incident &mdash; and only the age chart proves it.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Reading a backlog">
+  <summary>Speaker notes &mdash; Reading a backlog</summary>
+  <div class="n-body"><ul>
+    <li>Metric names verified at docs.cloud.google.com/pubsub/docs/monitoring; the exact strings are on the slide because a near-miss name is a dead dashboard. Full names carry the <code>subscription/</code> prefix.</li>
+    <li>Worked example, out loud: ClearMeet&rsquo;s dashboard subscription sits at ~40K unacked and 3&nbsp;s oldest age all day &mdash; regime B, fine. At 9:05 the age crosses 90&nbsp;s while the count doubles &mdash; regime C, incident.</li>
+    <li>Also available: <code>subscription/delivery_latency_health_score</code>, a rolled-up health signal over a 10-minute window; useful, but teach the two raw metrics first.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. THE DIAGNOSIS TABLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The diagnosis table</h1>
+  <table class="tbl" style="font-size:12.5px">
+    <tr><th>Backlog count</th><th>Oldest age</th><th>Expired acks</th><th>Usually means</th><th>Do this</th></tr>
+    <tr><td>climbing</td><td>climbing</td><td>~0</td><td>not enough total processing and ack throughput: every message finishes in time, but fewer finish per second than arrive</td><td>add subscriber instances</td></tr>
+    <tr><td>climbing</td><td>climbing</td><td>high</td><td>individual callbacks are too slow &mdash; your per-message logic (an external API call, a large query) outruns the deadline and the work is redone</td><td>fix or bound the slow step; lower flow control; raise the deadline</td></tr>
+    <tr><td>flat, high</td><td>flat</td><td>~0</td><td>steady lag; capacity matched</td><td>nothing</td></tr>
+    <tr class="hl"><td>~0</td><td>climbing</td><td>~0</td><td>one message keeps failing and being redelivered. On an <strong>ordered</strong> subscription it also blocks its key, so a whole meeting stalls behind it</td><td>dead-letter topic</td></tr>
+    <tr><td>climbing</td><td>climbing</td><td>n/a (push)</td><td>endpoint erroring or slow</td><td>check <strong>push_request_count</strong> by response code</td></tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout">A background ack-expiry rate of roughly <strong>0.1&ndash;1%</strong> can be healthy <span class="muted" style="font-size:12px">(documentation guidance)</span>. Investigate the trend, not the presence.</div>
+</section>
+<details class="notes" data-title="The diagnosis table">
+  <summary>Speaker notes &mdash; The diagnosis table</summary>
+  <div class="n-body"><ul>
+    <li>The highlighted row is the one people misdiagnose most: near-zero backlog with a climbing age means throughput is fine and <em>one message keeps failing</em>. Scaling out does nothing; a dead-letter topic fixes it. Next slide.</li>
+    <li>Be precise about what &ldquo;stuck&rdquo; costs on an <strong>unordered</strong> subscription: the failing message is redelivered on a loop while every other message flows past it normally. Nothing is blocked &mdash; but the oldest-age metric climbs forever, alerts fire, and the message will silently expire at the retention limit if nobody intervenes. On an <strong>ordered</strong> subscription it is worse: everything sharing that ordering key waits behind it.</li>
+    <li>Rows 1 and 2 look identical in the first two columns and are opposite problems. Row 1: each message is handled promptly, there are just not enough handlers &mdash; add instances. Row 2: adding instances may not help, because each message is individually too slow and the redelivered work multiplies the load.</li>
+    <li>Push errors: group <code>subscription/push_request_count</code> by <code>response_code</code>; a retryable-error background rate under 1% is normal per the monitoring docs.</li>
+    <li>Read the three columns in order &mdash; count, then age, then expired acks. Three numbers, three different problems, three different fixes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 26. RETRY AND DEAD-LETTER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Retry and dead-letter</h1>
+  <div class="cols c-45-55">
+    <div>
+      <pre class="term" style="font-size:10.5px;line-height:1.45">gcloud pubsub topics create qos-samples-dlq
+gcloud pubsub subscriptions create \
+    qos-samples-dlq-sub <span class="flag">--topic</span>=qos-samples-dlq
+
+gcloud pubsub subscriptions update \
+    qos-dashboard-sub \
+    <span class="flag">--dead-letter-topic</span>=qos-samples-dlq \
+    <span class="flag">--max-delivery-attempts</span>=5</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:11.5px">
+        <li>A dead-letter topic is <strong>an ordinary topic you nominate</strong>. After <code>--max-delivery-attempts</code> failures (<strong>5&ndash;100</strong>, default <strong>5</strong>) Pub/Sub <em>republishes</em> the message there and deletes it from this subscription &mdash; the pipeline is unblocked, the message is not lost</li>
+        <li>Nothing consumes it automatically. You write a second consumer on the DLQ&rsquo;s subscription, and it must handle input the first one choked on: log, store, alert, or repair and republish</li>
+        <li>Retry policy governs attempts before that: immediate (default) or exponential backoff up to <strong>600 s</strong></li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="430" height="240" viewBox="0 0 430 240">
+        <defs><marker id="ar27" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#b3261e"/></marker></defs>
+        <!-- subscription cycle -->
+        <rect x="14" y="30" width="180" height="110" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="104" y="48" text-anchor="middle" font-size="9" fill="#1a73e8" font-family="Roboto Mono, monospace">qos-dashboard-sub</text>
+        <rect x="34" y="58" width="140" height="28" rx="4" fill="#fce8e6" stroke="#EA4335"/>
+        <text x="104" y="70" text-anchor="middle" font-size="7.5" font-family="Roboto Mono, monospace" fill="#b3261e">"audio_mos": "four"</text>
+        <text x="104" y="81" text-anchor="middle" font-size="7" fill="#b3261e">schema says FLOAT &rarr; parse fails</text>
+        <path d="M104 94 a16 16 0 1 0 0.1 0" fill="none" stroke="#EA4335" stroke-width="1.4"/>
+        <text x="104" y="134" text-anchor="middle" font-size="8.5" fill="#b3261e">attempt 1&hellip;2&hellip;3&hellip;4&hellip;5</text>
+        <!-- to dlq -->
+        <line x1="198" y1="85" x2="248" y2="85" stroke="#EA4335" stroke-width="2" marker-end="url(#ar27)"/>
+        <text x="223" y="76" text-anchor="middle" font-size="8" fill="#b3261e">after 5</text>
+        <rect x="252" y="62" width="130" height="34" rx="10" fill="#EA4335"/>
+        <text x="317" y="83" text-anchor="middle" font-size="8.5" font-weight="600" fill="#fff" font-family="Roboto Mono, monospace">qos-samples-dlq</text>
+        <line x1="317" y1="100" x2="317" y2="128" stroke="#5f6368" stroke-width="1.5"/>
+        <rect x="252" y="132" width="130" height="52" rx="7" fill="#fff" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="317" y="150" text-anchor="middle" font-size="8" font-family="Roboto Mono, monospace" fill="#b3261e">qos-samples-dlq-sub</text>
+        <rect x="262" y="158" width="14" height="12" rx="2" fill="#fce8e6" stroke="#EA4335"/>
+        <rect x="280" y="158" width="14" height="12" rx="2" fill="#fce8e6" stroke="#EA4335"/>
+        <text x="317" y="196" text-anchor="middle" font-size="7.5" fill="#b3261e">someone must watch this</text>
+        <text x="200" y="222" text-anchor="middle" font-size="9" fill="#5f6368">ClearMeet&rsquo;s case: SDK 3.x sends <tspan font-family="Roboto Mono, monospace">audio_mos</tspan> as a string.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="callout warn" style="margin-top:0;font-size:12.5px">Two things make a DLQ silently useless: <strong>no subscription on the DLQ topic</strong> (the same rule as any topic &mdash; with no subscription attached, the dead letters are dropped on arrival), and <strong>missing IAM</strong>: the Pub/Sub service account needs <em>publish</em> on the DLQ topic and <em>subscriber</em> on the source subscription.</div>
+</section>
+<details class="notes" data-title="Retry and dead-letter">
+  <summary>Speaker notes &mdash; Retry and dead-letter</summary>
+  <div class="n-body"><ul>
+    <li>Range 5&ndash;100 / default 5, and retry backoff max 600&nbsp;s: docs.cloud.google.com/pubsub/docs/subscription-properties.</li>
+    <li>The example: <code>audio_mos</code> is the 1&ndash;5 mean-opinion score from the BigQuery module, declared FLOAT in the table and in the topic schema. SDK 3.x serializes it as the string <code>"four"</code>, so the consumer throws on every attempt. No number of retries fixes a message that is wrong.</li>
+    <li>Shape of this failure at ClearMeet: a bad client SDK release puts a steady trickle into the DLQ, and the DLQ&rsquo;s own backlog metric is what tells you a release is broken.</li>
+    <li>What the second consumer usually does here: write the payload plus the error attribute to a table, alert if the rate crosses a threshold, and &mdash; once the SDK bug is understood &mdash; run a repair job that coerces the field and republishes to the original topic. That last step is why the DLQ consumer often needs <em>more</em> tolerance than the main one, not less.</li>
+    <li>The service account is <code>service-&lt;project-number&gt;@gcp-sa-pubsub.iam.gserviceaccount.com</code>; the console offers to grant both roles when you attach a DLQ &mdash; scripted setups must do it explicitly.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. REPLAY: SEEK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Undoing a bad deploy with <code style="font-size:24px">seek</code></h1>
+  <div class="lede" style="font-size:14.5px;margin-bottom:8px">14:10 &mdash; ClearMeet ships a dashboard build that computes the call-health score wrong. 14:55 &mdash; it is caught. Forty-five minutes of samples were consumed and acked, and the numbers built from them are garbage. The messages are still in the subscription.</div>
+  <pre class="term" style="margin-bottom:10px;font-size:11.5px"><span class="lbl">roll back the code first, then rewind the subscription</span>gcloud pubsub subscriptions seek qos-dashboard-sub <span class="flag">--time</span>=2026-07-28T14:10:00Z</pre>
+  <div class="cols c-55-45">
+    <div class="figure">
+      <svg width="460" height="168" viewBox="0 0 460 168">
+        <defs><marker id="ar28g" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#188038"/></marker><marker id="ar28y" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#b06000"/></marker></defs>
+        <line x1="14" y1="84" x2="446" y2="84" stroke="#dadce0" stroke-width="2"/>
+        <g stroke="#dadce0" stroke-width="1">
+          <line x1="18" y1="66" x2="34" y2="102"/><line x1="30" y1="66" x2="46" y2="102"/><line x1="42" y1="66" x2="58" y2="102"/>
+        </g>
+        <text x="40" y="120" text-anchor="middle" font-size="8" fill="#9aa0a6">past retention:</text>
+        <text x="40" y="131" text-anchor="middle" font-size="8" fill="#9aa0a6">unrecoverable</text>
+        <g fill="#f1f3f4" stroke="#9aa0a6">
+          <rect x="86" y="72" width="18" height="24" rx="3"/><rect x="108" y="72" width="18" height="24" rx="3"/><rect x="130" y="72" width="18" height="24" rx="3"/>
+        </g>
+        <text x="117" y="120" text-anchor="middle" font-size="8" fill="#5f6368">acked, good build</text>
+        <line x1="156" y1="60" x2="156" y2="108" stroke="#EA4335" stroke-width="2" stroke-dasharray="4 3"/>
+        <text x="156" y="52" text-anchor="middle" font-size="8.5" fill="#b3261e" font-weight="600">14:10</text>
+        <g fill="#fce8e6" stroke="#EA4335">
+          <rect x="164" y="72" width="18" height="24" rx="3"/><rect x="186" y="72" width="18" height="24" rx="3"/><rect x="208" y="72" width="18" height="24" rx="3"/><rect x="230" y="72" width="18" height="24" rx="3"/><rect x="252" y="72" width="18" height="24" rx="3"/>
+        </g>
+        <text x="216" y="120" text-anchor="middle" font-size="8" fill="#b3261e">acked, but processed by the bad build</text>
+        <line x1="280" y1="56" x2="280" y2="112" stroke="#202124" stroke-width="2.5"/>
+        <text x="280" y="48" text-anchor="middle" font-size="8.5" fill="#202124" font-weight="600">cursor at 14:55</text>
+        <g fill="#e8f0fe" stroke="#4285F4">
+          <rect x="290" y="72" width="18" height="24" rx="3"/><rect x="312" y="72" width="18" height="24" rx="3"/><rect x="334" y="72" width="18" height="24" rx="3"/>
+        </g>
+        <text x="330" y="120" text-anchor="middle" font-size="8" fill="#1a73e8">not yet delivered</text>
+        <path d="M276 142 C 240 154 190 152 162 144" fill="none" stroke="#188038" stroke-width="2" marker-end="url(#ar28g)"/>
+        <text x="220" y="164" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">seek to 14:10 &rarr; the red five are delivered again</text>
+      </svg>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13px">
+        <li>The cursor is the subscription&rsquo;s bookmark. <code>seek</code> moves it: <strong>backward</strong> to re-deliver, <strong>forward</strong> to abandon a backlog you have decided not to process</li>
+        <li>Replaying <em>acked</em> messages only works if the subscription was created with <code>--retain-acked-messages</code>. Otherwise acked means deleted, and the rewind reaches nothing</li>
+        <li>Either way you cannot reach past the retention window: <strong>7 days</strong> by default, settable <strong>10 min&ndash;31 days</strong></li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout warn" style="margin-top:2px">Both settings must be in place <strong>before</strong> the incident. This is a decision you make on a calm day, not during one.</div>
+</section>
+<details class="notes" data-title="Undoing a bad deploy with seek">
+  <summary>Speaker notes &mdash; Undoing a bad deploy with seek</summary>
+  <div class="n-body"><ul>
+    <li>Retention default and range: docs.cloud.google.com/pubsub/docs/subscription-properties.</li>
+    <li>Order of operations matters and students get it wrong: <strong>roll back the code first</strong>, then seek. Seeking while the bad build is still running just re-processes the messages through the same bug.</li>
+    <li>Three distinct retention settings, worth separating explicitly: (1) unacked message retention on the subscription, the default 7 days; (2) <code>--retain-acked-messages</code>, which keeps acked messages inside that window so a rewind can reach them; (3) <em>topic</em> retention, a separate setting whose payoff is that a brand-new subscription can be seeked back to before it existed.</li>
+    <li>The consumer must tolerate re-processing &mdash; the same idempotency requirement from the redelivery slide, now deliberately invoked.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 28. SNAPSHOTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Snapshots: a save point before you risk it</h1>
+  <div class="lede" style="font-size:14.5px;margin-bottom:10px">Next Tuesday ClearMeet wants to deploy a rewritten dashboard consumer. If it is wrong they want to go back to exactly this moment &mdash; but <code>seek --time</code> needs a timestamp they would have to guess, and it is blunt.</div>
+  <div class="cols c-40-60">
+    <div>
+      <pre class="term" style="font-size:10.5px;line-height:1.45"><span class="lbl">before the deploy</span>gcloud pubsub snapshots create \
+  pre-rewrite-snap \
+  <span class="flag">--subscription</span>=qos-dashboard-sub
+
+<span class="lbl">deploy, watch, decide it is wrong</span>gcloud pubsub subscriptions seek \
+  qos-dashboard-sub \
+  <span class="flag">--snapshot</span>=pre-rewrite-snap</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li>A snapshot records <strong>which messages this subscription had acked</strong> at the instant you took it &mdash; the position of the bookmark, not a copy of the data</li>
+        <li>Seeking to it restores that position: everything the new consumer acked in between is unacked again and redelivered</li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="420" height="222" viewBox="-24 0 420 222">
+        <defs><marker id="ar28s" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#188038"/></marker></defs>
+        <text x="10" y="20" font-size="9.5" font-weight="600" fill="#3c4043">Tue 09:00 &mdash; take the snapshot</text>
+        <line x1="14" y1="46" x2="416" y2="46" stroke="#dadce0" stroke-width="2"/>
+        <g fill="#f1f3f4" stroke="#9aa0a6"><rect x="30" y="34" width="16" height="22" rx="3"/><rect x="50" y="34" width="16" height="22" rx="3"/><rect x="70" y="34" width="16" height="22" rx="3"/></g>
+        <line x1="96" y1="26" x2="96" y2="66" stroke="#34A853" stroke-width="2.5"/>
+        <text x="96" y="80" text-anchor="middle" font-size="8" fill="#188038" font-weight="600">pre-rewrite-snap</text>
+        <g fill="#e8f0fe" stroke="#4285F4"><rect x="104" y="34" width="16" height="22" rx="3"/><rect x="124" y="34" width="16" height="22" rx="3"/><rect x="144" y="34" width="16" height="22" rx="3"/><rect x="164" y="34" width="16" height="22" rx="3"/></g>
+        <text x="200" y="46" font-size="8" fill="#5f6368">gray = acked &middot; blue = to come</text>
+        <text x="10" y="116" font-size="9.5" font-weight="600" fill="#b3261e">Tue 09:00&ndash;11:00 &mdash; new consumer runs, acks four, output looks wrong</text>
+        <line x1="14" y1="142" x2="416" y2="142" stroke="#dadce0" stroke-width="2"/>
+        <g fill="#f1f3f4" stroke="#9aa0a6"><rect x="30" y="130" width="16" height="22" rx="3"/><rect x="50" y="130" width="16" height="22" rx="3"/><rect x="70" y="130" width="16" height="22" rx="3"/></g>
+        <g fill="#fce8e6" stroke="#EA4335"><rect x="104" y="130" width="16" height="22" rx="3"/><rect x="124" y="130" width="16" height="22" rx="3"/><rect x="144" y="130" width="16" height="22" rx="3"/><rect x="164" y="130" width="16" height="22" rx="3"/></g>
+        <line x1="188" y1="122" x2="188" y2="162" stroke="#202124" stroke-width="2.5"/>
+        <text x="188" y="176" text-anchor="middle" font-size="8" fill="#202124">cursor now</text>
+        <text x="212" y="142" font-size="8" fill="#b3261e">red = acked by the bad build</text>
+        <text x="10" y="196" font-size="9" font-weight="600" fill="#188038">Tue 11:05 &mdash; roll back, then seek to the snapshot</text>
+        <path d="M184 210 C 150 218 120 216 100 210" fill="none" stroke="#188038" stroke-width="2" marker-end="url(#ar28s)"/>
+        <text x="196" y="214" font-size="8" fill="#188038">the four red are unacked again and redelivered</text>
+      </svg>
+    </div>
+  </div>
+  <div class="callout">Snapshot before a risky consumer change; delete it when you are confident. It is cheap insurance that does not require you to have written down a timestamp.</div>
+</section>
+<details class="notes" data-title="Snapshots">
+  <summary>Speaker notes &mdash; Snapshots</summary>
+  <div class="n-body"><ul>
+    <li>Keep the distinction sharp: a snapshot holds <em>ack state</em> &mdash; which messages this subscription still owes work on. It is not a copy of the messages, and it does not extend how long messages live beyond retention.</li>
+    <li>Why not just <code>seek --time</code>? You would have to know the exact instant the deploy started, and clock skew or a slow rollout makes that guesswork. The snapshot is an explicit, named marker taken at a moment you chose.</li>
+    <li>Quota is 5,000 snapshots per project; they are not free to keep indefinitely, so clean up after a successful deploy.</li>
+    <li>Snapshots can also be applied to a <em>different</em> subscription on the same topic &mdash; useful for testing a new consumer against exactly the backlog the production one faced.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 29. WHAT IT COSTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What it costs &mdash; and why fan-out is a design decision</h1>
+  <div class="cols c-55-45">
+    <div class="figure">
+      <svg width="450" height="230" viewBox="0 0 450 230">
+        <defs><marker id="ar29" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <rect x="6" y="96" width="80" height="38" rx="8" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="46" y="119" text-anchor="middle" font-size="9.5" fill="#3c4043">publisher</text>
+        <path d="M90 115 L 138 115" stroke="#5f6368" stroke-width="5" marker-end="url(#ar29)"/>
+        <text x="114" y="102" text-anchor="middle" font-size="8.5" fill="#5f6368">publish: billed once</text>
+        <rect x="142" y="99" width="96" height="32" rx="10" fill="#4285F4"/>
+        <text x="190" y="119" text-anchor="middle" font-size="9" font-weight="600" fill="#fff" font-family="Roboto Mono, monospace">qos-samples</text>
+        <!-- x4 badge -->
+        <circle cx="262" cy="86" r="16" fill="#FBBC04"/>
+        <text x="262" y="91" text-anchor="middle" font-size="11" font-weight="700" fill="#3c2f00">&times;4</text>
+        <!-- four delivery arrows -->
+        <path d="M242 106 L 300 36" stroke="#5f6368" stroke-width="4" marker-end="url(#ar29)"/>
+        <path d="M242 112 L 300 94" stroke="#5f6368" stroke-width="4" marker-end="url(#ar29)"/>
+        <path d="M242 120 L 300 148" stroke="#5f6368" stroke-width="4" marker-end="url(#ar29)"/>
+        <path d="M242 126 L 300 202" stroke="#5f6368" stroke-width="4" marker-end="url(#ar29)"/>
+        <g font-size="9" fill="#3c4043">
+          <rect x="304" y="20" width="140" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/><text x="374" y="39" text-anchor="middle">BigQuery sub &middot; export rate</text>
+          <rect x="304" y="80" width="140" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/><text x="374" y="99" text-anchor="middle">Dataflow pull &middot; delivery rate</text>
+          <rect x="304" y="134" width="140" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/><text x="374" y="153" text-anchor="middle">push alerting &middot; delivery rate</text>
+          <rect x="304" y="188" width="140" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/><text x="374" y="207" text-anchor="middle">GCS sub &middot; export rate</text>
+        </g>
+      </svg>
+      <div class="figcap">Every message: billed in once, billed out four times. <span class="muted">(illustrative topology; rates on the pricing page)</span></div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>Billing is on <strong>throughput</strong>: publish, plus delivery <strong>per subscription</strong></li>
+        <li>Four subscribers on <code>qos-samples</code> &rArr; every message is delivered four times and billed four times</li>
+        <li>Export subscriptions (BigQuery, Cloud Storage) bill at a <strong>higher per-TiB rate</strong> than standard delivery</li>
+        <li>Retained backlog is storage, billed separately &mdash; a stuck subscription costs money as well as freshness</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout">A new subscriber is one command and no code. It is also a permanent increase in your delivery bill. Both facts are true; design accordingly.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What it costs">
+  <summary>Speaker notes &mdash; What it costs</summary>
+  <div class="n-body"><ul>
+    <li><strong>Deliberately no dollar figures on the slide.</strong> Before delivery, read cloud.google.com/pubsub/pricing by hand and decide whether to speak numbers: the per-TiB rates, the free tier, and critically whether a <em>minimum billable message size</em> applies &mdash; at ClearMeet&rsquo;s ~350-byte messages a 1&nbsp;KB floor roughly triples the arithmetic and would change the design advice.</li>
+    <li>The structure is the lesson either way: one in, N out, N chosen by you.</li>
+    <li>If you do the arithmetic live: 1.9&nbsp;TB/day published &times; (1 publish + 4 deliveries) &asymp; 9.5&nbsp;TB/day of billed throughput before any minimum-size effects.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 30. DIVIDER: SECTION 5 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 5</div>
+    <h1>Managed Service for Apache Kafka</h1>
+    <div class="sub">A different model, a different operational contract, and the specific reasons to choose it.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The model</span><span>Publishing</span><span>Delivery</span><span>When it breaks</span><span class="current">Kafka</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: Kafka">
+  <summary>Speaker notes &mdash; Section 5: Kafka</summary>
+  <div class="n-body"><ul>
+    <li>Set expectations: what the service is, how the model differs, when it is the right call, and how the two interoperate. Cluster operations are a separate module.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 31. WHY CLEARMEET HAS KAFKA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Why ClearMeet has Kafka at all</h1>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body">
+        <li>The on-prem media servers (SIP gateways, transcoders) have published to Kafka for six years</li>
+        <li>Three internal apps consume that stream &mdash; two are Kafka Streams jobs nobody wants to rewrite</li>
+        <li>The telephony team knows Kafka; the platform team knows Pub/Sub</li>
+        <li>The question is not which is better. It is which one each workload is already <strong>shaped for</strong></li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="440" height="250" viewBox="0 0 440 250">
+        <!-- cloud side -->
+        <rect x="8" y="20" width="180" height="200" rx="10" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="98" y="40" text-anchor="middle" font-size="10" font-weight="600" fill="#1a73e8">Google Cloud &mdash; built this module</text>
+        <rect x="24" y="56" width="86" height="24" rx="9" fill="#4285F4"/><text x="67" y="72" text-anchor="middle" font-size="8" fill="#fff" font-family="Roboto Mono, monospace">qos-samples</text>
+        <rect x="24" y="90" width="120" height="24" rx="9" fill="#4285F4"/><text x="84" y="106" text-anchor="middle" font-size="8" fill="#fff" font-family="Roboto Mono, monospace">meeting-lifecycle</text>
+        <rect x="24" y="124" width="100" height="24" rx="9" fill="#4285F4"/><text x="74" y="140" text-anchor="middle" font-size="8" fill="#fff" font-family="Roboto Mono, monospace">usage-events</text>
+        <rect x="24" y="164" width="148" height="40" rx="7" fill="#fff" stroke="#4285F4"/><text x="98" y="182" text-anchor="middle" font-size="8" fill="#1a73e8">subscriptions &rarr; BigQuery,</text><text x="98" y="195" text-anchor="middle" font-size="8" fill="#1a73e8">Dataflow, Cloud Run, GCS</text>
+        <!-- gap -->
+        <line x1="196" y1="110" x2="248" y2="110" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="6 5"/>
+        <circle cx="222" cy="110" r="15" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.6"/>
+        <text x="222" y="115" text-anchor="middle" font-size="13" font-weight="700" fill="#7a5c00">?</text>
+        <!-- on-prem side -->
+        <rect x="252" y="20" width="180" height="200" rx="10" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="342" y="40" text-anchor="middle" font-size="10" font-weight="600" fill="#3c4043">on-prem &mdash; six years old</text>
+        <rect x="268" y="56" width="148" height="30" rx="7" fill="#fff" stroke="#9aa0a6"/><text x="342" y="75" text-anchor="middle" font-size="8.5" fill="#3c4043">SIP gateways &middot; transcoders</text>
+        <rect x="268" y="96" width="148" height="26" rx="7" fill="#202124"/><text x="342" y="113" text-anchor="middle" font-size="8.5" fill="#e8eaed" font-family="Roboto Mono, monospace">Kafka: media-telemetry</text>
+        <rect x="268" y="132" width="148" height="26" rx="7" fill="#fff" stroke="#9aa0a6"/><text x="342" y="149" text-anchor="middle" font-size="8" fill="#3c4043">2 &times; Kafka Streams jobs</text>
+        <rect x="268" y="164" width="148" height="26" rx="7" fill="#fff" stroke="#9aa0a6"/><text x="342" y="181" text-anchor="middle" font-size="8" fill="#3c4043">chat-toxicity moderator</text>
+        <text x="222" y="242" text-anchor="middle" font-size="9.5" fill="#5f6368">The gap gets resolved on the bridging slide.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Why ClearMeet has Kafka">
+  <summary>Speaker notes &mdash; Why ClearMeet has Kafka</summary>
+  <div class="n-body"><ul>
+    <li>This reframes the source module&rsquo;s abstract comparison as a migration-and-integration question, which is how it actually shows up in practice.</li>
+    <li>Per the brief: Pub/Sub is the approved product; Managed Kafka may also get approved. Students should leave knowing what they could do with it and roughly how.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 32. WHAT GOOGLE MANAGES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What Google manages, what you configure</h1>
+  <div class="cols c-45-55">
+    <div>
+      <ul class="body" style="font-size:12.5px">
+        <li>You set two numbers &mdash; <strong>total vCPU and total RAM</strong>. Google decides how many broker VMs that becomes, creates them, and replaces them when they fail</li>
+        <li>You never size or attach disks: at least <strong>100 GiB of SSD per vCPU</strong> is provisioned automatically, and older segments move to tiered storage</li>
+        <li>When brokers are added or lost, <strong>partition rebalancing</strong> &mdash; moving replicas so load is even &mdash; happens without a reassignment tool</li>
+        <li>Clusters are <strong>three-zone with equal resources per zone</strong>; no single- or two-zone option, and you cannot pick the zones</li>
+        <li>Runs Apache Kafka <strong>3.7.1</strong>; minor versions are not auto-upgraded</li>
+        <li>Auth is <strong>SASL or mTLS</strong>; unauthenticated connections are refused</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px">The first real difference from Pub/Sub: there is a <strong>size</strong> to choose &mdash; and therefore a size to get wrong.</div>
+    </div>
+    <div class="figure">
+      <svg width="430" height="252" viewBox="0 0 430 252">
+        <!-- you -->
+        <rect x="8" y="26" width="140" height="200" rx="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="78" y="46" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">you configure</text>
+        <circle cx="46" cy="80" r="17" fill="#fff" stroke="#4285F4" stroke-width="1.6"/><line x1="46" y1="80" x2="55" y2="70" stroke="#4285F4" stroke-width="2"/>
+        <text x="46" y="112" text-anchor="middle" font-size="8.5" fill="#3c4043">vCPU</text>
+        <circle cx="110" cy="80" r="17" fill="#fff" stroke="#4285F4" stroke-width="1.6"/><line x1="110" y1="80" x2="116" y2="68" stroke="#4285F4" stroke-width="2"/>
+        <text x="110" y="112" text-anchor="middle" font-size="8.5" fill="#3c4043">RAM</text>
+        <rect x="22" y="128" width="112" height="24" rx="5" fill="#fff" stroke="#4285F4"/><text x="78" y="144" text-anchor="middle" font-size="8.5" fill="#3c4043">topics &middot; partitions</text>
+        <rect x="22" y="160" width="112" height="24" rx="5" fill="#fff" stroke="#4285F4"/><text x="78" y="176" text-anchor="middle" font-size="8.5" fill="#3c4043">client auth (SASL/mTLS)</text>
+        <rect x="22" y="192" width="112" height="24" rx="5" fill="#fff" stroke="#4285F4"/><text x="78" y="208" text-anchor="middle" font-size="8.5" fill="#3c4043">subnets for access</text>
+        <!-- boundary -->
+        <line x1="162" y1="30" x2="162" y2="226" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <text x="162" y="244" text-anchor="middle" font-size="8.5" fill="#5f6368">the managed boundary</text>
+        <!-- google -->
+        <rect x="176" y="26" width="246" height="200" rx="10" fill="#f8f9fa" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="299" y="46" text-anchor="middle" font-size="10.5" font-weight="600" fill="#3c4043">Google manages</text>
+        <!-- three zones -->
+        <g>
+          <rect x="190" y="58" width="70" height="112" rx="7" fill="#fff" stroke="#dadce0"/>
+          <text x="225" y="74" text-anchor="middle" font-size="8" fill="#5f6368">zone a</text>
+          <rect x="200" y="84" width="50" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="225" y="98" text-anchor="middle" font-size="7.5" fill="#188038">broker</text>
+          <rect x="200" y="110" width="50" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="225" y="124" text-anchor="middle" font-size="7.5" fill="#188038">broker</text>
+          <rect x="264" y="58" width="70" height="112" rx="7" fill="#fff" stroke="#dadce0"/>
+          <text x="299" y="74" text-anchor="middle" font-size="8" fill="#5f6368">zone b</text>
+          <rect x="274" y="84" width="50" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="299" y="98" text-anchor="middle" font-size="7.5" fill="#188038">broker</text>
+          <rect x="274" y="110" width="50" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="299" y="124" text-anchor="middle" font-size="7.5" fill="#188038">broker</text>
+          <rect x="338" y="58" width="70" height="112" rx="7" fill="#fff" stroke="#dadce0"/>
+          <text x="373" y="74" text-anchor="middle" font-size="8" fill="#5f6368">zone c</text>
+          <rect x="348" y="84" width="50" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="373" y="98" text-anchor="middle" font-size="7.5" fill="#188038">broker</text>
+          <rect x="348" y="110" width="50" height="20" rx="4" fill="#e6f4ea" stroke="#34A853"/><text x="373" y="124" text-anchor="middle" font-size="7.5" fill="#188038">broker</text>
+        </g>
+        <text x="299" y="188" text-anchor="middle" font-size="8.5" fill="#5f6368">sizing &middot; disks (100 GiB/vCPU) &middot; rebalancing &middot; patching</text>
+        <text x="299" y="206" text-anchor="middle" font-size="8.5" fill="#5f6368">private IPs into your subnets</text>
+      </svg>
+      <div class="figcap">Not serverless &mdash; provisioned, with the operations removed.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What Google manages">
+  <summary>Speaker notes &mdash; What Google manages</summary>
+  <div class="n-body"><ul>
+    <li>All claims from docs.cloud.google.com/managed-service-for-apache-kafka/docs/overview. The pinned Kafka version (3.7.1 at time of writing) is worth stating precisely &mdash; portability arguments depend on it. Re-verify before delivery.</li>
+    <li>Default quotas per project per region: 5 clusters, 750 vCPU, 6,000 GiB memory, 200 TiB broker disk (service limits, adjustable by request).</li>
+    <li>Pricing shape (vCPU-hour + RAM + storage) could not be confirmed by automated fetch &mdash; check cloud.google.com/managed-service-for-apache-kafka/pricing by hand before quoting anything.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 33. LOG VS. QUEUE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:6px">Where the two models actually differ</h1>
+  <div class="lede" style="font-size:14.5px;margin-bottom:8px">ClearMeet&rsquo;s ML team wants to retrain the call-drop model on the last 30 days of media telemetry, while the live anti-cheat consumer keeps running untouched. How each system answers that request is the difference.</div>
+  <div class="cols">
+    <div class="figure">
+      <svg width="415" height="222" viewBox="0 0 415 222">
+        <text x="205" y="16" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Kafka: a retained log</text>
+        <text x="205" y="30" text-anchor="middle" font-size="8.5" fill="#5f6368">reading does not consume; records stay until retention expires</text>
+        <g font-size="8" font-family="Roboto Mono, monospace">
+          <rect x="24" y="42" width="34" height="24" fill="#fff" stroke="#9aa0a6"/><text x="41" y="58" text-anchor="middle" fill="#3c4043">m0</text>
+          <rect x="58" y="42" width="34" height="24" fill="#fff" stroke="#9aa0a6"/><text x="75" y="58" text-anchor="middle" fill="#3c4043">m1</text>
+          <rect x="92" y="42" width="34" height="24" fill="#fff" stroke="#9aa0a6"/><text x="109" y="58" text-anchor="middle" fill="#3c4043">m2</text>
+          <rect x="126" y="42" width="34" height="24" fill="#fff" stroke="#9aa0a6"/><text x="143" y="58" text-anchor="middle" fill="#3c4043">m3</text>
+          <rect x="160" y="42" width="34" height="24" fill="#fff" stroke="#9aa0a6"/><text x="177" y="58" text-anchor="middle" fill="#3c4043">m4</text>
+          <rect x="194" y="42" width="34" height="24" fill="#fff" stroke="#9aa0a6"/><text x="211" y="58" text-anchor="middle" fill="#3c4043">m5</text>
+          <rect x="228" y="42" width="34" height="24" fill="#e8f0fe" stroke="#4285F4"/><text x="245" y="58" text-anchor="middle" fill="#1a73e8">m6</text>
+        </g>
+        <g font-size="7.5" fill="#9aa0a6">
+          <text x="41" y="78" text-anchor="middle">0</text><text x="75" y="78" text-anchor="middle">1</text><text x="109" y="78" text-anchor="middle">2</text><text x="143" y="78" text-anchor="middle">3</text><text x="177" y="78" text-anchor="middle">4</text><text x="211" y="78" text-anchor="middle">5</text><text x="245" y="78" text-anchor="middle">6</text>
+        </g>
+        <text x="300" y="60" font-size="8" fill="#5f6368">offsets: each record&rsquo;s</text>
+        <text x="300" y="71" font-size="8" fill="#5f6368">permanent position number</text>
+        <path d="M109 96 L 109 82" stroke="#188038" stroke-width="2"/>
+        <rect x="62" y="98" width="94" height="20" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="109" y="112" text-anchor="middle" font-size="7.5" fill="#188038">ML retrain @ offset 2</text>
+        <path d="M245 96 L 245 82" stroke="#188038" stroke-width="2"/>
+        <rect x="198" y="98" width="94" height="20" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="245" y="112" text-anchor="middle" font-size="7.5" fill="#188038">anti-cheat @ offset 6</text>
+        <text x="205" y="140" text-anchor="middle" font-size="8.5" fill="#188038">Two consumers, two independent positions, one copy of the data.</text>
+        <text x="205" y="156" text-anchor="middle" font-size="8.5" fill="#188038">The ML job just sets its offset back to 0 and reads forward.</text>
+        <rect x="24" y="170" width="368" height="42" rx="6" fill="#e6f4ea"/>
+        <text x="36" y="188" font-size="8.5" fill="#188038" font-weight="600">Answer: no new resource, no republish. The retrain is a client</text>
+        <text x="36" y="202" font-size="8.5" fill="#188038" font-weight="600">deciding where to start. The anti-cheat consumer never notices.</text>
+      </svg>
+    </div>
+    <div class="figure">
+      <svg width="415" height="222" viewBox="0 0 415 222">
+        <text x="205" y="16" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Pub/Sub: a queue per subscription</text>
+        <text x="205" y="30" text-anchor="middle" font-size="8.5" fill="#5f6368">acking deletes the message from that subscription</text>
+        <rect x="40" y="40" width="330" height="72" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="205" y="56" text-anchor="middle" font-size="8.5" fill="#1a73e8" font-family="Roboto Mono, monospace">anti-cheat-sub</text>
+        <rect x="54" y="66" width="38" height="24" rx="4" fill="#f1f3f4" stroke="#9aa0a6" stroke-dasharray="3 3" opacity="0.6"/>
+        <text x="73" y="81" text-anchor="middle" font-size="7" fill="#9aa0a6">acked</text>
+        <text x="73" y="104" text-anchor="middle" font-size="7" fill="#9aa0a6">deleted</text>
+        <line x1="102" y1="60" x2="102" y2="106" stroke="#202124" stroke-width="2.5"/>
+        <text x="102" y="120" text-anchor="middle" font-size="7.5" fill="#202124">cursor</text>
+        <g fill="#e8f0fe" stroke="#4285F4">
+          <rect x="112" y="66" width="38" height="24" rx="4"/><rect x="154" y="66" width="38" height="24" rx="4"/><rect x="196" y="66" width="38" height="24" rx="4"/><rect x="238" y="66" width="38" height="24" rx="4"/>
+        </g>
+        <text x="310" y="82" font-size="7.5" fill="#1a73e8">still to deliver &rarr;</text>
+        <text x="205" y="140" text-anchor="middle" font-size="8.5" fill="#5f6368">There is no second position to move. The ML team needs its</text>
+        <text x="205" y="156" text-anchor="middle" font-size="8.5" fill="#5f6368">own subscription &mdash; and it only sees messages published</text>
+        <text x="205" y="172" text-anchor="middle" font-size="8.5" fill="#5f6368">after it was created, unless topic retention was set in advance.</text>
+        <rect x="24" y="182" width="368" height="34" rx="6" fill="#fef7e0"/>
+        <text x="36" y="198" font-size="8.5" fill="#7a5c00" font-weight="600">Answer: create a subscription up front, or read the 30 days from</text>
+        <text x="36" y="211" font-size="8.5" fill="#7a5c00" font-weight="600">BigQuery / Cloud Storage, where the export subscription put it.</text>
+      </svg>
+    </div>
+  </div>
+  <div class="callout" style="margin-top:2px">Neither answer is wrong. Kafka keeps <strong>history</strong> and lets clients navigate it; Pub/Sub keeps a <strong>work queue</strong> per consumer and expects history to live in your warehouse. Most of the remaining differences follow from this one.</div>
+</section>
+<details class="notes" data-title="Where the two models actually differ">
+  <summary>Speaker notes &mdash; Where the two models actually differ</summary>
+  <div class="n-body"><ul>
+    <li>If a student takes one idea from this section, this is it. The vocabulary slide next is entirely consequences of it.</li>
+    <li>Define <strong>offset</strong> out loud when the diagram appears: every record appended to a partition gets the next integer, permanently. &ldquo;Offset 2&rdquo; identifies a position in the log the same way a page number identifies a place in a book &mdash; and like a bookmark, several readers can hold different ones.</li>
+    <li>Be fair to Pub/Sub here: it is not that replay is impossible, it is that replay is bounded by a retention window you configured in advance and is done by moving one subscription&rsquo;s cursor, not by many consumers independently choosing positions. The ClearMeet answer in practice is the one on the right &mdash; the 30 days already landed in BigQuery via the export subscription, which is a perfectly good place to retrain from.</li>
+    <li>The cost shape differs too: Kafka pays to <em>store</em> the history on cluster disks; Pub/Sub pays per delivery and pushes storage to BigQuery or Cloud Storage.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 34. VOCABULARY MAP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Vocabulary map &mdash; and where it lies</h1>
+  <table class="tbl" style="font-size:13px">
+    <tr><th style="width:18%">Kafka</th><th style="width:20%">Pub/Sub</th><th>Not quite the same, because&hellip;</th></tr>
+    <tr><td>Cluster</td><td class="muted">(none)</td><td>Pub/Sub has no provisioned unit</td></tr>
+    <tr><td>Topic</td><td>Topic</td><td>Kafka&rsquo;s is a stored log; Pub/Sub&rsquo;s is a router</td></tr>
+    <tr><td>Partition</td><td class="muted">(none)</td><td>a Kafka topic is split into partitions, and that split does two jobs at once: order is guaranteed <em>within</em> a partition, and <strong>only one consumer in a group reads a given partition</strong> &mdash; so 12 partitions means at most 12 consumers sharing the work. Pub/Sub has neither: ordering comes from keys, and you add throughput by adding subscriber instances with no configured limit</td></tr>
+    <tr><td>Producer</td><td>Publisher</td><td>&mdash;</td></tr>
+    <tr><td>Consumer</td><td>Subscriber</td><td>&mdash;</td></tr>
+    <tr class="hl"><td>Consumer group</td><td>Subscription</td><td>a consumer group is a <strong>runtime grouping of clients</strong>; a subscription is a <strong>persistent server-side resource</strong> with its own backlog and config</td></tr>
+    <tr><td>Offset</td><td class="muted">(none)</td><td>the sequence number a record permanently holds in its partition. The consumer stores which offset it has reached and can set it anywhere &mdash; back to re-read, forward to skip. Pub/Sub keeps that position server-side per subscription, and you move it only with <code>seek</code>, within retention</td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="callout warn">The right-hand column is where migrations go wrong. The mapping is a translation aid, not an equivalence.</div>
+</section>
+<details class="notes" data-title="Vocabulary map">
+  <summary>Speaker notes &mdash; Vocabulary map</summary>
+  <div class="n-body"><ul>
+    <li>The source deck&rsquo;s version has the first two columns only, which invites the false conclusion that a consumer group <em>is</em> a subscription.</li>
+    <li>Concrete consequence for the highlighted row: adding a consumer to a Kafka group redistributes partitions among existing consumers; adding a subscription in Pub/Sub creates a whole new copy of the stream &mdash; and a new delivery bill.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 35. WHAT FORCES KAFKA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What actually forces the choice</h1>
+  <div class="cols">
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#202124;margin-bottom:8px">Choose Managed Kafka when&hellip;</div>
+      <ul class="body" style="font-size:13.5px">
+        <li>You have Kafka <strong>code, Connect connectors, or Streams/ksqlDB jobs</strong> you are not rewriting</li>
+        <li>You need <strong>partition-level ordering with parallelism</strong> &mdash; many consumers, strict order within each partition</li>
+        <li>Consumers must <strong>control their own offsets</strong> and replay arbitrarily</li>
+        <li>You need <strong>API portability</strong> across clouds or on-prem</li>
+      </ul>
+    </div>
+    <div>
+      <div style="font-size:14px;font-weight:600;color:#202124;margin-bottom:8px">Choose Pub/Sub when&hellip;</div>
+      <ul class="body" style="font-size:13.5px">
+        <li>You are writing new code on Google Cloud</li>
+        <li>You want <strong>no capacity decision at all</strong></li>
+        <li>You need push delivery, direct-to-BigQuery export, or per-subscription filtering</li>
+        <li>Traffic is spiky and you do not want to size for the peak</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap"></div>
+  <div class="callout warn">Scale is on <strong>neither</strong> list. Both handle high volume. Choose on model, ecosystem, and who operates it.</div>
+</section>
+<details class="notes" data-title="What forces Kafka">
+  <summary>Speaker notes &mdash; What forces Kafka</summary>
+  <div class="n-body"><ul>
+    <li>The source module&rsquo;s answer is &ldquo;operational simplicity vs. API portability&rdquo; said five ways. These are the concrete requirements behind the slogan.</li>
+    <li>ClearMeet lands on both: Pub/Sub for the cloud-native streams, Managed Kafka for the media-server telemetry the telephony team already owns. That is the normal outcome, not a compromise.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 36. BRIDGING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Bridging the two</h1>
+  <div class="lede" style="font-size:14.5px;margin-bottom:8px">ClearMeet needs media telemetry in <code>qos_events</code> alongside everything else, and the chat stream needs to reach the legacy toxicity engine that only speaks Kafka. Neither team is rewriting its consumers.</div>
+  <div class="cols c-40-60">
+    <div>
+      <ul class="body" style="font-size:12px">
+        <li><strong>Kafka Connect</strong> is Kafka&rsquo;s standard plugin runtime for moving data in and out, and the managed service runs it for you. Two directions, named from Kafka&rsquo;s point of view: a <strong>sink</strong> connector takes records out of Kafka into Pub/Sub; a <strong>source</strong> connector pulls from Pub/Sub into a Kafka topic</li>
+        <li>ClearMeet uses both &mdash; sink for media telemetry heading to BigQuery, source for chat heading to the toxicity engine</li>
+        <li>Once media telemetry lands in a Pub/Sub topic it is ordinary: the same subscription types, DLQ, and metrics apply</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12px">Bridging is normal, not a transition state. Plenty of architectures keep both permanently, each stream on the side that fits it.</div>
+    </div>
+    <div class="figure">
+      <svg width="470" height="240" viewBox="0 0 470 240">
+        <defs><marker id="ar36" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <!-- on-prem -->
+        <rect x="6" y="24" width="108" height="60" rx="8" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="60" y="48" text-anchor="middle" font-size="8.5" fill="#3c4043">on-prem media</text>
+        <text x="60" y="62" text-anchor="middle" font-size="8.5" fill="#3c4043">servers (Kafka)</text>
+        <line x1="118" y1="54" x2="152" y2="54" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar36)"/>
+        <!-- managed kafka -->
+        <rect x="156" y="20" width="130" height="70" rx="8" fill="#202124"/>
+        <text x="221" y="44" text-anchor="middle" font-size="9" fill="#e8eaed" font-weight="600">Managed Kafka</text>
+        <text x="221" y="60" text-anchor="middle" font-size="8" fill="#9aa0a6" font-family="Roboto Mono, monospace">media-telemetry</text>
+        <text x="221" y="76" text-anchor="middle" font-size="7.5" fill="#9aa0a6">+ schema registry</text>
+        <!-- connect -->
+        <line x1="221" y1="94" x2="221" y2="116" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar36)"/>
+        <rect x="164" y="120" width="114" height="30" rx="7" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="221" y="139" text-anchor="middle" font-size="8.5" fill="#188038" font-weight="600">Kafka Connect (managed)</text>
+        <text x="298" y="139" font-size="7.5" fill="#188038">sink &darr;</text>
+        <line x1="221" y1="154" x2="221" y2="176" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar36)"/>
+        <!-- pubsub topic -->
+        <rect x="150" y="180" width="142" height="30" rx="10" fill="#4285F4"/>
+        <text x="221" y="199" text-anchor="middle" font-size="8.5" fill="#fff" font-family="Roboto Mono, monospace">media-telemetry (Pub/Sub)</text>
+        <!-- to existing subs -->
+        <line x1="296" y1="195" x2="342" y2="195" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar36)"/>
+        <rect x="346" y="176" width="118" height="40" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="405" y="192" text-anchor="middle" font-size="8" fill="#1a73e8">the same subscriptions</text>
+        <text x="405" y="205" text-anchor="middle" font-size="8" fill="#1a73e8">as every other stream</text>
+        <!-- reverse path -->
+        <path d="M300 30 C 360 30 380 60 380 88" fill="none" stroke="#9aa0a6" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#ar36)"/>
+        <text x="392" y="46" font-size="7.5" fill="#5f6368">source connector:</text>
+        <text x="392" y="58" font-size="7.5" fill="#5f6368">Pub/Sub &rarr; Kafka</text>
+        <text x="392" y="70" font-size="7.5" fill="#5f6368">(chat &rarr; legacy</text>
+        <text x="392" y="82" font-size="7.5" fill="#5f6368">toxicity engine)</text>
+        <text x="235" y="232" text-anchor="middle" font-size="9" fill="#5f6368">Both directions &mdash; and the bridge itself is managed.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Bridging the two">
+  <summary>Speaker notes &mdash; Bridging the two</summary>
+  <div class="n-body"><ul>
+    <li>Connect and the schema registry are named as included in the service overview docs; confirm the exact availability status of managed Connect before delivery.</li>
+    <li><strong>Import topics</strong> are the adjacent option, mentioned only if asked: a Pub/Sub topic can pull directly from Amazon MSK, Kinesis, Confluent Cloud, or Azure Event Hubs with no connector to run. Right when the source is a hosted service and nothing needs transforming; not applicable to ClearMeet, whose Kafka is on-prem, which is why it is off the slide.</li><li>The <strong>schema registry</strong> (Avro, Protobuf) included on the Kafka side plays the role that topic schemas play on the Pub/Sub side.</li>
+    <li>Direction check for the two connector types: <em>source</em> = into Kafka from Pub/Sub; <em>sink</em> = out of Kafka into Pub/Sub&rsquo;s world. The source PDF&rsquo;s second header says &ldquo;Source Connector&rdquo; over the sink definition &mdash; one of its errors.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 37. FINISHED TOPOLOGY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="font-size:24px;margin-bottom:8px">ClearMeet&rsquo;s finished topology</h1>
+  <div class="figure">
+    <svg width="880" height="415" viewBox="0 0 880 415">
+      <defs><marker id="ar37" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+      <!-- producers -->
+      <g font-size="8.5">
+        <rect x="10" y="40" width="110" height="34" rx="7" fill="#f1f3f4" stroke="#9aa0a6"/><text x="65" y="61" text-anchor="middle" fill="#3c4043">client edge service</text>
+        <rect x="10" y="130" width="110" height="34" rx="7" fill="#f1f3f4" stroke="#9aa0a6"/><text x="65" y="151" text-anchor="middle" fill="#3c4043">meeting control</text>
+        <rect x="10" y="220" width="110" height="34" rx="7" fill="#f1f3f4" stroke="#9aa0a6"/><text x="65" y="241" text-anchor="middle" fill="#3c4043">billing pipeline</text>
+        <rect x="10" y="316" width="110" height="46" rx="7" fill="#202124"/><text x="65" y="336" text-anchor="middle" fill="#e8eaed">on-prem media</text><text x="65" y="350" text-anchor="middle" fill="#e8eaed">via Managed Kafka</text>
+      </g>
+      <!-- topics -->
+      <g>
+        <line x1="124" y1="57" x2="168" y2="57" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar37)"/>
+        <rect x="172" y="42" width="150" height="30" rx="10" fill="#4285F4"/><text x="247" y="61" text-anchor="middle" font-size="9" fill="#fff" font-family="Roboto Mono, monospace">qos-samples</text>
+        <line x1="124" y1="147" x2="168" y2="147" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar37)"/>
+        <rect x="172" y="132" width="150" height="30" rx="10" fill="#4285F4"/><text x="247" y="151" text-anchor="middle" font-size="9" fill="#fff" font-family="Roboto Mono, monospace">meeting-lifecycle</text>
+        <rect x="196" y="166" width="102" height="15" rx="7" fill="#fef7e0" stroke="#FBBC04"/><text x="247" y="177" text-anchor="middle" font-size="7.5" fill="#7a5c00">ordering: meeting_id &middot; s13</text>
+        <line x1="124" y1="237" x2="168" y2="237" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar37)"/>
+        <rect x="172" y="222" width="150" height="30" rx="10" fill="#4285F4"/><text x="247" y="241" text-anchor="middle" font-size="9" fill="#fff" font-family="Roboto Mono, monospace">usage-events</text>
+        <rect x="196" y="256" width="102" height="15" rx="7" fill="#fef7e0" stroke="#FBBC04"/><text x="247" y="267" text-anchor="middle" font-size="7.5" fill="#7a5c00">exactly-once pull &middot; s20</text>
+        <line x1="124" y1="339" x2="146" y2="339" stroke="#5f6368" stroke-width="1.5"/>
+        <rect x="150" y="326" width="82" height="26" rx="7" fill="#e6f4ea" stroke="#34A853"/><text x="191" y="343" text-anchor="middle" font-size="7.5" fill="#188038">Connect sink &middot; s36</text>
+        <line x1="236" y1="339" x2="258" y2="339" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar37)"/>
+        <rect x="262" y="324" width="140" height="30" rx="10" fill="#4285F4"/><text x="332" y="343" text-anchor="middle" font-size="8.5" fill="#fff" font-family="Roboto Mono, monospace">media-telemetry</text>
+      </g>
+      <!-- subscriptions off qos-samples -->
+      <g font-size="8">
+        <line x1="326" y1="50" x2="420" y2="26" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="12" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="25" text-anchor="middle" fill="#1a73e8">BigQuery sub &middot; topic schema &middot; s22</text>
+        <text x="512" y="37" text-anchor="middle" fill="#5f6368">at-least-once export</text>
+        <line x1="326" y1="57" x2="420" y2="72" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="58" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="71" text-anchor="middle" fill="#1a73e8">pull sub &middot; flow control &middot; s18</text>
+        <text x="512" y="83" text-anchor="middle" fill="#5f6368">&rarr; Dataflow (next module)</text>
+        <line x1="326" y1="64" x2="420" y2="118" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="104" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="117" text-anchor="middle" fill="#1a73e8">push sub &middot; filter device=web &middot; s21</text>
+        <text x="512" y="129" text-anchor="middle" fill="#5f6368">&rarr; Cloud Run alerting</text>
+        <line x1="600" y1="119" x2="640" y2="119" stroke="#EA4335" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="644" y="105" width="120" height="28" rx="7" fill="#fce8e6" stroke="#EA4335" stroke-width="1.4"/>
+        <text x="704" y="117" text-anchor="middle" fill="#b3261e">DLQ + dlq-sub &middot; s26</text>
+        <text x="704" y="128" text-anchor="middle" fill="#b3261e">max attempts 5</text>
+        <line x1="326" y1="68" x2="420" y2="164" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="150" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="163" text-anchor="middle" fill="#1a73e8">Cloud Storage sub &middot; s16</text>
+        <text x="512" y="175" text-anchor="middle" fill="#5f6368">&rarr; raw archive bucket</text>
+      </g>
+      <!-- subs off lifecycle and usage -->
+      <g font-size="8">
+        <line x1="326" y1="147" x2="420" y2="210" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="196" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="209" text-anchor="middle" fill="#1a73e8">ordered pull sub &middot; s13&ndash;14</text>
+        <text x="512" y="221" text-anchor="middle" fill="#5f6368">&rarr; session state service</text>
+        <line x1="326" y1="237" x2="420" y2="256" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="242" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="255" text-anchor="middle" fill="#1a73e8">exactly-once pull sub &middot; s20</text>
+        <text x="512" y="267" text-anchor="middle" fill="#5f6368">&rarr; invoicing (ack_with_response)</text>
+        <line x1="406" y1="339" x2="420" y2="339" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+        <rect x="424" y="310" width="176" height="30" rx="7" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="512" y="323" text-anchor="middle" fill="#1a73e8">BigQuery sub &middot; s22</text>
+        <text x="512" y="335" text-anchor="middle" fill="#5f6368">&rarr; media QoS history</text>
+      </g>
+      <!-- destination table -->
+      <rect x="640" y="12" width="124" height="60" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="702" y="36" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">qos_events</text>
+      <text x="702" y="52" text-anchor="middle" font-size="8" fill="#1a73e8">the table deck 1 started with</text>
+      <line x1="600" y1="27" x2="636" y2="27" stroke="#5f6368" stroke-width="1.4" marker-end="url(#ar37)"/>
+      <text x="440" y="400" text-anchor="middle" font-size="9.5" fill="#5f6368">Every tag names the slide where that setting was chosen. Walk it left to right; let the room name each one.</text>
+    </svg>
+  </div>
+</section>
+<details class="notes" data-title="ClearMeet's finished topology">
+  <summary>Speaker notes &mdash; ClearMeet&rsquo;s finished topology</summary>
+  <div class="n-body"><ul>
+    <li>Walk it left to right and let the room name the setting on each tag; it doubles as the review.</li>
+    <li>The <code>qos_events</code> box on the right is the BigQuery deck&rsquo;s table &mdash; close the loop explicitly.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 38. CONSEQUENCES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Consequences you can act on</h1>
+  <table class="tbl" style="font-size:11.6px">
+    <tr><th style="width:30%">You observed</th><th style="width:32%">Because</th><th>So you&hellip;</th></tr>
+    <tr><td>Duplicate rows downstream</td><td>a redelivery (your deadline lapsed) or a publish-side duplicate &mdash; neither is a defect</td><td>make the write idempotent; exactly-once addresses a third, narrower case</td></tr>
+    <tr><td>Backlog count high but age flat</td><td>consumer keeping pace at a fixed lag</td><td>nothing</td></tr>
+    <tr class="hl"><td>Backlog ~0, oldest age climbing</td><td>one message stuck at the head</td><td>attach a dead-letter topic</td></tr>
+    <tr><td>Expired ack deadlines climbing</td><td>callbacks outrunning the ack deadline</td><td>lower flow control, or raise the ack deadline</td></tr>
+    <tr><td>Subscriber OOMs under load</td><td>unbounded outstanding messages</td><td>set <code>FlowControl</code>; let the backlog hold them</td></tr>
+    <tr class="hl"><td>Messages vanished entirely</td><td>published before any subscription existed</td><td>create the subscription first</td></tr>
+    <tr><td>Ordered topic is slow</td><td>head-of-line blocking per key</td><td>check key cardinality; drop ordering if not required</td></tr>
+    <tr><td>Bill grew when you added a dashboard</td><td>delivery is billed per subscription</td><td>treat fan-out as a cost decision</td></tr>
+    <tr><td>Cannot replay after an incident</td><td>retention was too short &mdash; and it is set in advance</td><td>set retention on a calm day</td></tr>
+  </table>
+</section>
+<details class="notes" data-title="Consequences">
+  <summary>Speaker notes &mdash; Consequences</summary>
+  <div class="n-body"><ul>
+    <li>Rows 2&ndash;4 are the on-call loop and the habit worth leaving with: read count, then age, then expired acks &mdash; in that order.</li>
+    <li>The second highlighted row is the most common beginner failure and it is invisible: no error, the messages are simply gone.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 39. RECAP ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Recap</h1>
+  <ul class="body" style="font-size:16.5px">
+    <li>A subscription is a <strong>queue with a cursor</strong>; fan-out means independent queues, independent backlogs, independent bills</li>
+    <li>Delivery is <strong>provisional until you ack</strong>. A redelivery after a lapsed deadline is expected behavior, not a fault &mdash; idempotent processing is the general answer, and exactly-once addresses only the narrower &ldquo;duplicate&rdquo; case</li>
+    <li>Ordering, exactly-once, and filters are fixed <strong>at subscription creation</strong></li>
+    <li>Two metrics diagnose almost everything: <strong>unacked count</strong> and <strong>oldest unacked age</strong></li>
+    <li>Kafka is a <strong>log with consumer-held offsets</strong>; Pub/Sub is a <strong>queue with a server-held cursor</strong>. Choose on model and ecosystem &mdash; never on scale</li>
+  </ul>
+</section>
+<details class="notes" data-title="Recap">
+  <summary>Speaker notes &mdash; Recap</summary>
+  <div class="n-body"><ul>
+    <li>Five sentences, five sections. If short on time, read this slide and the consequences table and skip nothing else in the close.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 40. HAND-OFF TO DATAFLOW ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What&rsquo;s next: Dataflow</h1>
+  <ul class="body">
+    <li>Every message is now in the platform, at-least-once, with a backlog you can read</li>
+    <li>What&rsquo;s missing: enrichment, aggregation, windowing, and exactly-once <em>processing</em></li>
+    <li>That is the Dataflow module &mdash; and it starts by consuming <code>qos-samples</code></li>
+    <li>The subscription it reads is the pull subscription created in this module</li>
+  </ul>
+  <div class="vgap"></div>
+  <div class="callout good">Ingestion put the data on the doorstep. Processing is where it becomes the dashboards, alerts, and tables ClearMeet actually sells.</div>
+</section>
+<details class="notes" data-title="Hand-off to Dataflow">
+  <summary>Speaker notes &mdash; Hand-off to Dataflow</summary>
+  <div class="n-body"><ul>
+    <li>Concrete continuity: the next module&rsquo;s pipeline reads the pull subscription built here and writes the table from the BigQuery module.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 41. REFERENCES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>References</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Pub/Sub</strong>
+          <ul>
+            <li>docs.cloud.google.com/pubsub/docs/subscription-properties</li>
+            <li>docs.cloud.google.com/pubsub/docs/exactly-once-delivery</li>
+            <li>docs.cloud.google.com/pubsub/docs/ordering</li>
+            <li>docs.cloud.google.com/pubsub/docs/pull &middot; /docs/bigquery</li>
+            <li>docs.cloud.google.com/pubsub/docs/monitoring</li>
+            <li>docs.cloud.google.com/pubsub/quotas &middot; cloud.google.com/pubsub/pricing</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Managed Service for Apache Kafka</strong>
+          <ul>
+            <li>docs.cloud.google.com/managed-service-for-apache-kafka/docs/overview</li>
+            <li>&hellip;/managed-service-for-apache-kafka/docs/quotas</li>
+          </ul>
+        </li>
+        <li><strong>Client library</strong>
+          <ul>
+            <li>github.com/googleapis/python-pubsub (defaults quoted from a pinned release of <code>pubsub_v1/types.py</code>)</li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap"></div>
+  <div class="callout warn">Limits, client-library defaults, the pinned Kafka version, and every price were verified <strong>July 2026</strong>. Re-check before each delivery.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul>
+    <li>Three things in this deck are especially version-sensitive: the pinned Kafka version (3.7.1), the Python client defaults, and pricing. The pricing pages did not render through automated fetch during authoring &mdash; they must be read by a human before rates are spoken.</li>
+  </ul></div>
+</details>
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

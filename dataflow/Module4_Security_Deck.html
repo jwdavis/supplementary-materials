@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module 4: Security</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* feature cards (four surfaces slide) */
+  .cards { display: flex; gap: 18px; }
+  .card {
+    flex: 1;
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--g-blue);
+    border-radius: 6px;
+    padding: 14px 16px;
+    background: #fff;
+  }
+  .card.c-blue   { border-top-color: var(--g-blue); }
+  .card.c-green  { border-top-color: var(--g-green); }
+  .card.c-yellow { border-top-color: var(--g-yellow); }
+  .card.c-red    { border-top-color: var(--g-red); }
+  .card .c-name  { font-weight: 600; font-size: 15.5px; margin-bottom: 6px; }
+  .card .c-what  { font-size: 13px; color: var(--ink-soft); line-height: 1.45; margin-bottom: 10px; }
+  .card .c-flag  {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 3px 7px;
+    display: inline-block;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Security</h1>
+    <div class="sub">Module 4 &middot; Serverless Data Processing with Dataflow</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> the last module was about <em>who</em> can do <em>what</em> &mdash; IAM roles and quotas. This module is about the four knobs that constrain <em>where and how</em> a Dataflow job runs: where its metadata lives, what network its workers join, whether those workers touch the internet, and who holds the encryption keys.</li>
+    <li>Each feature is one pipeline flag plus one or two setup steps &mdash; the content here is less about mechanics and more about knowing <em>which surface</em> each feature actually protects, because that's what compliance conversations turn on.</li>
+    <li>Rough timing: 35&ndash;45 minutes of lecture across the five sections, then the IAM &amp; Networking lab (typically 45&ndash;60 minutes).</li>
+    <li>This module leans on the service-account model from the IAM module; Section 1 is a two-slide recap so the role grants later in the module have something to hang on. If the IAM module is fresh, move through it quickly.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. AGENDA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Agenda</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:16px">
+        <li>The Dataflow security model: two service accounts</li>
+        <li><span class="blue">Data locality</span> — choosing where your job (and its metadata) lives</li>
+        <li><span class="blue">Shared VPC</span> — running workers in a centrally managed network</li>
+        <li><span class="blue">Private IPs</span> — taking workers off the internet</li>
+        <li><span class="blue">CMEK</span> — owning the encryption keys for data at rest</li>
+        <li>Lab: Setup IAM and Networking for your Dataflow Jobs</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 260px;display:flex;align-items:center;justify-content:center">
+      <svg width="190" height="210" viewBox="0 0 190 210" aria-hidden="true">
+        <path d="M95 8 L170 36 L170 102 C170 152 138 186 95 202 C52 186 20 152 20 102 L20 36 Z" fill="#4285F4"/>
+        <path d="M95 26 L152 48 L152 100 C152 140 128 168 95 182 C62 168 38 140 38 100 L38 48 Z" fill="#fff"/>
+        <rect x="76" y="96" width="38" height="32" rx="5" fill="#FBBC04"/>
+        <path d="M83 96 L83 84 C83 77 88 72 95 72 C102 72 107 77 107 84 L107 96" fill="none" stroke="#EA4335" stroke-width="7"/>
+        <circle cx="95" cy="109" r="5" fill="#3c2f00"/>
+        <rect x="92" y="110" width="6" height="10" rx="2" fill="#3c2f00"/>
+        <circle cx="49" cy="52" r="6" fill="#34A853"/>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agenda">
+  <summary>Speaker notes &mdash; Agenda</summary>
+  <div class="n-body"><ul>
+    <li>The ordering is deliberate:
+      <ul>
+        <li><strong>The service-account recap comes first</strong> because Shared VPC and CMEK both end in "grant a role to the service account" &mdash; and that sentence is ambiguous until students can name which account is meant.</li>
+        <li>The four features then run roughly <strong>outside-in</strong>: region (where everything lives) &rarr; network (what workers join) &rarr; IPs (workers' reachability) &rarr; keys (the data itself).</li>
+      </ul>
+    </li>
+    <li>Set expectations: none of these features change pipeline <em>code</em>. Every one is a launch-time option plus some one-time project setup &mdash; which is why the lab at the end is an ops exercise, not a coding exercise.</li>
+    <li>The lab exercises Sections 1, 3, and 4 directly (launcher permissions, subnetwork selection, private IPs with Private Google Access).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. DIVIDER: SECURITY MODEL ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 5</div>
+    <h1>The Dataflow Security Model</h1>
+    <div class="sub">Every job involves two service accounts with very different jobs. Getting them straight now makes every role grant in this module make sense.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Security model</span><span>Data locality</span><span>Shared VPC</span><span>Private IPs</span><span>CMEK</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: The Dataflow Security Model">
+  <summary>Speaker notes &mdash; Section 1: The Dataflow Security Model</summary>
+  <div class="n-body"><ul>
+    <li><strong>Quick pulse-check:</strong> ask who can name the service account their pipeline code runs as. In most cohorts nobody can &mdash; which is exactly why this section exists before the features.</li>
+    <li>Two slides only: the two-account picture, then the map of the four features. Resist expanding this into an IAM re-teach &mdash; the IAM module already did that; this is just the vocabulary the role grants in Sections 3 and 5 depend on.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. TWO SERVICE ACCOUNTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Two service accounts in every job</h1>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:14px">
+        <li><strong>Dataflow service account</strong> (the <em>service agent</em>) — Google-managed
+          <ul>
+            <li>creates worker VMs, checks quota, coordinates your project with the Dataflow backend</li>
+            <li><code>service-…@dataflow-service-producer-prod</code></li>
+          </ul>
+        </li>
+        <li><strong>Worker service account</strong> — the identity your <em>pipeline code</em> runs as; it reads your sources and writes your sinks
+          <ul>
+            <li>default: the Compute Engine default service account</li>
+            <li>best practice: a dedicated SA with <code>roles/dataflow.worker</code> + least-privilege data access</li>
+          </ul>
+        </li>
+      </ul>
+      <div class="callout" style="font-size:12.5px;padding:9px 14px">Whoever launches the job needs <code>iam.serviceAccounts.actAs</code> on the worker SA (usually via <strong>Service Account User</strong>).</div>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="470" height="330" viewBox="0 0 470 330">
+        <defs><marker id="arrSA" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/></marker></defs>
+
+        <circle cx="42" cy="36" r="16" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <circle cx="42" cy="30" r="6" fill="#4285F4"/>
+        <path d="M31 44 C 31 37 53 37 53 44" fill="#4285F4"/>
+        <text x="70" y="32" font-size="11.5" font-weight="600" fill="#202124">You (launcher)</text>
+        <text x="70" y="46" font-size="10" fill="#5f6368">Dataflow Developer + actAs worker SA</text>
+
+        <line x1="42" y1="54" x2="42" y2="86" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrSA)"/>
+        <text x="52" y="76" font-size="10" fill="#5f6368">submit job</text>
+
+        <rect x="8" y="92" width="200" height="88" rx="8" fill="#f8f9fa" stroke="#9aa0a6" stroke-dasharray="4 3"/>
+        <text x="20" y="110" font-size="10.5" font-weight="600" fill="#5f6368">GOOGLE-MANAGED PROJECT</text>
+        <rect x="20" y="120" width="176" height="48" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="108" y="140" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1a73e8">Dataflow service agent</text>
+        <text x="108" y="156" text-anchor="middle" font-size="9.5" fill="#5f6368">runs the Dataflow backend</text>
+
+        <line x1="208" y1="144" x2="256" y2="144" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrSA)"/>
+        <text x="232" y="132" text-anchor="middle" font-size="9.5" fill="#5f6368">creates</text>
+        <text x="232" y="164" text-anchor="middle" font-size="9.5" fill="#5f6368">worker VMs</text>
+
+        <rect x="260" y="70" width="202" height="180" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="272" y="90" font-size="10.5" font-weight="600" fill="#1a73e8">YOUR PROJECT</text>
+        <rect x="276" y="102" width="76" height="52" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <rect x="286" y="112" width="56" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="286" y="126" width="56" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="286" y="140" width="40" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="366" y="102" width="76" height="52" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <rect x="376" y="112" width="56" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="376" y="126" width="56" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="376" y="140" width="40" height="8" rx="2" fill="#aecbfa"/>
+        <text x="360" y="172" text-anchor="middle" font-size="10.5" fill="#202124">worker VMs run pipeline code</text>
+        <rect x="286" y="184" width="150" height="26" rx="13" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="361" y="201" text-anchor="middle" font-size="10.5" font-weight="600" fill="#188038">as the worker SA</text>
+
+        <line x1="361" y1="250" x2="361" y2="282" stroke="#34A853" stroke-width="1.5" marker-end="url(#arrSA)"/>
+        <text x="371" y="272" font-size="9.5" fill="#188038">reads / writes</text>
+        <rect x="256" y="288" width="210" height="34" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="361" y="309" text-anchor="middle" font-size="11" fill="#202124">Cloud Storage &middot; BigQuery &middot; Pub/Sub</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Two service accounts in every job">
+  <summary>Speaker notes &mdash; Two service accounts in every job</summary>
+  <div class="n-body"><ul>
+    <li><strong>Walk the diagram left to right:</strong> you submit the job; the <strong>Dataflow service agent</strong> &mdash; a Google-managed identity living with the Dataflow backend &mdash; creates worker VMs in <em>your</em> project and checks your quotas; those workers then run your pipeline code as the <strong>worker service account</strong>, and it's <em>that</em> identity that shows up in the ACLs of your buckets, datasets, and topics.</li>
+    <li>Full agent address for reference: <code>service-PROJECT_NUMBER@dataflow-service-producer-prod.iam.gserviceaccount.com</code>. It's created automatically when the Dataflow API is enabled; you never manage its key material.</li>
+    <li><strong>The worker SA is where least privilege happens.</strong> The default (Compute Engine default SA, historically with Editor on the project) is exactly the wrong direction. Current best practice: a dedicated user-managed SA with <code>roles/dataflow.worker</code> plus only the specific source/sink roles the pipeline needs, passed at launch with <code>--service_account_email</code>.</li>
+    <li><strong>The launch-failure students will actually hit:</strong> "Current user cannot act as service account &hellip;" &mdash; that's the missing <code>iam.serviceAccounts.actAs</code> permission on the worker SA (grant <strong>Service Account User</strong> on that SA). It's also the security feature: being allowed to launch jobs doesn't automatically let you borrow any identity in the project.</li>
+    <li>Terminology drift to warn about: older material (including earlier versions of this course) says "controller service account" for what is now called the worker service account. Same thing, current name. This matters again on the CMEK slides.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. FOUR FEATURES, FOUR SURFACES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:14px">Four features, four surfaces</h1>
+  <p class="lede" style="margin-bottom:18px;font-size:15.5px">Each feature in this module constrains a different surface of the same job. None of them changes your pipeline code — each is a launch option plus some one-time setup.</p>
+  <div class="cards">
+    <div class="card c-blue">
+      <div class="c-name">Data locality</div>
+      <div class="c-what">Where job <strong>metadata</strong> lives, and where workers run</div>
+      <span class="c-flag">--region</span>
+    </div>
+    <div class="card c-green">
+      <div class="c-name">Shared VPC</div>
+      <div class="c-what">Which <strong>network</strong> the workers join — yours, or a centrally managed one</div>
+      <span class="c-flag">--subnetwork</span>
+    </div>
+    <div class="card c-yellow">
+      <div class="c-name">Private IPs</div>
+      <div class="c-what">Whether workers are reachable from the <strong>internet</strong> at all</div>
+      <span class="c-flag">--no_use_public_ips</span>
+    </div>
+    <div class="card c-red">
+      <div class="c-name">CMEK</div>
+      <div class="c-what">Who holds the <strong>encryption keys</strong> for the job's data at rest</div>
+      <span class="c-flag">--dataflow_kms_key</span>
+    </div>
+  </div>
+  <div class="vgap-l"></div>
+  <div class="callout" style="font-size:14px">These compose: a locked-down job runs in a chosen region, on a Shared VPC subnet, with no public IPs, under your own keys — four flags on one command line.</div>
+</section>
+<details class="notes" data-title="Four features, four surfaces">
+  <summary>Speaker notes &mdash; Four features, four surfaces</summary>
+  <div class="n-body"><ul>
+    <li>This is the module's map &mdash; each card becomes a section, and the card colors track through the section headers. Give each card its one-sentence "so what": <strong>region</strong> is what your compliance team asks about; <strong>network</strong> is what your infrastructure team asks about; <strong>private IPs</strong> is what your security team asks about; <strong>CMEK</strong> is what your auditors ask about.</li>
+    <li>The composition point in the callout is worth landing early: these are not alternatives. A typical regulated-industry job uses all four at once, and the lab combines two of them.</li>
+    <li>Flags shown are the Python spellings; Java equivalents (<code>--usePublicIps=false</code>, <code>--dataflowKmsKey</code>) appear in each section.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. DIVIDER: DATA LOCALITY ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 5</div>
+    <h1>Data Locality</h1>
+    <div class="sub">Every job reports to a regional endpoint that stores its metadata. Choosing the region pins down where that metadata — and the workers — live.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Security model</span><span class="current">Data locality</span><span>Shared VPC</span><span>Private IPs</span><span>CMEK</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Data Locality">
+  <summary>Speaker notes &mdash; Section 2: Data Locality</summary>
+  <div class="n-body"><ul>
+    <li>Shape of the section: what the regional endpoint is &rarr; why "metadata" is a bigger deal than it sounds (the compliance slide) &rarr; how to set the region. Three slides.</li>
+    <li>The story to keep straight: <strong>user data stays with the workers; metadata goes to the endpoint; <code>--region</code> places both in the same region.</strong> Everything else in the section hangs off that sentence.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. REGIONAL ENDPOINT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Every job reports to a regional endpoint</h1>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:14.5px">
+        <li>The <strong>regional endpoint</strong> is the Dataflow backend, in a Google-managed project — it deploys and controls your workers</li>
+        <li>It stores and processes the <strong>job metadata</strong>: what you see in the Dataflow UI
+          <ul>
+            <li>job name, ID, parameters, pipeline graph, start time</li>
+            <li>worker health checks, work-item status, autoscaling events</li>
+            <li>unexpected events: launch failures, unhandled exceptions from your code</li>
+          </ul>
+        </li>
+        <li>Your <strong>data</strong> is processed by the workers in your project — it doesn't go to the endpoint</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="470" height="300" viewBox="0 0 470 300">
+        <defs><marker id="arrRE" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/></marker></defs>
+
+        <rect x="6" y="26" width="210" height="216" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="18" y="46" font-size="10.5" font-weight="600" fill="#1a73e8">YOUR PROJECT</text>
+        <rect x="22" y="58" width="82" height="54" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <rect x="32" y="68" width="62" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="32" y="82" width="62" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="32" y="96" width="44" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="118" y="58" width="82" height="54" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <rect x="128" y="68" width="62" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="128" y="82" width="62" height="8" rx="2" fill="#aecbfa"/>
+        <rect x="128" y="96" width="44" height="8" rx="2" fill="#aecbfa"/>
+        <text x="111" y="130" text-anchor="middle" font-size="10.5" fill="#202124">worker VMs</text>
+
+        <rect x="22" y="150" width="178" height="72" rx="6" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="111" y="172" text-anchor="middle" font-size="11" font-weight="600" fill="#188038">your data</text>
+        <text x="111" y="190" text-anchor="middle" font-size="10" fill="#188038">read, processed, written</text>
+        <text x="111" y="205" text-anchor="middle" font-size="10" fill="#188038">by the workers — stays here</text>
+
+        <rect x="286" y="26" width="178" height="216" rx="8" fill="#f8f9fa" stroke="#9aa0a6" stroke-dasharray="4 3"/>
+        <text x="298" y="46" font-size="10.5" font-weight="600" fill="#5f6368">GOOGLE-MANAGED PROJECT</text>
+        <rect x="302" y="58" width="146" height="54" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="375" y="80" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1a73e8">Regional endpoint</text>
+        <text x="375" y="97" text-anchor="middle" font-size="9.5" fill="#5f6368">deploys &amp; controls workers</text>
+        <rect x="302" y="150" width="146" height="72" rx="6" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+        <text x="375" y="172" text-anchor="middle" font-size="11" font-weight="600" fill="#b06000">job metadata</text>
+        <text x="375" y="190" text-anchor="middle" font-size="10" fill="#b06000">name, graph, parameters,</text>
+        <text x="375" y="205" text-anchor="middle" font-size="10" fill="#b06000">status, errors — the UI's view</text>
+
+        <line x1="216" y1="78" x2="282" y2="78" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrRE)"/>
+        <line x1="282" y1="94" x2="216" y2="94" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrRE)"/>
+        <text x="249" y="66" text-anchor="middle" font-size="9" fill="#5f6368">health, status,</text>
+        <text x="249" y="112" text-anchor="middle" font-size="9" fill="#5f6368">work items</text>
+
+        <line x1="204" y1="186" x2="248" y2="186" stroke="#c5221f" stroke-width="1.5"/>
+        <line x1="220" y1="174" x2="234" y2="198" stroke="#c5221f" stroke-width="2"/>
+        <text x="228" y="216" text-anchor="middle" font-size="9.5" fill="#c5221f">data never</text>
+        <text x="228" y="228" text-anchor="middle" font-size="9.5" fill="#c5221f">crosses over</text>
+
+        <text x="111" y="266" text-anchor="middle" font-size="10.5" fill="#5f6368">both placed by</text>
+        <text x="375" y="266" text-anchor="middle" font-size="10.5" fill="#5f6368">the same flag:</text>
+        <text x="235" y="290" text-anchor="middle" font-size="12" font-weight="600" fill="#1a73e8" font-family="Roboto Mono,monospace">--region</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Every job reports to a regional endpoint">
+  <summary>Speaker notes &mdash; Regional endpoint</summary>
+  <div class="n-body"><ul>
+    <li><strong>Anchor it in something students have seen:</strong> everything in the Dataflow console UI &mdash; the job graph, step status, autoscaling chart, error messages &mdash; is a rendering of the metadata the endpoint holds. That's the concrete answer to "what is job metadata?"</li>
+    <li>The endpoint traffic in the arrows: worker health checks, work-item requests and status, autoscaling events, plus the unexpected events &mdash; job launch failures, work-item failures, and <em>unhandled exceptions thrown by user code</em>. Hold on that last item; the next slide is entirely about it.</li>
+    <li>Why specify a region (two headline reasons, one bonus): (1) security and compliance &mdash; data-residency regulation; (2) latency and egress cost &mdash; keep workers next to sources and sinks; (3) <strong>[docs]</strong> resilience and disaster-recovery planning &mdash; region choice is part of your DR posture.</li>
+    <li>Placement detail if asked: within the region, the zone is auto-selected by available capacity. Jobs using Dataflow Shuffle or Streaming Engine can have workers spread across multiple zones in the region; otherwise a single best zone is picked at job creation.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. METADATA & COMPLIANCE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">"Metadata" holds more than you'd think</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ul class="body" style="font-size:14px">
+        <li><strong>User-authored strings:</strong> job name, pipeline option values (table names, file paths — sometimes secrets that shouldn't be there), and the pipeline graph — transform names reveal business logic</li>
+        <li><strong>Error payloads:</strong> unhandled exceptions from your code are sent to the endpoint — and stack traces frequently embed <em>actual record contents</em></li>
+      </ul>
+      <pre class="term" style="font-size:11.5px;padding:10px 14px"><span class="lbl">Unhandled exception → sent to the regional endpoint:</span>ValueError: could not parse row
+<span style="color:#f28b82">'cust_id=4411, name=J. Smith, ssn=…'</span></pre>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:9px 14px">Pipeline <strong>logs</strong> go to Cloud Logging, which is global by default — route them to a <strong>regional log bucket</strong> if residency matters.</div>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:14.5px;margin-bottom:8px">Why auditors treat it as in-scope</p>
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>Sector</th><th>Residency drivers (examples)</th></tr>
+        <tr><td>Financial</td><td>RBI (India), MAS (Singapore), FINMA (Switzerland), BaFin/C5 (Germany)</td></tr>
+        <tr><td>Public sector</td><td>FedRAMP / DoD ILs (US), Protected B (Canada), UK OFFICIAL, IRAP (Australia)</td></tr>
+        <tr><td>Health</td><td>HDS (France); HIPAA BAAs often add residency</td></tr>
+        <tr><td>General</td><td>GDPR + Schrems II transfer analysis; hard localization laws (Russia, China)</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px;padding:9px 14px">The simplification these all lead to: <strong>pick one region and keep everything in it</strong> — job, metadata, sources, sinks, staging.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Metadata holds more than you'd think">
+  <summary>Speaker notes &mdash; Metadata &amp; compliance</summary>
+  <div class="n-body"><ul>
+    <li><strong>The point of the slide:</strong> "only metadata goes to the endpoint" sounds reassuring until you enumerate what metadata contains. The terminal panel is the concrete leak path: user code throws on a bad record, the exception message interpolates the record, and now a customer row is sitting in job metadata. This is why auditors refuse to wave metadata through as harmless.</li>
+    <li>Secondary leak paths worth naming: pipeline option <em>values</em> (people pass connection strings and occasionally passwords as options &mdash; don't), and transform names (a graph reading "FilterHighRiskCustomers &rarr; ScoreCreditworthiness" reveals business logic on its own).</li>
+    <li>The regime table is for recognition, not memorization &mdash; students should recognize <em>their</em> regulator in it. The generic version: "a bank in certain countries must keep data in-country" &mdash; the table is that sentence made specific. Canada's Protected B is why <code>northamerica-northeast1</code> shows up in Google's own examples.</li>
+    <li><strong>The logging caveat is the one operational to-do:</strong> job metadata is regionalized by <code>--region</code>, but worker <em>log messages</em> flow to Cloud Logging, which stores them in a global bucket by default. Cloud Logging supports regional log buckets; redirect the <code>_Default</code> sink if residency applies. Same reasoning as the stack-trace example: log lines frequently contain record contents.</li>
+    <li>Defensive coding tie-in: catching parse errors and dead-lettering bad records (the pattern from the Beam concepts module) doesn't just protect throughput &mdash; it keeps record contents out of exception metadata.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. SPECIFYING THE REGION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Setting it: <span class="accent">--region</span></h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="term" style="font-size:12px;padding:10px 14px"><span class="lbl">One region for endpoint + workers (zone auto-selected):</span>python3 my_pipeline.py \
+  <span class="flag">--runner</span>=DataflowRunner \
+  <span class="flag">--project</span>=$PROJECT_ID \
+  <span class="flag">--region</span>=northamerica-northeast1</pre>
+      <div style="height:8px"></div>
+      <pre class="term" style="font-size:12px;padding:10px 14px"><span class="lbl">Pin a specific zone within that region (rare — licensing, hardware):</span>  <span class="flag">--region</span>=northamerica-northeast1 \
+  <span class="flag">--worker_zone</span>=northamerica-northeast1-b</pre>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13px"><strong>One region, everything in it:</strong> since Beam SDK 2.44.0, workers cannot run in a different region than the job — the flag places the endpoint <em>and</em> the workers.</div>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><code>--region</code> is <strong>required</strong> on current SDKs — there is no sensible default to fall back on</li>
+        <li>Co-locate <strong>sources, sinks, and staging buckets</strong> with the job region
+          <ul>
+            <li>cross-region reads and writes cost egress and add latency on every element</li>
+          </ul>
+        </li>
+        <li>Zone is auto-selected by available capacity — don't pin one without a reason</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:9px 14px">Older examples show <code>--worker_region</code> putting workers in a different region than the endpoint. That split is <strong>obsolete</strong> — don't teach it, don't copy it.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Setting it: --region">
+  <summary>Speaker notes &mdash; Setting the region</summary>
+  <div class="n-body"><ul>
+    <li>The mental model to leave the room with: <strong>one flag, one region, everything in it</strong> &mdash; endpoint, metadata, workers. Add <code>--worker_zone</code> only for a concrete constraint (zone-locked licenses, specific hardware).</li>
+    <li><strong>The history, for when students hit old examples</strong> (including older versions of this course): regional endpoints originally existed in only a handful of regions (us-central1, europe-west1, a few others). <code>--worker_region</code> existed so you could process data in a region with no endpoint &mdash; e.g. workers in <code>northamerica-northeast1</code> for Canadian residency, controlled from us-central1 &mdash; and the accompanying reassurance was "only metadata leaves the region." Two changes made that obsolete: endpoints rolled out to essentially every Compute region, and <strong>Beam SDK 2.44.0 dropped support for workers in a different region than the job</strong>. Dataflow now rejects such jobs at submission.</li>
+    <li>Note the previous slide's caveat still applies after this one: <code>--region</code> handles metadata; <em>logs</em> are a separate residency surface (regional log buckets).</li>
+    <li>The egress point deserves a number if your cohort likes numbers: inter-region egress within the same continent is billed per GiB &mdash; on a pipeline that shuffles terabytes, a misplaced staging bucket is real money, before any compliance concern.</li>
+    <li>Section takeaways to state before moving on: (1) region choice controls where metadata <em>and</em> processing live; user data stays with the workers. (2) Always set <code>--region</code>; co-locate storage with it. (3) Logs are the residency loophole to remember.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. DIVIDER: SHARED VPC ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 5</div>
+    <h1>Shared VPC</h1>
+    <div class="sub">Organizations centralize network control in one host project and let workloads live in others. Dataflow workers can join a shared subnet like any other Compute workload — with one role grant and one flag.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Security model</span><span>Data locality</span><span class="current">Shared VPC</span><span>Private IPs</span><span>CMEK</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Shared VPC">
+  <summary>Speaker notes &mdash; Section 3: Shared VPC</summary>
+  <div class="n-body"><ul>
+    <li>Framing: this section is less "a Dataflow feature" and more "Dataflow behaving well in an enterprise network." In any org with a networking team, the shared-VPC scenario is the <em>normal</em> case, not the advanced one.</li>
+    <li>Shape: what Shared VPC is &rarr; how to point a job at a network (and the one role grant) &rarr; the two capacity gotchas that actually break jobs in practice.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. SHARED VPC CONCEPT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">One network, many projects</h1>
+  <div class="cols">
+    <div style="flex:0 0 42%">
+      <ul class="body" style="font-size:14.5px">
+        <li>The <strong>host project</strong> owns the VPC: subnets, routes, firewall rules — administered centrally by the network team</li>
+        <li><strong>Service projects</strong> attach to it and run workloads in the shared subnets — owning their workloads without owning the network</li>
+        <li>A Dataflow job can run in a VPC in its <strong>own project</strong> or in the <strong>host project's</strong> — default or custom networks, either way</li>
+        <li>Workers get IPs from the shared subnet's range — the subnet is a real, shared resource</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="480" height="310" viewBox="0 0 480 310">
+        <rect x="8" y="8" width="464" height="150" rx="8" fill="#fff" stroke="#34A853" stroke-width="1.5"/>
+        <text x="22" y="30" font-size="11" font-weight="600" fill="#188038">HOST PROJECT — network team</text>
+        <rect x="22" y="42" width="440" height="102" rx="6" fill="#e6f4ea"/>
+        <text x="36" y="62" font-size="10.5" font-weight="600" fill="#188038">Shared VPC network</text>
+        <rect x="36" y="72" width="190" height="58" rx="6" fill="#fff" stroke="#34A853"/>
+        <text x="131" y="92" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">subnet us-central1</text>
+        <text x="131" y="109" text-anchor="middle" font-size="10" fill="#5f6368" font-family="Roboto Mono,monospace">10.10.0.0/24</text>
+        <rect x="242" y="72" width="206" height="58" rx="6" fill="#fff" stroke="#34A853"/>
+        <text x="345" y="92" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">routes &middot; firewall rules</text>
+        <text x="345" y="109" text-anchor="middle" font-size="10" fill="#5f6368">managed once, used by all</text>
+
+        <line x1="130" y1="212" x2="112" y2="134" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <line x1="348" y1="212" x2="150" y2="134" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <text x="240" y="182" text-anchor="middle" font-size="10" fill="#5f6368">workers attach to the shared subnet</text>
+
+        <rect x="24" y="216" width="204" height="82" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="38" y="238" font-size="10.5" font-weight="600" fill="#1a73e8">SERVICE PROJECT A</text>
+        <rect x="38" y="248" width="80" height="38" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="78" y="266" text-anchor="middle" font-size="9.5" fill="#1a73e8">Dataflow</text>
+        <text x="78" y="279" text-anchor="middle" font-size="9.5" fill="#1a73e8">workers</text>
+        <rect x="128" y="248" width="88" height="38" rx="6" fill="#f1f3f4"/>
+        <text x="172" y="271" text-anchor="middle" font-size="9.5" fill="#5f6368">data team owns</text>
+
+        <rect x="252" y="216" width="204" height="82" rx="8" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+        <text x="266" y="238" font-size="10.5" font-weight="600" fill="#5f6368">SERVICE PROJECT B</text>
+        <rect x="266" y="248" width="80" height="38" rx="6" fill="#f1f3f4"/>
+        <text x="306" y="266" text-anchor="middle" font-size="9.5" fill="#5f6368">GKE / VMs /</text>
+        <text x="306" y="279" text-anchor="middle" font-size="9.5" fill="#5f6368">other workloads</text>
+        <rect x="356" y="248" width="88" height="38" rx="6" fill="#f1f3f4"/>
+        <text x="400" y="271" text-anchor="middle" font-size="9.5" fill="#5f6368">app team owns</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="One network, many projects">
+  <summary>Speaker notes &mdash; Shared VPC concept</summary>
+  <div class="n-body"><ul>
+    <li><strong>The organizational "why" before the technical "how":</strong> network controls (firewall rules, routes to on-prem, IP allocation) need one owner; workloads need many owners. Shared VPC is exactly that separation &mdash; org admins manage the network in the host project, and delegate workload management to the service projects.</li>
+    <li>Dataflow's part in the picture is deliberately boring: <strong>workers are just Compute Engine VMs</strong>, so they participate in Shared VPC exactly like any other VM &mdash; they attach a NIC to the shared subnet and consume its IPs. There is no Dataflow-specific networking magic; that's the reassuring message.</li>
+    <li>The "subnet is a real, shared resource" bullet plants the capacity slide: Dataflow workers, GKE nodes, and app VMs all draw from the same IP range, which is why the free-IP math two slides ahead matters.</li>
+    <li>A service project attaches to at most one host project &mdash; a detail that becomes relevant on the next slide when the <code>--network</code> flag has to resolve a bare network name.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. POINTING A JOB AT THE NETWORK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Pointing a job at the network</h1>
+  <div class="cols">
+    <div style="flex:0 0 56%">
+      <pre class="term" style="font-size:11.5px;padding:10px 14px"><span class="lbl">Preferred — name the subnet with its full URL (works everywhere):</span>  <span class="flag">--subnetwork</span>=https://www.googleapis.com/compute/v1\
+/projects/<span style="color:#fdd663">HOST_PROJECT_ID</span>/regions/us-central1\
+/subnetworks/dataflow-subnet</pre>
+      <div style="height:8px"></div>
+      <pre class="term" style="font-size:11.5px;padding:10px 14px"><span class="lbl">Auto-mode networks in your own project only:</span>  <span class="flag">--network</span>=default</pre>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13px"><strong>When unsure, specify only <code>--subnetwork</code></strong> — the network is inferred from it. Custom-mode networks and Shared VPC subnets require it; neither flag at all means the auto-mode network named <strong>default</strong>.</div>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:14.5px;margin-bottom:8px">The one role grant</p>
+      <ul class="body" style="font-size:14px">
+        <li>The <strong>Dataflow service agent</strong> (Section 1) needs <strong>Compute Network User</strong> in the <em>host</em> project</li>
+        <li>Grant at the <strong>subnet level</strong> for least privilege — project level works but shares every subnet</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px;padding:9px 14px">Without the grant, the job fails at launch — the agent literally isn't allowed to attach worker NICs to the shared subnet.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Pointing a job at the network">
+  <summary>Speaker notes &mdash; Network flags &amp; role grant</summary>
+  <div class="n-body"><ul>
+    <li><strong>The current-docs guidance is the green callout, verbatim: when unsure, specify only <code>--subnetwork</code>.</strong> The network is inferred from the subnet. <code>--network</code> takes a bare name, resolves it against the job's project, and works only for auto-mode networks &mdash; it cannot select custom-mode networks, which rules out most real enterprise topologies.</li>
+    <li>The subtlety, if a sharp student pushes: <code>--network</code> <em>can</em> reach a host-project network &mdash; but only when that network is auto-mode <em>and</em> the launcher has project-level permissions on the host project. Since a service project attaches to at most one host project, a shared network name has only one candidate to resolve to. When you need to name the project explicitly &mdash; which is the normal Shared VPC case &mdash; the <code>--subnetwork</code> URL is the tool: the host project ID is right there in the path.</li>
+    <li>Older course versions paired <code>--network</code> with Python and <code>--subnetwork</code> with Java &mdash; both flags exist in both SDKs (Java spellings: <code>--network</code>, <code>--subnetwork</code>); the pairing was illustrating project-level vs. subnet-level grants, not a language difference.</li>
+    <li><strong>Which identity gets Network User matters:</strong> it's the Dataflow <em>service agent</em> &mdash; the account that creates worker VMs and attaches their NICs &mdash; not the worker SA and not the human launcher. This is the first payoff of Section 1's two-account picture.</li>
+    <li>Subnet-level vs. project-level grants: subnet-level is the least-privilege option and what network teams usually prefer &mdash; the data team gets exactly one subnet, not the whole estate.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. CAPACITY GOTCHAS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Two gotchas that break real jobs</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:15px;margin-bottom:8px">1 &middot; Subnet IP space caps your workers</p>
+      <div class="figure">
+        <svg width="380" height="120" viewBox="0 0 380 120">
+          <rect x="8" y="10" width="170" height="44" rx="6" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+          <text x="93" y="29" text-anchor="middle" font-size="11.5" font-weight="600" fill="#c5221f" font-family="Roboto Mono,monospace">/29</text>
+          <text x="93" y="45" text-anchor="middle" font-size="10.5" fill="#c5221f">at most 4 workers</text>
+          <rect x="200" y="10" width="170" height="44" rx="6" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="285" y="29" text-anchor="middle" font-size="11.5" font-weight="600" fill="#188038" font-family="Roboto Mono,monospace">/24</text>
+          <text x="285" y="45" text-anchor="middle" font-size="10.5" fill="#188038">~252 usable addresses</text>
+          <text x="190" y="82" text-anchor="middle" font-size="10.5" fill="#5f6368">autoscaling can only go as far as the free IPs —</text>
+          <text x="190" y="98" text-anchor="middle" font-size="10.5" fill="#5f6368">and other workloads share the same range</text>
+        </svg>
+      </div>
+      <div class="callout" style="font-size:12.5px;padding:9px 14px">Size the subnet for the job's autoscaling <strong>maximum</strong> (plus everything else in it) — not the initial worker count.</div>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:15px;margin-bottom:8px">2 &middot; Workers must reach each other</p>
+      <div class="figure">
+        <svg width="380" height="120" viewBox="0 0 380 120">
+          <defs><marker id="arrFW" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#1a73e8"/></marker><marker id="arrFWr" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto"><path d="M7,0 L0,3.5 L7,7 Z" fill="#1a73e8"/></marker></defs>
+          <rect x="20" y="22" width="110" height="62" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="75" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">worker</text>
+          <text x="75" y="66" text-anchor="middle" font-size="9.5" fill="#5f6368">tag: dataflow</text>
+          <rect x="250" y="22" width="110" height="62" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="305" y="48" text-anchor="middle" font-size="11" font-weight="600" fill="#202124">worker</text>
+          <text x="305" y="66" text-anchor="middle" font-size="9.5" fill="#5f6368">tag: dataflow</text>
+          <line x1="134" y1="53" x2="246" y2="53" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrFW)" marker-start="url(#arrFWr)"/>
+          <text x="190" y="44" text-anchor="middle" font-size="9.5" fill="#1a73e8" font-family="Roboto Mono,monospace">TCP 12345 / 12346</text>
+          <text x="190" y="106" text-anchor="middle" font-size="10.5" fill="#5f6368">shuffle &amp; streaming data moves worker-to-worker</text>
+        </svg>
+      </div>
+      <div class="callout warn" style="font-size:12.5px;padding:9px 14px">Allow worker-to-worker <strong>TCP 12345</strong> (streaming) and <strong>TCP 12346</strong> (batch). In Shared VPC these rules live in the <strong>host</strong> project — the classic "job hangs at scale-up."</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Two gotchas that break real jobs">
+  <summary>Speaker notes &mdash; Capacity gotchas</summary>
+  <div class="n-body"><ul>
+    <li><strong>Gotcha 1 &mdash; the IP math:</strong> each worker VM takes one address from the subnet. A /29 has 8 addresses minus reserved ones &mdash; at most 4 workers, full stop; the deck's canonical example. A /24 gives roughly 252 usable. The failure mode isn't a clean error at launch: the job starts fine at 5 workers, then autoscaling tries to go to 80 during the nightly peak and stalls against the IP ceiling &mdash; or worse, GKE grabbed half the range yesterday. Ask the network team what <em>else</em> shares the subnet.</li>
+    <li><strong>Gotcha 2 &mdash; the firewall ports:</strong> when workers shuffle on-VM, grouped data moves directly between workers on TCP 12345 (streaming) and 12346 (batch). Default networks have a rule allowing internal traffic; custom-mode networks &mdash; which is what enterprise Shared VPCs are &mdash; typically start closed. Scope the allow rule with the <code>dataflow</code> network tag on both sides. And in Shared VPC, firewall rules belong to the <em>host</em> project, so the data team can't fix this themselves &mdash; call it out because it presents as a mystery hang at first shuffle, not as a permission error.</li>
+    <li>Forward reference: jobs on Dataflow Shuffle / Streaming Engine move much of this traffic into the service instead of worker-to-worker &mdash; but the firewall guidance stands; don't rely on the service backends to excuse a closed network.</li>
+    <li>Section takeaways: (1) Shared VPC separates network admin from workload ownership; Dataflow joins like any Compute workload. (2) Prefer <code>--subnetwork</code> with the full URL. (3) Network User to the Dataflow service agent, subnet-level. (4) The two capacity gotchas on this slide are the ones that actually page people.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. DIVIDER: PRIVATE IPS ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 5</div>
+    <h1>Private IPs</h1>
+    <div class="sub">By default every worker gets a public IP address. Most pipelines never need one — and turning them off removes the whole internet-facing attack surface at the cost of one flag.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Security model</span><span>Data locality</span><span>Shared VPC</span><span class="current">Private IPs</span><span>CMEK</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Private IPs">
+  <summary>Speaker notes &mdash; Section 4: Private IPs</summary>
+  <div class="n-body"><ul>
+    <li>Position this as <strong>the default posture to teach</strong>, not a hardening extra: a pure Google Cloud pipeline (GCS &rarr; Dataflow &rarr; BigQuery) loses nothing by dropping public IPs, and many org policies now require it.</li>
+    <li>Two slides: what turning off public IPs buys and costs, then the one prerequisite (Private Google Access) that makes it work &mdash; which is also the lab's networking step.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. PRIVATE IPS CONCEPT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Taking workers off the internet</h1>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Default: each worker gets a <strong>public and a private IP</strong></li>
+        <li>With public IPs off:
+          <ul>
+            <li>the internet can't reach workers — and workers can't reach the internet</li>
+            <li>reachable: the same VPC, a Shared VPC, peered VPC networks</li>
+            <li>admin and monitoring — console, logs, metrics — work unchanged</li>
+          </ul>
+        </li>
+        <li>Bonus: no <strong>in-use external IP</strong> quota consumed — large jobs stop competing for it</li>
+      </ul>
+      <pre class="term" style="font-size:11.5px;padding:9px 14px"><span class="lbl">Python / Java:</span>  <span class="flag">--subnetwork</span>=… <span class="flag">--no_use_public_ips</span>
+  <span class="flag">--subnetwork</span>=… <span class="flag">--usePublicIps</span>=false</pre>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="450" height="290" viewBox="0 0 450 290">
+        <defs><marker id="arrPI" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#34A853"/></marker></defs>
+        <ellipse cx="66" cy="60" rx="54" ry="30" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="66" y="65" text-anchor="middle" font-size="11.5" font-weight="600" fill="#5f6368">internet</text>
+
+        <rect x="180" y="16" width="256" height="180" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="194" y="38" font-size="10.5" font-weight="600" fill="#1a73e8">YOUR VPC</text>
+        <rect x="196" y="50" width="100" height="58" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="246" y="72" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">worker</text>
+        <text x="246" y="90" text-anchor="middle" font-size="9" fill="#188038" font-family="Roboto Mono,monospace">10.10.0.7</text>
+        <rect x="312" y="50" width="100" height="58" rx="6" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="362" y="72" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">worker</text>
+        <text x="362" y="90" text-anchor="middle" font-size="9" fill="#188038" font-family="Roboto Mono,monospace">10.10.0.8</text>
+        <text x="304" y="132" text-anchor="middle" font-size="10" fill="#5f6368">internal IPs only — no public address to attack</text>
+        <rect x="196" y="146" width="216" height="36" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="304" y="168" text-anchor="middle" font-size="10" fill="#5f6368">same VPC &middot; Shared VPC &middot; peered VPCs ✓</text>
+
+        <line x1="112" y1="46" x2="176" y2="60" stroke="#c5221f" stroke-width="1.6"/>
+        <line x1="176" y1="78" x2="112" y2="90" stroke="#c5221f" stroke-width="1.6"/>
+        <g stroke="#c5221f" stroke-width="2">
+          <line x1="138" y1="44" x2="152" y2="62"/><line x1="152" y1="44" x2="138" y2="62"/>
+          <line x1="138" y1="76" x2="152" y2="94"/><line x1="152" y1="76" x2="138" y2="94"/>
+        </g>
+        <text x="144" y="116" text-anchor="middle" font-size="9.5" fill="#c5221f">no path in,</text>
+        <text x="144" y="128" text-anchor="middle" font-size="9.5" fill="#c5221f">no path out</text>
+
+        <line x1="304" y1="196" x2="304" y2="232" stroke="#34A853" stroke-width="1.6" marker-end="url(#arrPI)"/>
+        <text x="316" y="220" font-size="9.5" fill="#188038">still works — next slide</text>
+        <rect x="196" y="236" width="216" height="36" rx="6" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="304" y="258" text-anchor="middle" font-size="10.5" font-weight="600" fill="#188038">Google APIs: GCS &middot; BigQuery &middot; Pub/Sub</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Taking workers off the internet">
+  <summary>Speaker notes &mdash; Private IPs concept</summary>
+  <div class="n-body"><ul>
+    <li><strong>Both directions matter and they protect different things:</strong> inbound &mdash; no public address means no internet-facing surface to scan or exploit; outbound &mdash; compromised code can't exfiltrate to an arbitrary endpoint. One flag buys both.</li>
+    <li>Preempt the monitoring worry explicitly: students assume no public IP means no console/logs/metrics. All of that goes through Google's control plane, not through the workers' public addresses &mdash; <strong>admin and monitoring work unchanged</strong>.</li>
+    <li>The quota bonus is practical, not just tidy: <strong>in-use external IP addresses</strong> is a per-region quota, and a 500-worker batch job with public IPs eats 500 of it &mdash; a real launch-failure cause in busy projects. Private-IP jobs sidestep it entirely.</li>
+    <li>Note the flag rides along with a <code>--subnetwork</code> (or <code>--network</code>) flag &mdash; you're placing workers on a specific subnet <em>and</em> declining public addresses; the lab uses exactly this pair.</li>
+    <li>The green box at the bottom is deliberately a cliffhanger &mdash; "wait, how do they reach Cloud Storage without internet?" is the right question, and it's the next slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. PRIVATE GOOGLE ACCESS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">The prerequisite: <span class="accent">Private Google Access</span></h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ul class="body" style="font-size:14.5px">
+        <li>A subnet-level switch: VMs with only internal IPs can reach <strong>Google APIs and services</strong> over Google's network</li>
+        <li>Enable it on the worker subnet <strong>before</strong> launching private-IP jobs — otherwise workers can't reach Cloud Storage, BigQuery, or even their own staging bucket</li>
+        <li>Three documented paths to Google APIs: <strong>Private Google Access</strong>, <strong>Private Service Connect</strong>, or public IPs — the thing we just turned off</li>
+        <li>Genuine internet needs (external APIs, package installs): <strong>Cloud NAT</strong> — outbound only, no inbound path</li>
+      </ul>
+      <pre class="term" style="font-size:11.5px;padding:9px 14px">gcloud compute networks subnets update dataflow-subnet \
+  <span class="flag">--region</span>=us-central1 <span class="flag">--enable-private-ip-google-access</span></pre>
+    </div>
+    <div>
+      <div class="callout warn" style="font-size:13px"><strong>The Python gotcha:</strong> with no public IPs, workers can't reach <strong>PyPI</strong> at runtime. Stage dependencies ahead of time — a custom container, or pre-staged wheels — or provide Cloud NAT. Otherwise the job fails at worker startup.</div>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13px"><strong>The posture to teach:</strong> internal-only workers + Private Google Access. Less attack surface, less IP quota, and for a pure Google Cloud pipeline — no functional loss at all.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The prerequisite: Private Google Access">
+  <summary>Speaker notes &mdash; Private Google Access</summary>
+  <div class="n-body"><ul>
+    <li><strong>Resolve the cliffhanger:</strong> Private Google Access is a per-subnet setting; with it on, requests to Google APIs from internal-only VMs route over Google's network and never touch the public internet. It's the difference between "private-IP job works perfectly" and "private-IP job can't even download its own staged code."</li>
+    <li>Ordering matters in practice: PGA is a <em>prerequisite</em>, not a follow-up &mdash; enable it on the subnet before the first private-IP launch. In the lab this is an explicit step; students who skip it meet the failure mode first-hand.</li>
+    <li><strong>The Python/PyPI gotcha deserves emphasis</strong> &mdash; it's a top lab-failure cause and a top real-world one: <code>--requirements_file</code> normally has workers pip-install from PyPI at startup, which is exactly the internet access that no longer exists. Fixes, in order of preference: a <strong>custom container</strong> with dependencies baked in; pre-staged wheels; or Cloud NAT if the org allows it. Java jobs mostly dodge this &mdash; dependencies ship in the staged jar.</li>
+    <li>Cloud NAT's role, precisely: outbound-only translation for genuine external needs (third-party APIs, webhooks). It does <em>not</em> reopen an inbound path, so the attack-surface win survives.</li>
+    <li>For the fully locked-down variant (VPC Service Controls-style): point DNS for <code>*.googleapis.com</code> at <code>restricted.googleapis.com</code> and allow egress to its ranges &mdash; mention it exists, defer details.</li>
+    <li>Section takeaways: (1) internal-only is the default posture &mdash; no functional loss for pure Google Cloud pipelines. (2) It only works with PGA (or PSC) on the subnet. (3) Remember the Python dependency-staging consequence; Cloud NAT is the sanctioned escape hatch.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. DIVIDER: CMEK ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 5</div>
+    <h1>Customer-Managed Encryption Keys</h1>
+    <div class="sub">Everything Dataflow stores is already encrypted at rest. CMEK changes one thing — who owns the key — and that one thing is what "revocable access to our data" means to an auditor.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Security model</span><span>Data locality</span><span>Shared VPC</span><span>Private IPs</span><span class="current">CMEK</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: CMEK">
+  <summary>Speaker notes &mdash; Section 5: CMEK</summary>
+  <div class="n-body"><ul>
+    <li><strong>Set the frame before any mechanics:</strong> CMEK is <em>not</em> "adding encryption" &mdash; everything is Google-key encrypted at rest by default. CMEK is about <strong>ownership and revocability</strong>: with your own KMS key in the path, disabling the key makes the job's stored data unreadable, by anyone, including Google. That's the sentence auditors are buying.</li>
+    <li>Shape: where job data actually lives at rest &rarr; how to turn CMEK on (and the region rule) &rarr; who needs the key &rarr; what CMEK never covers.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. WHERE JOB DATA LIVES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Where a job's data lives at rest</h1>
+  <p class="lede" style="margin-bottom:16px;font-size:15px">A running job stores data in four places. All four are encrypted by default with Google-managed keys — CMEK swaps in a Cloud KMS key that <strong>you</strong> control.</p>
+  <div class="cards">
+    <div class="card c-blue">
+      <div class="c-name">Staging bucket</div>
+      <div class="c-what">Pipeline code and dependencies; temp import/export data (<code>--temp_location</code>)</div>
+    </div>
+    <div class="card c-blue">
+      <div class="c-name">Worker Persistent Disks</div>
+      <div class="c-what">The disks attached to every worker VM</div>
+    </div>
+    <div class="card c-yellow">
+      <div class="c-name">Dataflow Shuffle</div>
+      <div class="c-what">Grouped / joined data in the shuffle backend (batch)</div>
+    </div>
+    <div class="card c-yellow">
+      <div class="c-name">Streaming Engine</div>
+      <div class="c-what">Shuffle and pipeline state in the streaming backend</div>
+    </div>
+  </div>
+  <div class="vgap-l"></div>
+  <div class="callout good" style="font-size:14px"><strong>What CMEK buys:</strong> not more encryption — <em>revocability</em>. Disable or destroy the key, and everything above becomes unreadable. Key ownership is the feature.</div>
+</section>
+<details class="notes" data-title="Where a job's data lives at rest">
+  <summary>Speaker notes &mdash; Where job data lives</summary>
+  <div class="n-body"><ul>
+    <li>Walk the four cards with the "when does data land here" story: your code and dependencies are <em>staged</em> to the bucket at launch; each worker's OS and scratch space live on its <em>Persistent Disk</em>; and when the pipeline groups or joins, the shuffled data sits in the <em>Shuffle backend</em> (batch) or <em>Streaming Engine</em> (streaming) &mdash; the service-side backends from the earlier architecture material.</li>
+    <li>The yellow cards are the ones students forget: it's easy to CMEK the bucket and the disks mentally and miss that <strong>grouped data lives in a service backend</strong> &mdash; Dataflow's CMEK covers those too, which is precisely why it's a Dataflow feature and not just "use a CMEK bucket."</li>
+    <li>Key-based operations nuance <strong>[docs]</strong>: windowing, grouping, and joining use <em>data keys</em> &mdash; and in a CMEK job those are protected under your key as well (one historical carve-out for streaming jobs, covered two slides ahead).</li>
+    <li>The green callout is the section's thesis &mdash; say it plainly: default encryption already protects against stolen disks; CMEK protects against <em>continued access</em>. Revoke the key and the data is cryptographically gone. "Crypto-shredding" is the term of art if the cohort wants one.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. ENABLING CMEK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Turning it on: one flag, three regions</h1>
+  <div class="cols">
+    <div style="flex:0 0 54%">
+      <pre class="term" style="font-size:11.5px;padding:10px 14px"><span class="lbl">Python:</span>  <span class="flag">--temp_location</span>=gs://my-bucket/tmp/ \
+  <span class="flag">--dataflow_kms_key</span>=projects/$PROJECT\
+/locations/us-central1/keyRings/my-ring\
+/cryptoKeys/dataflow-key</pre>
+      <div style="height:8px"></div>
+      <pre class="term" style="font-size:11.5px;padding:10px 14px"><span class="lbl">Java:</span>  <span class="flag">--tempLocation</span>=gs://my-bucket/tmp/ \
+  <span class="flag">--dataflowKmsKey</span>=projects/…/cryptoKeys/dataflow-key</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li>One <strong>symmetric</strong> Cloud KMS key covers all four storage locations</li>
+        <li>Works for templates too: <code>gcloud dataflow jobs run … --dataflow-kms-key=…</code></li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="196" viewBox="0 0 330 196">
+          <rect x="14" y="10" width="300" height="130" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="164" y="34" text-anchor="middle" font-size="12" font-weight="600" fill="#188038">us-central1</text>
+          <rect x="30" y="48" width="84" height="74" rx="6" fill="#fff" stroke="#34A853"/>
+          <text x="72" y="76" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">KMS key</text>
+          <text x="72" y="92" text-anchor="middle" font-size="9.5" fill="#5f6368">key ring</text>
+          <rect x="124" y="48" width="84" height="74" rx="6" fill="#fff" stroke="#34A853"/>
+          <text x="166" y="76" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Dataflow</text>
+          <text x="166" y="92" text-anchor="middle" font-size="9.5" fill="#5f6368">job region</text>
+          <rect x="218" y="48" width="84" height="74" rx="6" fill="#fff" stroke="#34A853"/>
+          <text x="260" y="76" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">temp bucket</text>
+          <text x="260" y="92" text-anchor="middle" font-size="9.5" fill="#5f6368">GCS region</text>
+          <text x="164" y="166" text-anchor="middle" font-size="11" fill="#188038" font-weight="600">all three in the same region ✓</text>
+          <text x="164" y="186" text-anchor="middle" font-size="10.5" fill="#c5221f">global / multi-regional keys don't work ✗</text>
+        </svg>
+      </div>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px;padding:9px 14px">Region mismatch is the classic CMEK launch failure — check the <strong>key</strong>, the <strong>job</strong>, and the <strong>bucket</strong> before blaming IAM.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Turning it on: one flag, three regions">
+  <summary>Speaker notes &mdash; Enabling CMEK</summary>
+  <div class="n-body"><ul>
+    <li>Mechanically this is the simplest feature in the module: create a symmetric key in Cloud KMS, pass its full resource name at launch, done. The complexity is entirely in the constraints &mdash; hence the diagram.</li>
+    <li><strong>The three-region rule:</strong> KMS key location, Dataflow job region, and temp bucket region must all match. Global and multi-regional keys are explicitly unsupported. Note the pleasant alignment with Section 2: if you followed the data-locality advice &mdash; one region, everything in it &mdash; the CMEK constraint is already satisfied.</li>
+    <li>Version floor, if legacy SDKs come up <strong>[docs]</strong>: Beam SDK &ge; 2.13.0 for Java and Python; Go from 2.40.0.</li>
+    <li>The template variant matters for later modules: classic and flex template launches accept <code>--dataflow-kms-key</code> on <code>gcloud dataflow jobs run</code>, so the ops team can enforce CMEK without touching pipeline code &mdash; consistent with this module's theme that security is launch-time configuration.</li>
+    <li>Troubleshooting order in the callout is from the field: a CMEK job failing at launch is a region mismatch more often than a missing role &mdash; check geography first, IAM second (next slide covers the IAM half).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. WHO NEEDS THE KEY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Grant the key to the right two identities</h1>
+  <p class="lede" style="margin-bottom:14px;font-size:15px">Two <strong>Google-managed service agents</strong> encrypt and decrypt on the job's behalf. Both need <strong>Cloud KMS CryptoKey Encrypter/Decrypter</strong> on the key — or the job fails at launch.</p>
+  <div class="cols">
+    <div>
+      <table class="tbl" style="font-size:13.5px">
+        <tr><th>Service agent</th><th>Uses the key for</th></tr>
+        <tr><td><strong>Dataflow service agent</strong><br><span class="muted" style="font-size:11px;font-family:'Roboto Mono',monospace">service-…@dataflow-service-<br>producer-prod</span></td><td>the Shuffle and Streaming Engine backends</td></tr>
+        <tr><td><strong>Compute Engine service agent</strong><br><span class="muted" style="font-size:11px;font-family:'Roboto Mono',monospace">service-…@compute-system</span></td><td>the workers' Persistent Disks</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="callout" style="font-size:13.5px">The <strong>worker service account needs no KMS role</strong> — it runs your code; the service agents handle the encryption plumbing.</div>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:10px 14px"><strong>Don't confuse the look-alikes:</strong> <span style="font-family:'Roboto Mono',monospace;font-size:11px">…@compute-system</span> is the Compute Engine <em>service agent</em> — not the Compute Engine <em>default service account</em> (<span style="font-family:'Roboto Mono',monospace;font-size:11px">…-compute@developer</span>).</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Grant the key to the right two identities">
+  <summary>Speaker notes &mdash; Who needs the key</summary>
+  <div class="n-body"><ul>
+    <li>Payoff of Section 1's vocabulary: the grants go to the two <strong>service agents</strong> &mdash; the Google-managed identities doing infrastructure work &mdash; not to the identity running your code. Full addresses: <code>service-PROJECT_NUMBER@dataflow-service-producer-prod.iam.gserviceaccount.com</code> and <code>service-PROJECT_NUMBER@compute-system.iam.gserviceaccount.com</code>.</li>
+    <li><strong>Why each needs it:</strong> the Dataflow agent runs the service-side backends (Shuffle, Streaming Engine) that hold your grouped data; the Compute agent is what actually encrypts worker Persistent Disks with your key. Neither task is performed by your pipeline code &mdash; hence the blue callout: <strong>no KMS role on the worker SA</strong>.</li>
+    <li><strong>Terminology correction vs. older course material [docs]:</strong> earlier decks said to grant the role to the "Dataflow service account and the Controller Agent service account." "Controller service account" is legacy naming for today's <em>worker</em> service account &mdash; which needs no KMS role at all. The current docs list exactly the two agents on this slide; teach those.</li>
+    <li>The look-alike warning is a genuine field trap: <code>…@compute-system</code> (the agent) vs. <code>PROJECT_NUMBER-compute@developer.gserviceaccount.com</code> (the default SA) differ by a domain, and granting the KMS role to the wrong one produces the same launch failure you were trying to fix.</li>
+    <li>Failure mode to name: missing either grant fails the job at launch with a KMS permission error &mdash; annoying but honest. The role to grant: <code>roles/cloudkms.cryptoKeyEncrypterDecrypter</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. WHAT CMEK NEVER COVERS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">What CMEK never covers: job metadata</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Job <strong>metadata</strong> stays under Google-managed encryption — always, CMEK or not
+          <ul>
+            <li>user-supplied: job name, pipeline option values, the pipeline graph</li>
+            <li>system-generated: job IDs, worker IP addresses</li>
+          </ul>
+        </li>
+        <li>Section 2's lesson applies with new force: the surface you can't put your own key on is the surface you keep sensitive values <strong>out of</strong></li>
+        <li>Hash or transform anything sensitive before it becomes a job name or option value</li>
+      </ul>
+      <div class="callout warn" style="font-size:13px">A job named after a customer, or an option holding a credential, sits outside your key — <strong>forever</strong>. Name jobs and pass options accordingly.</div>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="330" height="200" viewBox="0 0 330 200">
+          <rect x="10" y="10" width="150" height="150" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+          <text x="85" y="34" text-anchor="middle" font-size="11" font-weight="600" fill="#188038">your key</text>
+          <text x="85" y="62" text-anchor="middle" font-size="10" fill="#202124">staging bucket</text>
+          <text x="85" y="82" text-anchor="middle" font-size="10" fill="#202124">worker disks</text>
+          <text x="85" y="102" text-anchor="middle" font-size="10" fill="#202124">Shuffle backend</text>
+          <text x="85" y="122" text-anchor="middle" font-size="10" fill="#202124">Streaming Engine</text>
+          <text x="85" y="146" text-anchor="middle" font-size="9.5" fill="#188038">revocable by you</text>
+          <rect x="172" y="10" width="150" height="150" rx="8" fill="#f1f3f4" stroke="#9aa0a6" stroke-width="1.5"/>
+          <text x="247" y="34" text-anchor="middle" font-size="11" font-weight="600" fill="#5f6368">Google's key</text>
+          <text x="247" y="62" text-anchor="middle" font-size="10" fill="#202124">job name</text>
+          <text x="247" y="82" text-anchor="middle" font-size="10" fill="#202124">option values</text>
+          <text x="247" y="102" text-anchor="middle" font-size="10" fill="#202124">pipeline graph</text>
+          <text x="247" y="122" text-anchor="middle" font-size="10" fill="#202124">job IDs, worker IPs</text>
+          <text x="247" y="146" text-anchor="middle" font-size="9.5" fill="#5f6368">always — CMEK or not</text>
+          <text x="166" y="186" text-anchor="middle" font-size="10.5" fill="#5f6368">the boundary to remember</text>
+        </svg>
+      </div>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:12.5px;padding:9px 14px">Streaming jobs created after <strong>March 7, 2024</strong>: <em>all</em> user data in a CMEK job — data keys included — is under your key. Older streaming jobs pick this up when restarted.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What CMEK never covers: job metadata">
+  <summary>Speaker notes &mdash; What CMEK never covers</summary>
+  <div class="n-body"><ul>
+    <li><strong>The boundary diagram is the takeaway:</strong> everything a job <em>stores</em> can be under your key; everything a job <em>is described by</em> cannot. The metadata list is the same one from Section 2 &mdash; the module's two halves meet here: metadata is the surface where residency (Section 2) and key ownership (this section) both fall back to "keep sensitive values out of it."</li>
+    <li>Concrete hygiene rules to dictate: job names come from a scheme (<code>etl-orders-daily-20260728</code>), never from data; credentials go in Secret Manager and get fetched by the worker SA at runtime, never passed as option values; and if an identifier must appear in an option, hash it first.</li>
+    <li><strong>The March 2024 note, unpacked [docs]:</strong> CMEK is still opt-in &mdash; this change is about coverage <em>within</em> CMEK-enabled jobs. Historically, even with CMEK on, the <em>data keys</em> used by key-based operations (grouping, windowing, joining state) in <strong>streaming</strong> jobs fell outside your key and used Google-managed encryption &mdash; older material even had a careful sentence about "data keys are decrypted using your CMEK key" to describe the partial coverage. For streaming jobs created after <strong>March 7, 2024</strong>, the carve-out is gone: all user data, data keys included, is under your key. Long-running streaming jobs started before that date keep the old behavior <em>until restarted</em> &mdash; worth an audit if a team has year-old streaming jobs and a CMEK attestation to sign.</li>
+    <li>Section takeaways: (1) CMEK is about ownership and revocability, not more encryption. (2) One flag, three matching regions, regional keys only. (3) Metadata is never under your key &mdash; keep secrets out of names and options. (4) Two service agents get the KMS role; the worker SA gets none.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. LAB ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content" style="top:130px;max-width:400px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Lab</h1>
+    <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Setup IAM and Networking for your Dataflow Jobs</div>
+    <ul class="body" style="font-size:14.5px">
+      <li>Launch with a <strong>minimal set of IAM permissions</strong> — and see which ones gate the launch</li>
+      <li>Run a job on <strong>private IPs</strong> in a chosen subnetwork, with Private Google Access</li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Lab">
+  <summary>Speaker notes &mdash; Lab</summary>
+  <div class="n-body"><ul>
+    <li>The lab exercises Sections 1, 3, and 4: launcher permissions and the two-service-account model, subnetwork selection, and <code>--no_use_public_ips</code> with Private Google Access on the subnet. Sections 2 and 5 are configuration students can add to any job afterward &mdash; they don't need a lab of their own.</li>
+    <li>Part one is deliberately failure-driven: the job won't launch until the right roles are in place. Coach students to <em>read the error</em> &mdash; the missing permission is named in it, and mapping error &rarr; role is the actual skill.</li>
+    <li>Watch for the classic stumbles from this module: missing <code>iam.serviceAccounts.actAs</code> on the worker SA (Section 1), forgetting Private Google Access on the subnet before the private-IP launch (Section 4), and Python dependency staging if the lab environment has no NAT.</li>
+    <li>Typical duration 45&ndash;60 minutes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. SUMMARY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:14px">Module summary: four features, one table</h1>
+  <table class="tbl" style="font-size:13px">
+    <tr><th>Feature</th><th>What it controls</th><th>How to enable</th><th>Watch out for</th></tr>
+    <tr>
+      <td><strong>Data locality</strong></td>
+      <td>Where job metadata and workers run</td>
+      <td><code>--region</code></td>
+      <td>Logs are global unless routed to a regional bucket; no cross-region workers</td>
+    </tr>
+    <tr>
+      <td><strong>Shared VPC</strong></td>
+      <td>Which network workers join</td>
+      <td><code>--subnetwork</code> full URL</td>
+      <td>Network User for the service agent in the host project; subnet IPs cap autoscaling; TCP 12345/12346 firewall</td>
+    </tr>
+    <tr>
+      <td><strong>Private IPs</strong></td>
+      <td>Worker internet exposure</td>
+      <td><code>--no_use_public_ips</code> / <code>--usePublicIps=false</code></td>
+      <td>Requires Private Google Access; Python deps must be staged, or use Cloud NAT</td>
+    </tr>
+    <tr>
+      <td><strong>CMEK</strong></td>
+      <td>Who owns the keys for data at rest</td>
+      <td><code>--dataflow_kms_key</code> / <code>--dataflowKmsKey</code></td>
+      <td>Key, job, and bucket regions must match; metadata never covered; two service agents need the KMS role</td>
+    </tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout" style="font-size:13.5px">And underneath all four: know your <strong>two service accounts</strong> — the Google-managed service agents doing infrastructure work, and the worker SA running your code with least privilege.</div>
+</section>
+<details class="notes" data-title="Module summary">
+  <summary>Speaker notes &mdash; Module summary</summary>
+  <div class="n-body"><ul>
+    <li>Run the table as a rapid-fire review &mdash; cover the right-hand column and ask the room for each row's gotcha; every one of them was a callout earlier in the module.</li>
+    <li>Close with the composition message from Section 1: these aren't alternatives, they're four flags on the same command line. A regulated-industry job typically ships with all four.</li>
+    <li>If time allows, sketch the full locked-down launch on the whiteboard: <code>--region</code> + <code>--subnetwork</code> + <code>--no_use_public_ips</code> + <code>--dataflow_kms_key</code> + <code>--service_account_email</code> &mdash; five flags, and every one of them now has a story behind it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. ADDITIONAL MATERIAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Reference</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/concepts/security-and-permissions" style="color:#1a73e8">Dataflow security and permissions</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/concepts/regional-endpoints" style="color:#1a73e8">Dataflow regions</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/guides/specifying-networks" style="color:#1a73e8">Specify a network and subnetwork</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/guides/routes-firewall" style="color:#1a73e8">Configure internet access and firewall rules</a></li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Going deeper</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/guides/customer-managed-encryption-keys" style="color:#1a73e8">Use customer-managed encryption keys</a></li>
+        <li><a href="https://docs.cloud.google.com/iam/docs/service-agents" style="color:#1a73e8">IAM service agents</a></li>
+        <li><a href="https://docs.cloud.google.com/vpc/docs/shared-vpc" style="color:#1a73e8">Shared VPC overview</a></li>
+        <li><a href="https://docs.cloud.google.com/vpc/docs/private-google-access" style="color:#1a73e8">Private Google Access</a></li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li><strong>Security and permissions</strong> is the page to bookmark from this module &mdash; it's the canonical statement of the two-service-account model and the launcher requirements from Section 1.</li>
+    <li>The CMEK guide is where the March 2024 streaming coverage change and the exact service-agent grant commands live; point auditors and platform teams there.</li>
+    <li>The Shared VPC and Private Google Access overviews are VPC docs, not Dataflow docs &mdash; useful when the conversation moves from "configure the job" to "design the network," which is usually a different team's meeting.</li>
+  </ul></div>
+</details>
+
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module 8: Windows, Watermarks, and Triggers</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list for checklist slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Windows, Watermarks,<br>and Triggers</h1>
+    <div class="sub">Module 8 &middot; Serverless Data Processing with Dataflow</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>The framing sentence:</strong> this module answers one question three ways &mdash; "my data never stops arriving, so how do I compute anything?" Windows, watermarks, and triggers are three parts of that single answer, and they arrive in that order for a reason.</li>
+    <li>Everything here is pure Apache Beam &mdash; it runs the same on Dataflow or any other runner. Dataflow appears only where it <em>observes</em> these concepts (the watermark metrics in Section 3).</li>
+    <li>Rough timing: 50&ndash;60 minutes of lecture across the four sections, with the batch lab after Section 2 and the streaming lab at the end.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. AGENDA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Agenda</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:16px">
+        <li>Streams and time: <span class="blue">event time</span> vs. processing time</li>
+        <li>Windows: fixed, sliding, and session — <span class="blue">where</span> in time data belongs</li>
+        <li>Lab: Batch Analytics Pipelines with Dataflow</li>
+        <li>Watermarks: <span class="blue">when</span> is a window's data complete — and what happens to late data</li>
+        <li>Triggers: when (and how often) results emit</li>
+        <li>Accumulation modes: how successive results relate</li>
+        <li>Lab: Using Dataflow for Streaming Analytics</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 260px;display:flex;align-items:center;justify-content:center">
+      <svg width="210" height="200" viewBox="0 0 210 200" aria-hidden="true">
+        <rect x="14" y="30" width="150" height="110" rx="10" fill="#4285F4"/>
+        <rect x="26" y="42" width="126" height="86" rx="6" fill="#fff"/>
+        <polyline points="36,112 60,92 82,102 106,72 142,84" fill="none" stroke="#1a73e8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="36" y="52" width="46" height="8" rx="3" fill="#dadce0"/>
+        <circle cx="164" cy="146" r="34" fill="#FBBC04"/>
+        <circle cx="164" cy="146" r="26" fill="#fff"/>
+        <line x1="164" y1="146" x2="164" y2="130" stroke="#3c2f00" stroke-width="4" stroke-linecap="round"/>
+        <line x1="164" y1="146" x2="176" y2="152" stroke="#3c2f00" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="30" cy="160" r="7" fill="#34A853"/>
+        <rect x="52" y="154" width="13" height="13" fill="#EA4335" transform="rotate(45 58.5 160.5)"/>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agenda">
+  <summary>Speaker notes &mdash; Agenda</summary>
+  <div class="n-body"><ul>
+    <li>Position this module against Module 5: that one taught the <em>what</em> &mdash; transforms and aggregations. This one teaches the <em>where in time</em> and <em>when to emit</em>. Same store, same pipeline shapes; the input just never ends now.</li>
+    <li>The module follows the four streaming questions (Streaming 101/102, linked at the end): <strong>what</strong> to compute (done), <strong>where</strong> in event time (windows), <strong>when</strong> to emit (watermarks, then triggers), <strong>how</strong> successive results relate (accumulation modes).</li>
+    <li>Plant the escape hatch now: when these declarative tools aren't enough &mdash; custom per-record firing logic, cross-window state &mdash; the next module's <strong>State and Timers</strong> is the general mechanism. Park those questions when they come up.</li>
+    <li>Two labs: the first is deliberately <em>batch</em> (windows without streaming semantics in the way); the second is the full streaming experience including watching late data drop.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. THE GOAL: A LIVE DASHBOARD ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">The goal: a live dashboard</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: the product team wants a dashboard of <strong>page views per minute</strong>, updated continuously, from the store's click stream.</p>
+  <ul class="body" style="font-size:15px">
+    <li>Events arrive forever: the input has no end</li>
+    <li>The dashboard wants an answer <em>per minute</em> — a time-based group</li>
+    <li>It wants that answer <em>promptly</em> — and corrected if slow data trickles in</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="810" height="150" viewBox="0 0 810 150">
+      <defs><marker id="arrGoal" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
+      <text x="8" y="76" font-size="14" fill="#9aa0a6">&#8230;</text>
+      <g font-family="Roboto Mono,monospace" font-size="10.5">
+        <rect x="26"  y="58" width="172" height="26" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="36" y="75" fill="#202124">('home', amy, 08:00:12)</text>
+        <rect x="210" y="58" width="164" height="26" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="220" y="75" fill="#202124">('cart', bo, 08:00:41)</text>
+        <rect x="386" y="58" width="172" height="26" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="396" y="75" fill="#202124">('home', cy, 08:01:07)</text>
+      </g>
+      <text x="566" y="76" font-size="14" fill="#9aa0a6">&#8230;</text>
+      <rect x="20" y="46" width="360" height="50" rx="8" fill="none" stroke="#EA4335" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="200" y="34" text-anchor="middle" font-size="11.5" font-weight="600" fill="#c5221f">which events belong to 08:00?</text>
+      <text x="292" y="118" text-anchor="middle" font-size="10.5" fill="#5f6368">an endless stream — no first element, no last element</text>
+
+      <line x1="586" y1="71" x2="622" y2="71" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrGoal)"/>
+      <rect x="628" y="30" width="172" height="88" rx="10" fill="#fff" stroke="#dadce0"/>
+      <text x="644" y="52" font-size="11.5" fill="#5f6368">Views 08:00 &ndash; 08:01</text>
+      <text x="644" y="86" font-size="26" font-weight="600" fill="#202124">347</text>
+      <rect x="712" y="68" width="76" height="20" rx="10" fill="#FBBC04"/>
+      <text x="750" y="82" text-anchor="middle" font-size="10" font-weight="600" fill="#3c2f00">updating&#8230;</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13.5px">Three questions hide in this one request: <strong>where</strong> in time does each event belong, <strong>when</strong> do we know a minute is complete, and <strong>when — and how often — </strong>do we show a result. Those are the three sections of this module.</div>
+</section>
+<details class="notes" data-title="The goal: a live dashboard">
+  <summary>Speaker notes &mdash; The goal: a live dashboard</summary>
+  <div class="n-body"><ul>
+    <li>This scenario threads the whole module &mdash; every concept gets pulled in because the dashboard needs it, not because a definition demands it. Resist defining "watermark" now; let the dashboard force it in Section 3.</li>
+    <li>This is the four-questions frame from the Streaming 101/102 papers (linked on the Additional material slide): <strong>what</strong> are you computing (transforms &mdash; Module 5), <strong>where</strong> in event time (windows), <strong>when</strong> to emit (watermarks + triggers), <strong>how</strong> do refinements relate (accumulation modes). The Beam docs organize this material the same way.</li>
+    <li>Worth saying out loud: the red bracket is a genuinely hard question &mdash; the events shown are in timestamp order here, but the stream won't arrive that way. That's the whole plot of Section 1.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. DIVIDER: STREAMS AND TIME ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 4</div>
+    <h1>Streams and Time</h1>
+    <div class="sub">Two clocks — event time and processing time — and why arrival order can't be trusted once data crosses phones, networks, and retries.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">Streams &amp; time</span><span>Windows</span><span>Watermarks</span><span>Triggers</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: Streams and Time">
+  <summary>Speaker notes &mdash; Section 1: Streams and Time</summary>
+  <div class="n-body"><ul>
+    <li>The section's job is to make two facts land before any API appears: every element has <strong>two</strong> times (when it happened, when the pipeline saw it), and the gap between them is <strong>variable and unbounded</strong>. Everything else in the module is machinery for living with those two facts.</li>
+    <li>Start from competence: the first slide re-solves the dashboard problem in <em>batch</em>, which students did in the Module 5 lab. The streaming versions of the same pipeline then differ in exactly the ways this module teaches.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. IN BATCH, SOLVED ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">In batch, this problem is already solved</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: same question — views per minute — but over <em>yesterday's</em> logs in Cloud Storage.</p>
+  <pre class="code small"><span class="lang">Python</span>views = (p
+    | beam.io.ReadFromText(<span class="st">"gs://store-logs/2026-07-27/*.json"</span>)
+    | beam.Map(parse_event)                      <span class="cm"># -&gt; ('08:00', 1)</span>
+    | beam.CombinePerKey(<span class="fn">sum</span>))                   <span class="cm"># -&gt; ('08:00', 347)</span></pre>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="790" height="96" viewBox="0 0 790 96">
+      <defs><marker id="arrB5" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
+      <rect x="4" y="24" width="150" height="48" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+      <text x="79" y="44" text-anchor="middle" font-size="10.5" font-family="Roboto Mono,monospace" fill="#202124">2026-07-27/*.json</text>
+      <text x="79" y="61" text-anchor="middle" font-size="10" fill="#5f6368">bounded — it ends</text>
+      <line x1="154" y1="48" x2="188" y2="48" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrB5)"/>
+      <rect x="192" y="30" width="86" height="36" rx="18" fill="#4285F4"/>
+      <text x="235" y="53" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Read</text>
+      <line x1="278" y1="48" x2="304" y2="48" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrB5)"/>
+      <rect x="308" y="30" width="86" height="36" rx="18" fill="#4285F4"/>
+      <text x="351" y="53" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">Map</text>
+      <line x1="394" y1="48" x2="420" y2="48" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrB5)"/>
+      <rect x="424" y="30" width="140" height="36" rx="18" fill="#4285F4"/>
+      <text x="494" y="53" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">CombinePerKey</text>
+      <line x1="564" y1="48" x2="596" y2="48" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrB5)"/>
+      <g font-family="Roboto Mono,monospace" font-size="10.5">
+        <rect x="600" y="20" width="140" height="56" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="612" y="42" fill="#202124">('08:00', 347)</text>
+        <text x="612" y="62" fill="#202124">('08:01', 412)</text>
+      </g>
+      <circle cx="756" cy="34" r="10" fill="#34A853"/>
+      <path d="M751 34 L755 38 L762 30" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="756" y="60" text-anchor="middle" font-size="9.5" fill="#188038">complete —</text>
+      <text x="756" y="72" text-anchor="middle" font-size="9.5" fill="#188038">the file ended</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14px">
+    <li>Bounded input: read it all, group by a minute-string key, done</li>
+    <li>The file boundary quietly answered "when is the data complete?" — <strong>end of file</strong></li>
+    <li>Nothing here works when the input never ends</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Batch pipelines get <strong>completeness for free</strong>. Streaming is the art of living without end-of-file.</div>
+</section>
+<details class="notes" data-title="In batch, solved">
+  <summary>Speaker notes &mdash; In batch, solved</summary>
+  <div class="n-body"><ul>
+    <li>Students wrote almost exactly this pipeline in the Module 5 lab &mdash; start from competence. The minute-string key ('08:00') is doing windowing by hand, badly; that observation pays off on the fixed-windows slide.</li>
+    <li><strong>The Socratic move:</strong> ask "what breaks if the input is a Pub/Sub subscription instead of a file?" Let them find it: <code>CombinePerKey</code> waits for all values of a key before emitting &mdash; and on an endless stream, "all" never happens. The aggregation isn't wrong; it's <em>unfinishable</em>.</li>
+    <li>Frame the section's arc: the file's end-of-file answered a question so quietly nobody noticed it was a question. The rest of the module rebuilds that answer for streams, piece by piece.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. TWO CLOCKS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:12px">Two clocks: event time and processing time</h1>
+  <p class="lede" style="margin-bottom:12px;font-size:15px">Amy taps "checkout" at 08:00:45 on the subway. Her phone uploads it at 08:07:02. Which time is true?</p>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:15px">
+        <li><strong>Event time</strong> — when it happened; travels <em>with</em> the element as its timestamp</li>
+        <li><strong>Processing time</strong> — when the pipeline sees it; just the worker's clock</li>
+        <li>The dashboard question ("views <em>during</em> 08:00") is an <strong>event-time</strong> question</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="420" height="210" viewBox="0 0 420 210">
+        <defs><marker id="arrC6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
+        <rect x="16" y="44" width="160" height="44" rx="8" fill="#fff" stroke="#dadce0"/>
+        <text x="96" y="71" text-anchor="middle" font-size="12.5" font-family="Roboto Mono,monospace" fill="#202124">('checkout', amy)</text>
+        <rect x="16" y="96" width="150" height="24" rx="12" fill="#e8f0fe" stroke="#4285F4"/>
+        <text x="91" y="112" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">event time 08:00:45</text>
+        <line x1="66" y1="96" x2="76" y2="88" stroke="#4285F4" stroke-width="1.3"/>
+
+        <line x1="176" y1="66" x2="268" y2="66" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrC6)"/>
+        <rect x="272" y="48" width="120" height="36" rx="18" fill="#4285F4"/>
+        <text x="332" y="71" text-anchor="middle" font-size="12" font-weight="600" fill="#fff">pipeline</text>
+        <rect x="248" y="96" width="168" height="24" rx="12" fill="#f1f3f4" stroke="#9aa0a6"/>
+        <text x="332" y="112" text-anchor="middle" font-size="10.5" font-weight="600" fill="#5f6368">processing time 08:07:02</text>
+        <line x1="332" y1="96" x2="332" y2="84" stroke="#9aa0a6" stroke-width="1.3"/>
+
+        <path d="M91 128 L91 148 L332 148 L332 128" fill="none" stroke="#EA4335" stroke-width="1.4"/>
+        <text x="212" y="168" text-anchor="middle" font-size="11.5" font-weight="600" fill="#c5221f">lag: 6 min 17 s</text>
+        <text x="212" y="188" text-anchor="middle" font-size="10" fill="#5f6368">normal, variable — and unbounded in the worst case</text>
+      </svg>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13.5px">Grouping by processing time is just micro-batching — fine for "roughly current" stats. Grouping by event time reconstructs what actually happened. Beam lets you choose; this module defaults to event time.</div>
+</section>
+<details class="notes" data-title="Two clocks">
+  <summary>Speaker notes &mdash; Two clocks</summary>
+  <div class="n-body"><ul>
+    <li><strong>The one fact that generates the whole watermark section:</strong> lag is normal, variable, and unbounded in the worst case. Say it now, cash it in later &mdash; if lag were constant, you could just wait that long and be done; because it isn't, "how long do we wait?" needs real machinery.</li>
+    <li>"Which time is true?" &mdash; both, for different questions. Billing and analytics questions ("views during 08:00") are event-time questions; operational questions ("how far behind is my pipeline right now?") are processing-time questions. Section 3's metrics slide makes that split concrete.</li>
+    <li>Java aside: every element in a Beam PCollection carries an intrinsic timestamp; sources set it, and a <code>DoFn</code> can override it (shown for both languages later in this section). In batch, sources typically stamp everything with the same minimum timestamp &mdash; which is why batch windowing needs the <code>TimestampedValue</code> slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. OUT OF ORDER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Streams arrive out of order</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Three users tap at 08:00. Amy's event arrives at 08:01. Bo was in the subway: 08:09. Cy was in airplane mode over the Atlantic: 13:42.</p>
+  <ul class="body" style="font-size:14.5px">
+    <li>Arrival order &ne; event order, and the gap has <strong>no upper bound</strong></li>
+    <li>Any grouping scheme based on <em>arrival</em> puts these three 08:00 taps in three different groups</li>
+    <li>We need grouping that follows the <em>event-time</em> stamp — and a policy for stragglers</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="800" height="168" viewBox="0 0 800 168">
+      <defs><marker id="arrO7" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/></marker></defs>
+      <rect x="30" y="8" width="330" height="36" rx="8" fill="none" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="195" y="31" text-anchor="middle" font-size="11.5" fill="#5f6368">target group: views for <tspan font-family="Roboto Mono,monospace">08:00&ndash;08:01</tspan> — all three belong here</text>
+
+      <line x1="30" y1="120" x2="780" y2="120" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrO7)"/>
+      <text x="780" y="156" text-anchor="end" font-size="10.5" fill="#5f6368">processing time (arrival)</text>
+      <g font-size="10" fill="#5f6368" text-anchor="middle" font-family="Roboto Mono,monospace">
+        <line x1="60"  y1="116" x2="60"  y2="124" stroke="#9aa0a6"/><text x="60"  y="138">08:00</text>
+        <line x1="180" y1="116" x2="180" y2="124" stroke="#9aa0a6"/><text x="180" y="138">09:00</text>
+        <line x1="300" y1="116" x2="300" y2="124" stroke="#9aa0a6"/><text x="300" y="138">10:00</text>
+        <line x1="420" y1="116" x2="420" y2="124" stroke="#9aa0a6"/><text x="420" y="138">11:00</text>
+        <line x1="540" y1="116" x2="540" y2="124" stroke="#9aa0a6"/><text x="540" y="138">12:00</text>
+        <line x1="660" y1="116" x2="660" y2="124" stroke="#9aa0a6"/><text x="660" y="138">13:00</text>
+      </g>
+      <g font-family="Roboto Mono,monospace" font-size="10">
+        <rect x="42" y="66" width="60" height="34" rx="6" fill="#fff" stroke="#34A853" stroke-width="1.6"/>
+        <text x="72" y="80" text-anchor="middle" fill="#202124">amy</text>
+        <text x="72" y="94" text-anchor="middle" fill="#1a73e8" font-weight="600">08:00</text>
+        <text x="72" y="112" text-anchor="middle" font-size="9" fill="#188038">arrives 08:01</text>
+      </g>
+      <g font-family="Roboto Mono,monospace" font-size="10">
+        <rect x="132" y="66" width="60" height="34" rx="6" fill="#fff" stroke="#FBBC04" stroke-width="1.6"/>
+        <text x="162" y="80" text-anchor="middle" fill="#202124">bo</text>
+        <text x="162" y="94" text-anchor="middle" fill="#1a73e8" font-weight="600">08:00</text>
+        <text x="162" y="112" text-anchor="middle" font-size="9" fill="#b06000">arrives 08:09</text>
+      </g>
+      <g font-family="Roboto Mono,monospace" font-size="10">
+        <rect x="712" y="66" width="60" height="34" rx="6" fill="#fff" stroke="#EA4335" stroke-width="1.6"/>
+        <text x="742" y="80" text-anchor="middle" fill="#202124">cy</text>
+        <text x="742" y="94" text-anchor="middle" fill="#1a73e8" font-weight="600">08:00</text>
+        <text x="742" y="112" text-anchor="middle" font-size="9" fill="#c5221f">arrives 13:42</text>
+      </g>
+      <text x="772" y="58" text-anchor="end" font-size="10" font-weight="600" fill="#c5221f">same minute, five hours late</text>
+      <line x1="102" y1="63" x2="180" y2="46" stroke="#9aa0a6" stroke-width="1" stroke-dasharray="3 3"/>
+      <line x1="712" y1="66" x2="362" y2="40" stroke="#9aa0a6" stroke-width="1" stroke-dasharray="3 3"/>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:13px;padding:9px 14px">Out-of-order data isn't a failure mode to handle — it's the <strong>normal condition</strong> of any stream that crosses phones, networks, or retries.</div>
+</section>
+<details class="notes" data-title="Streams arrive out of order">
+  <summary>Speaker notes &mdash; Streams arrive out of order</summary>
+  <div class="n-body"><ul>
+    <li>Tell the story with the people, not the boxes: three taps in the same minute; only where each phone <em>was</em> differs. Amy on wifi (a minute of lag), Bo underground (nine minutes), Cy in airplane mode over the Atlantic (five and a half hours). Nothing failed &mdash; every event eventually arrived, intact and truthfully stamped.</li>
+    <li>These same three users and these exact events return in the watermark section (slides "When can we emit the result?" and "On time &mdash; or late") &mdash; spend the time to make them familiar now.</li>
+    <li>Foreshadow precisely: <strong>windows</strong> solve where Cy's event <em>belongs</em> (the 08:00 window, always); <strong>watermarks + allowed lateness</strong> decide whether it still <em>counts</em> by the time it shows up. Belonging and counting are different questions &mdash; keeping them apart avoids most confusion in Section 3.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. DIVIDER: WINDOWS ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 4</div>
+    <h1>Windows</h1>
+    <div class="sub"><em>Where</em> in event time does each element belong? Windows turn an endless stream into finite groups an aggregation can finish — the streaming replacement for "group by a minute-string key."</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Streams &amp; time</span><span class="current">Windows</span><span>Watermarks</span><span>Triggers</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Windows">
+  <summary>Speaker notes &mdash; Section 2: Windows</summary>
+  <div class="n-body"><ul>
+    <li>Arc of the section: what a window <em>is</em> (a grouping key made of event time) &rarr; the three built-in shapes (fixed, sliding, session) &rarr; how to choose &rarr; where the timestamp actually comes from (source attribute, or your own DoFn) &rarr; the consolidated dashboard pipeline &rarr; the batch lab.</li>
+    <li>Keep hammering one point: windowing changes <em>no data</em> and does <em>no aggregation</em> &mdash; it only decides group membership. The aggregations from Module 5 do the rest, unchanged.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. WINDOWS: FINITE GROUPS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Windows: finite groups in an infinite stream</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">A window turns "views per minute" into finite groups — so the aggregation from the batch pipeline can finish, unchanged.</p>
+  <ul class="body" style="font-size:14px">
+    <li>A window is a time interval in <strong>event time</strong>; every element is assigned to one or more windows by its timestamp</li>
+    <li>Aggregations (GroupByKey, Combine) then run <em>per window</em> — each window is a self-contained little batch job</li>
+    <li>Default: everything sits in one <strong>global window</strong> — which is why an aggregation on an unbounded source without windowing is rejected by Beam</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="820" height="150" viewBox="0 0 820 150">
+      <defs><marker id="arrW9" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
+      <g font-family="Roboto Mono,monospace" font-size="9">
+        <rect x="4" y="30" width="120" height="90" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="14" y="46" fill="#1a73e8" font-weight="600">events</text>
+        <text x="14" y="62" fill="#202124">08:00:12 home</text>
+        <text x="14" y="76" fill="#202124">08:01:07 home</text>
+        <text x="14" y="90" fill="#202124">08:00:41 cart</text>
+        <text x="14" y="104" fill="#202124">08:02:05 cart</text>
+        <text x="14" y="117" fill="#5f6368">&#8230; (endless)</text>
+      </g>
+      <line x1="124" y1="74" x2="152" y2="74" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrW9)"/>
+      <rect x="156" y="56" width="110" height="36" rx="18" fill="#4285F4"/>
+      <text x="211" y="79" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">WindowInto</text>
+      <line x1="266" y1="74" x2="294" y2="74" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrW9)"/>
+      <g font-family="Roboto Mono,monospace" font-size="9">
+        <rect x="298" y="12" width="150" height="38" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="308" y="27" fill="#1a73e8" font-weight="600">[08:00, 08:01)</text>
+        <text x="308" y="42" fill="#202124">home &middot; cart</text>
+        <rect x="298" y="56" width="150" height="38" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="308" y="71" fill="#1a73e8" font-weight="600">[08:01, 08:02)</text>
+        <text x="308" y="86" fill="#202124">home</text>
+        <rect x="298" y="100" width="150" height="38" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="308" y="115" fill="#1a73e8" font-weight="600">[08:02, 08:03)</text>
+        <text x="308" y="130" fill="#202124">cart</text>
+      </g>
+      <line x1="448" y1="74" x2="476" y2="74" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrW9)"/>
+      <rect x="480" y="56" width="150" height="36" rx="18" fill="#34A853"/>
+      <text x="555" y="79" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">CombinePerKey(sum)</text>
+      <line x1="630" y1="74" x2="658" y2="74" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrW9)"/>
+      <g font-family="Roboto Mono,monospace" font-size="9">
+        <rect x="662" y="16" width="152" height="30" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="672" y="35" fill="#202124">[08:00) &rarr; 2 views</text>
+        <rect x="662" y="60" width="152" height="30" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="672" y="79" fill="#202124">[08:01) &rarr; 1 view</text>
+        <rect x="662" y="104" width="152" height="30" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+        <text x="672" y="123" fill="#202124">[08:02) &rarr; 1 view</text>
+      </g>
+      <text x="373" y="149" text-anchor="middle" font-size="9.5" fill="#5f6368">one self-contained group per interval</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Windowing changes <strong>no data</strong> and doesn't split the PCollection — elements stay interleaved in one collection, each carrying its window as metadata. The window joins your key at the next grouping; the aggregation you already know does the rest.</div>
+</section>
+<details class="notes" data-title="Windows: finite groups">
+  <summary>Speaker notes &mdash; Windows: finite groups</summary>
+  <div class="n-body"><ul>
+    <li>Why <code>CombinePerKey</code> is named in the diagram: it's the exact aggregation from the batch slide four slides back — same transform, same <code>sum</code>; the only new line is <code>WindowInto</code>. If asked "does this work with GroupByKey / Mean / any combine?" — yes, all of them; windowing is orthogonal to which aggregation runs.</li>
+    <li><strong>"So is a window a partition of the PCollection?"</strong> &mdash; close, but no, on two counts. (1) Nothing is physically split: it's one PCollection, elements interleaved, each tagged with its window; the window acts as an extra, implicit part of the grouping key when an aggregation runs. (2) Partitions are disjoint &mdash; sliding windows (two slides ahead) put one element in <em>several</em> windows, which no partition does. "Time-based grouping key," not "partition," is the durable mental model.</li>
+    <li>The error message students actually hit, worth showing live if demoing: <code>GroupByKey cannot be applied to an unbounded PCollection with global windowing and a default trigger</code>. Now they can read it: unbounded + one global window + "fire when complete" = never fires, and Beam refuses to build that graph.</li>
+    <li><strong>Windows exist in batch too</strong> &mdash; the first lab uses them on bounded data. Event time, not "streaming mode," is what makes windows work; the same <code>WindowInto</code> line behaves identically over yesterday's files.</li>
+    <li>Precision worth keeping: elements are assigned to "one or more" windows &mdash; exactly one for fixed and session windows, several for sliding (next slides). The window becomes part of the element's implicit grouping key alongside your own key.</li>
+    <li>Aggregating an unbounded stream <em>without</em> windows is possible &mdash; either with a trigger on the global window (end of Section 4) or with State and Timers (next module). Park it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. FIXED WINDOWS ============ -->
+<section class="slide">
+  <span class="brick b-blue" style="position:absolute;top:44px;right:64px">FixedWindows</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Fixed windows</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: views per minute — every minute, one non-overlapping bucket.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="code small"><span class="lang">Python</span><span class="kw">from</span> apache_beam <span class="kw">import</span> window
+
+per_minute = (events
+    | <span class="st">"PerMinute"</span> &gt;&gt; beam.WindowInto(
+          window.FixedWindows(<span class="kw">60</span>))   <span class="cm"># seconds</span>
+    | <span class="st">"One"</span>   &gt;&gt; beam.Map(<span class="kw">lambda</span> e: (e[<span class="st">"page"</span>], <span class="kw">1</span>))
+    | <span class="st">"Count"</span> &gt;&gt; beam.CombinePerKey(<span class="fn">sum</span>))</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li>Equal, consecutive, non-overlapping intervals; every element lands in <strong>exactly one</strong></li>
+        <li>Durations are seconds in Python (<code>60</code>), a <code>Duration</code> in Java</li>
+        <li>The workhorse: hourly rollups, per-minute dashboards, daily aggregates</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="350" height="252" viewBox="0 0 350 252">
+          <defs><marker id="arrF10" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="10" y="4" width="330" height="40" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+            <text x="20" y="19" fill="#1a73e8" font-weight="600">events</text>
+            <text x="20" y="35" fill="#202124">08:00:12  08:00:41  08:01:07  08:01:33  08:02:05</text>
+          </g>
+          <line x1="175" y1="44" x2="175" y2="62" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrF10)"/>
+          <rect x="100" y="66" width="150" height="28" rx="14" fill="#4285F4"/>
+          <text x="175" y="84" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">FixedWindows(60)</text>
+          <line x1="175" y1="94" x2="175" y2="112" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrF10)"/>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="10"  y="116" width="104" height="46" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+            <text x="18" y="131" fill="#1a73e8" font-weight="600">[08:00, 08:01)</text>
+            <text x="18" y="145" fill="#202124">home 08:00:12</text>
+            <text x="18" y="157" fill="#202124">cart 08:00:41</text>
+            <rect x="124" y="116" width="104" height="46" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+            <text x="132" y="131" fill="#1a73e8" font-weight="600">[08:01, 08:02)</text>
+            <text x="132" y="145" fill="#202124">home 08:01:07</text>
+            <text x="132" y="157" fill="#202124">cart 08:01:33</text>
+            <rect x="238" y="116" width="104" height="46" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.4"/>
+            <text x="246" y="131" fill="#1a73e8" font-weight="600">[08:02, 08:03)</text>
+            <text x="246" y="145" fill="#202124">cart 08:02:05</text>
+          </g>
+          <line x1="175" y1="162" x2="175" y2="180" stroke="#34A853" stroke-width="1.4" marker-end="url(#arrF10)"/>
+          <text x="230" y="176" font-size="8.5" fill="#188038">Count</text>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="10"  y="184" width="104" height="46" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+            <text x="18" y="199" fill="#1a73e8" font-weight="600">[08:00)</text>
+            <text x="18" y="212" fill="#202124">('home', 1)</text>
+            <text x="18" y="224" fill="#202124">('cart', 1)</text>
+            <rect x="124" y="184" width="104" height="46" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+            <text x="132" y="199" fill="#1a73e8" font-weight="600">[08:01)</text>
+            <text x="132" y="212" fill="#202124">('home', 1)</text>
+            <text x="132" y="224" fill="#202124">('cart', 1)</text>
+            <rect x="238" y="184" width="104" height="46" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+            <text x="246" y="199" fill="#1a73e8" font-weight="600">[08:02)</text>
+            <text x="246" y="212" fill="#202124">('cart', 1)</text>
+          </g>
+          <text x="175" y="248" text-anchor="middle" font-size="9" fill="#5f6368">one element, one window &middot; one result set per window</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:12.5px;padding:8px 14px">One element, one window — results are easy to reason about and cheap to compute. Reach for fixed windows first.</div>
+</section>
+<details class="notes" data-title="Fixed windows">
+  <summary>Speaker notes &mdash; Fixed windows</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>Window.&lt;T&gt;into(FixedWindows.of(Duration.standardSeconds(60)))</code>.</li>
+    <li>Connect back to the batch slide: the hand-built minute-string key ('08:00') <em>was</em> a fixed window, done manually and fragile. <code>FixedWindows(60)</code> is the same idea as a first-class concept the runner understands &mdash; which is what lets watermarks and triggers attach to it later.</li>
+    <li>The diagram's events (08:00:12, 08:00:41, 08:01:07, 08:01:33, 08:02:05) reappear in the watermark section &mdash; spend a moment making them familiar.</li>
+    <li>Anticipated question: "what about a tumbling window?" &mdash; same thing, different vendor vocabulary. Fixed = tumbling; sliding (next) = hopping in some ecosystems.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. SLIDING WINDOWS ============ -->
+<section class="slide">
+  <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">SlidingWindows</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Sliding windows</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: ops wants a 5-minute <em>moving average</em> of checkout latency, refreshed every minute.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="code small"><span class="lang">Python</span><span class="cm"># latencies: ('checkout', 3.2) pairs</span>
+avg_latency = (latencies
+    | beam.WindowInto(
+          window.SlidingWindows(size=<span class="kw">300</span>, period=<span class="kw">60</span>))
+    | beam.combiners.Mean.PerKey())
+          <span class="cm"># -&gt; ('checkout', 2.8) per window</span></pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><code>size</code> = how much data each window covers; <code>period</code> = how often a new one starts</li>
+        <li>Windows overlap, so <strong>one element belongs to <code>size / period</code> windows</strong> (here: 5)</li>
+        <li>The mean runs once per key <em>per window</em> — the aggregation itself is nothing new</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="350" height="236" viewBox="0 0 350 236">
+          <g font-size="9" fill="#5f6368" font-family="Roboto Mono,monospace" text-anchor="middle">
+            <text x="35"  y="222">08:00</text>
+            <text x="145" y="222">08:02</text>
+            <text x="255" y="222">08:04</text>
+            <text x="335" y="222">&#8230;</text>
+          </g>
+          <line x1="10" y1="208" x2="344" y2="208" stroke="#9aa0a6" stroke-width="1.2"/>
+          <g>
+            <rect x="35"  y="12"  width="275" height="26" rx="5" fill="#FBBC04" opacity=".28"/>
+            <rect x="35"  y="12"  width="275" height="26" rx="5" fill="none" stroke="#FBBC04"/>
+            <rect x="90"  y="48"  width="254" height="26" rx="5" fill="#FBBC04" opacity=".28"/>
+            <rect x="90"  y="48"  width="254" height="26" rx="5" fill="none" stroke="#FBBC04"/>
+            <rect x="145" y="84"  width="199" height="26" rx="5" fill="#FBBC04" opacity=".28"/>
+            <rect x="145" y="84"  width="199" height="26" rx="5" fill="none" stroke="#FBBC04"/>
+            <rect x="200" y="120" width="144" height="26" rx="5" fill="#FBBC04" opacity=".28"/>
+            <rect x="200" y="120" width="144" height="26" rx="5" fill="none" stroke="#FBBC04"/>
+            <rect x="255" y="156" width="89"  height="26" rx="5" fill="#FBBC04" opacity=".28"/>
+            <rect x="255" y="156" width="89"  height="26" rx="5" fill="none" stroke="#FBBC04"/>
+          </g>
+          <g font-size="8.5" fill="#b06000" font-family="Roboto Mono,monospace">
+            <text x="40"  y="29">[08:00, 08:05)</text>
+            <text x="95"  y="65">[08:01, 08:06)</text>
+            <text x="150" y="101">[08:02, 08:07)</text>
+            <text x="205" y="137">[08:03, 08:08)</text>
+            <text x="260" y="173">[08:04, 08:09)</text>
+          </g>
+          <circle cx="273" cy="208" r="6" fill="#1a73e8"/>
+          <text x="273" y="198" text-anchor="middle" font-size="9" font-weight="600" fill="#1a73e8">08:04:20</text>
+          <line x1="273" y1="202" x2="273" y2="14"  stroke="#1a73e8" stroke-width="1" stroke-dasharray="3 3"/>
+          <text x="330" y="234" text-anchor="end" font-size="9" fill="#5f6368">copied into 5 windows</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:12.5px;padding:8px 14px">Overlap multiplies work: <code>SlidingWindows(3600, 60)</code> puts every element in <strong>60 windows</strong>. Keep <code>size / period</code> small, or rethink the question.</div>
+</section>
+<details class="notes" data-title="Sliding windows">
+  <summary>Speaker notes &mdash; Sliding windows</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>SlidingWindows.of(Duration.standardMinutes(5)).every(Duration.standardMinutes(1))</code>, then <code>Mean.perKey()</code>.</li>
+    <li>The elements are keyed (<code>('checkout', 3.2)</code> = page, seconds) so the ordinary keyed mean applies. If someone instead reaches for the <em>unkeyed</em> <code>CombineGlobally(MeanCombineFn())</code> over these windows, they hit <strong>the #1 Stack Overflow question for sliding windows in Python</strong>: it must be suffixed <code>.without_defaults()</code>. <code>CombineGlobally</code> promises a result even for empty input (an empty sum is 0); with non-global windows there's no sensible way to emit defaults for every possible empty window, so Beam requires you to opt out — otherwise, a pipeline construction error.</li>
+    <li>Anticipated question: "is the element <em>duplicated</em>?" &mdash; logically yes, one copy per window it falls in. Combiner lifting (Module 5) keeps the cost manageable: partial aggregates per window, not five copies of raw data shuffling around. Still, the warning callout is real &mdash; size/period ratios in the tens multiply state and compute.</li>
+    <li>Walk the highlighted element: an event at 08:04:20 falls in [08:00,08:05), [08:01,08:06), [08:02,08:07), [08:03,08:08), and [08:04,08:09) &mdash; five windows, because 300 / 60 = 5.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. SESSION WINDOWS ============ -->
+<section class="slide">
+  <span class="brick b-green" style="position:absolute;top:44px;right:64px">Sessions</span>
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Session windows</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: marketing asks "how long is a shopping session?" A session ends when the user goes quiet for 30 minutes.</p>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <pre class="code small"><span class="lang">Python</span><span class="cm"># clicks: ('amy', click_event) pairs</span>
+sessions = (clicks
+    | beam.WindowInto(
+          window.Sessions(gap_size=<span class="kw">30</span> * <span class="kw">60</span>))
+    | beam.GroupByKey())  <span class="cm"># one group per user</span>
+                          <span class="cm">#   per session</span></pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Data-driven</strong>: the window's edges come from the <em>data</em>, not the clock</li>
+        <li>Defined by a <strong>gap</strong>: elements closer together than the gap merge into one window</li>
+        <li>Computed <strong>per key</strong> — Amy's silence doesn't end Bo's session</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="360" height="216" viewBox="0 0 360 216">
+          <g font-size="9.5" fill="#5f6368" font-family="Roboto Mono,monospace" text-anchor="middle">
+            <text x="60"  y="210">08:00</text>
+            <text x="160" y="210">08:40</text>
+            <text x="260" y="210">09:20</text>
+            <text x="340" y="210">10:00</text>
+          </g>
+          <line x1="20" y1="196" x2="352" y2="196" stroke="#9aa0a6" stroke-width="1.2"/>
+
+          <text x="20" y="42" font-size="11" font-weight="600" fill="#202124">amy</text>
+          <rect x="60" y="26" width="30" height="24" rx="12" fill="#34A853" opacity=".25" stroke="#34A853"/>
+          <circle cx="66" cy="38" r="3" fill="#188038"/><circle cx="76" cy="38" r="3" fill="#188038"/><circle cx="85" cy="38" r="3" fill="#188038"/>
+          <text x="75" y="18" text-anchor="middle" font-size="9" fill="#188038">session 1 &middot; 08:00&ndash;08:12</text>
+          <path d="M92 56 L92 64 L208 64 L208 56" fill="none" stroke="#c5221f" stroke-width="1.2"/>
+          <text x="150" y="78" text-anchor="middle" font-size="9" font-weight="600" fill="#c5221f">47 min &gt; 30 min gap</text>
+          <rect x="210" y="26" width="14" height="24" rx="7" fill="#34A853" opacity=".25" stroke="#34A853"/>
+          <circle cx="214" cy="38" r="3" fill="#188038"/><circle cx="221" cy="38" r="3" fill="#188038"/>
+          <text x="240" y="18" text-anchor="middle" font-size="9" fill="#188038">session 2 &middot; 09:00&ndash;09:05</text>
+
+          <text x="20" y="136" font-size="11" font-weight="600" fill="#202124">bo</text>
+          <rect x="110" y="120" width="200" height="24" rx="12" fill="#34A853" opacity=".25" stroke="#34A853"/>
+          <circle cx="120" cy="132" r="3" fill="#188038"/><circle cx="152" cy="132" r="3" fill="#188038"/><circle cx="190" cy="132" r="3" fill="#188038"/>
+          <circle cx="232" cy="132" r="3" fill="#188038"/><circle cx="268" cy="132" r="3" fill="#188038"/><circle cx="300" cy="132" r="3" fill="#188038"/>
+          <text x="210" y="112" text-anchor="middle" font-size="9" fill="#188038">one session &middot; 08:20&ndash;09:40</text>
+          <text x="210" y="162" text-anchor="middle" font-size="9" fill="#5f6368">no gap ever exceeded 30 min — still one session</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:12.5px;padding:8px 14px">Fixed and sliding windows are known before any data arrives. Session windows are discovered <em>from</em> the data — which is exactly why "when is it complete?" gets interesting in the next section.</div>
+</section>
+<details class="notes" data-title="Session windows">
+  <summary>Speaker notes &mdash; Session windows</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>Sessions.withGapDuration(Duration.standardMinutes(30))</code>.</li>
+    <li>Mechanically, each element opens a proto-window of gap length; overlapping proto-windows <strong>merge</strong>. That's why sessions are "discovered from the data" &mdash; and why a session window can keep growing as long as activity continues (Bo's 80-minute session).</li>
+    <li>Unkeyed sessions are almost never what anyone wants &mdash; a busy site would collapse into one giant global session. The <code>GroupByKey</code>-shaped pairing is the natural companion: sessions per user, per device, per whatever the key is.</li>
+    <li>Real uses beyond shopping-session length: gaming sessions (the Beam mobile-gaming examples, linked at the end), reading sessions in media, machine "activity bursts" in IoT.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. CHOOSING A WINDOW TYPE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Choosing a window type</h1>
+  <table class="tbl" style="font-size:15px">
+    <tr><th style="width:40%">You're asking&#8230;</th><th style="width:28%">Use</th><th>Example</th></tr>
+    <tr><td>"&#8230;per minute / hour / day"</td><td><code>FixedWindows</code></td><td>views per minute</td></tr>
+    <tr><td>"&#8230;over the last N, updated every M"</td><td><code>SlidingWindows</code></td><td>5-min moving average</td></tr>
+    <tr><td>"&#8230;per burst of activity, per key"</td><td><code>Sessions</code></td><td>shopping-session length</td></tr>
+    <tr><td>"&#8230;over everything, on my own schedule"</td><td><code>GlobalWindows</code> + a trigger</td><td>running total (Section 4)</td></tr>
+  </table>
+  <div class="vgap-l"></div>
+  <div class="callout good">Say the business question out loud; the window type is usually sitting in the sentence.</div>
+</section>
+<details class="notes" data-title="Choosing a window type">
+  <summary>Speaker notes &mdash; Choosing a window type</summary>
+  <div class="n-body"><ul>
+    <li>Run the exercise live: read each left-column phrase and have students name the window before revealing the middle column. The point of the slide is that the mapping is nearly mechanical.</li>
+    <li>Custom <code>WindowFn</code>s exist &mdash; per-key fixed windows, calendar-aware windows (months, quarters). Park them as "know they exist"; the Beam Programming Guide's windowing chapter (Additional material) covers writing one.</li>
+    <li>The last row is deliberately a forward reference: <code>GlobalWindows</code> plus a trigger only works once triggers exist, so it closes the loop at the end of Section 4. If someone asks now: "that's the row where the watermark can't help you — hold that thought."</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. TIMESTAMPS: STREAMING SOURCES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Where the timestamp comes from: streaming sources</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Windows group by the element's timestamp — so who sets it? For Pub/Sub: the <strong>publish time</strong>, unless you say otherwise.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <p style="font-size:12px;font-weight:600;color:#188038;margin:0 0 5px">The recommended override — <em>not</em> what you get by default:</p>
+      <pre class="code small"><span class="lang">Python</span>events = (p
+    | beam.io.ReadFromPubSub(
+          subscription=
+            <span class="st">"projects/store/subscriptions/page-views"</span>,
+          timestamp_attribute=<span class="st">"event_ts"</span>)
+          <span class="cm"># RFC 3339 or epoch millis</span>
+    | beam.Map(json.loads))</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li>Default (no <code>timestamp_attribute</code>): event time = <strong>publish time</strong> — when the message reached Pub/Sub, not when the tap happened on the phone</li>
+        <li>The override: the publisher stamps the true time into a message <strong>attribute</strong>, and <code>timestamp_attribute</code> tells the source to use it instead</li>
+        <li>With that one argument, Amy's buffered subway events carry 08:00, not 08:07</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure">
+        <svg width="340" height="248" viewBox="0 0 340 248">
+          <defs><marker id="arrT14" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+          <rect x="18" y="8" width="34" height="56" rx="7" fill="#fff" stroke="#5f6368" stroke-width="1.6"/>
+          <circle cx="35" cy="54" r="3" fill="#5f6368"/>
+          <rect x="24" y="16" width="22" height="30" rx="2" fill="#e8f0fe"/>
+          <text x="66" y="30" font-size="9.5" fill="#5f6368">amy taps at</text>
+          <text x="66" y="43" font-size="9.5" font-weight="600" fill="#1a73e8">08:00:45</text>
+          <line x1="35" y1="66" x2="35" y2="84" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrT14)"/>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="18" y="88" width="220" height="44" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+            <text x="28" y="104" fill="#202124">{"page": "checkout"}</text>
+            <rect x="26" y="110" width="150" height="16" rx="8" fill="#FBBC04"/>
+            <text x="101" y="122" text-anchor="middle" fill="#3c2f00" font-weight="600">event_ts=08:00:45</text>
+          </g>
+          <line x1="128" y1="132" x2="128" y2="150" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrT14)"/>
+          <rect x="58" y="154" width="140" height="28" rx="14" fill="#9aa0a6"/>
+          <text x="128" y="172" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">Pub/Sub</text>
+          <text x="230" y="166" font-size="9" fill="#5f6368" text-decoration="line-through">publish 08:07:02</text>
+          <line x1="128" y1="182" x2="128" y2="200" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrT14)"/>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="34" y="204" width="188" height="26" rx="6" fill="#fff" stroke="#dadce0"/>
+            <text x="44" y="221" fill="#202124">('checkout', amy)</text>
+            <rect x="228" y="206" width="94" height="20" rx="10" fill="#e8f0fe" stroke="#4285F4"/>
+            <text x="275" y="220" text-anchor="middle" fill="#1a73e8" font-weight="600">ts 08:00:45</text>
+          </g>
+          <text x="170" y="244" text-anchor="middle" font-size="9" fill="#5f6368">the element enters the pipeline carrying the true event time</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="callout warn" style="font-size:12.5px;padding:7px 14px">Publish time is a <em>processing-time</em> stamp wearing an event-time costume. If the true time matters, use <code>timestamp_attribute</code>.</div>
+</section>
+<details class="notes" data-title="Timestamps: streaming sources">
+  <summary>Speaker notes &mdash; Timestamps: streaming sources</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>PubsubIO.readStrings().fromSubscription(...).withTimestampAttribute("event_ts")</code>.</li>
+    <li>Why publish time is often "good enough, until it isn't": for well-connected publishers the two times differ by milliseconds. The gap opens exactly when it matters most &mdash; mobile clients buffering offline, backfills, replays. Amy's subway checkout is the concrete case: with publish time it lands in the 08:07 window; with <code>timestamp_attribute</code> it lands in 08:00 where it belongs.</li>
+    <li>A subtle but important bonus: with <code>timestamp_attribute</code> set, Dataflow estimates the source's <strong>watermark from that attribute</strong> &mdash; so old buffered events also hold the watermark back appropriately. That's exactly the machinery Section 3 needs; plant the phrase "the source tracks how old its unprocessed data is."</li>
+    <li>The attribute value format: RFC 3339 timestamp or epoch milliseconds. The publisher sets it with one extra argument on <code>publish()</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. TIMESTAMPS: YOUR OWN DATA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Where the timestamp comes from: your own data</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Batch files have no publish time — the timestamp is a field in the record. Attach it yourself in a DoFn.</p>
+  <div class="cols">
+    <div style="flex:0 0 54%">
+      <pre class="code small"><span class="lang">Python</span><span class="kw">class</span> <span class="fn">AddTimestamp</span>(beam.DoFn):
+    <span class="kw">def</span> <span class="fn">process</span>(self, element):
+        <span class="kw">yield</span> beam.window.TimestampedValue(
+            element,
+            element[<span class="st">"event_ts"</span>])  <span class="cm"># secs since epoch</span>
+
+stamped = raw | beam.ParDo(AddTimestamp())</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><code>TimestampedValue(element, ts)</code> re-emits the element with a new event timestamp</li>
+        <li>This is how <em>batch</em> data gets windowed — which the next lab does</li>
+        <li>Same trick fixes streams whose timestamp lives in the payload, not an attribute</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure" style="margin-top:8px">
+        <svg width="330" height="216" viewBox="0 0 330 216">
+          <defs><marker id="arrT15" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="20" y="8" width="290" height="44" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
+            <text x="30" y="24" fill="#202124">{"page": "home", "event_ts": 1785312012}</text>
+            <rect x="28" y="30" width="130" height="16" rx="8" fill="#f1f3f4" stroke="#9aa0a6"/>
+            <text x="93" y="42" text-anchor="middle" fill="#5f6368">ts 1970-01-01 &#10007;</text>
+          </g>
+          <line x1="165" y1="52" x2="165" y2="74" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrT15)"/>
+          <rect x="70" y="78" width="190" height="30" rx="15" fill="#4285F4"/>
+          <text x="165" y="97" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">ParDo(AddTimestamp)</text>
+          <line x1="165" y1="108" x2="165" y2="130" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrT15)"/>
+          <g font-family="Roboto Mono,monospace" font-size="9">
+            <rect x="20" y="134" width="290" height="44" rx="6" fill="#fff" stroke="#dadce0"/>
+            <text x="30" y="150" fill="#202124">{"page": "home", "event_ts": 1785312012}</text>
+            <rect x="28" y="156" width="110" height="16" rx="8" fill="#e8f0fe" stroke="#4285F4"/>
+            <text x="83" y="168" text-anchor="middle" fill="#1a73e8" font-weight="600">ts 08:00:12 &#10003;</text>
+          </g>
+          <text x="165" y="204" text-anchor="middle" font-size="9" fill="#5f6368">same element — new event timestamp, ready for WindowInto</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:12.5px;padding:8px 14px">Windows don't care whether data is bounded or streaming — only that elements carry meaningful event timestamps.</div>
+</section>
+<details class="notes" data-title="Timestamps: your own data">
+  <summary>Speaker notes &mdash; Timestamps: your own data</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>context.outputWithTimestamp(element, new Instant(ts))</code> inside the DoFn's <code>@ProcessElement</code> method.</li>
+    <li>Why the input card says 1970: a batch source like <code>ReadFromText</code> stamps every element with the minimum timestamp &mdash; there's nothing meaningful to use. Windowing on that is legal and useless (everything lands in one window). The DoFn swaps in the record's own field.</li>
+    <li>Common question: "can I move a timestamp <em>backward</em>?" &mdash; yes, within limits; the old "allowed timestamp skew" escape hatch is deprecated/discouraged. The clean pattern that avoids the question entirely: set timestamps as early as possible, at or immediately after the source, before any windowing.</li>
+    <li>This slide is the setup for Lab 1 &mdash; students will write exactly this DoFn against batch web-log data.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. THE DASHBOARD PIPELINE SO FAR ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The dashboard pipeline so far</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Windows + the transforms you already know = the whole "what" and "where" of the dashboard.</p>
+  <pre class="code small"><span class="lang">Python</span>per_minute = (p
+    | beam.io.ReadFromPubSub(subscription=SUB,
+                             timestamp_attribute=<span class="st">"event_ts"</span>)
+    | beam.Map(json.loads)
+    | beam.WindowInto(window.FixedWindows(<span class="kw">60</span>))
+    | beam.Map(<span class="kw">lambda</span> e: (e[<span class="st">"page"</span>], <span class="kw">1</span>))  <span class="cm"># one view -&gt; ('home', 1)</span>
+    | beam.CombinePerKey(<span class="fn">sum</span>)                <span class="cm"># -&gt; ('home', 347) per window</span>
+    | beam.io.WriteToBigQuery(TABLE, ...))</pre>
+  <div class="figure">
+    <svg width="800" height="86" viewBox="0 0 800 86">
+      <defs><marker id="arrD16" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+      <g font-size="10" font-weight="600">
+        <rect x="4"   y="30" width="104" height="30" rx="15" fill="#9aa0a6"/><text x="56"  y="49" text-anchor="middle" fill="#fff">ReadFromPubSub</text>
+        <rect x="136" y="30" width="72"  height="30" rx="15" fill="#9aa0a6"/><text x="172" y="49" text-anchor="middle" fill="#fff">Map</text>
+        <rect x="236" y="30" width="106" height="30" rx="15" fill="#4285F4" stroke="#1a73e8" stroke-width="2"/><text x="289" y="49" text-anchor="middle" fill="#fff">WindowInto</text>
+        <rect x="370" y="30" width="72"  height="30" rx="15" fill="#9aa0a6"/><text x="406" y="49" text-anchor="middle" fill="#fff">Map</text>
+        <rect x="470" y="30" width="122" height="30" rx="15" fill="#9aa0a6"/><text x="531" y="49" text-anchor="middle" fill="#fff">CombinePerKey</text>
+        <rect x="668" y="30" width="126" height="30" rx="15" fill="#9aa0a6"/><text x="731" y="49" text-anchor="middle" fill="#fff">WriteToBigQuery</text>
+      </g>
+      <line x1="108" y1="45" x2="132" y2="45" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrD16)"/>
+      <line x1="208" y1="45" x2="232" y2="45" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrD16)"/>
+      <line x1="342" y1="45" x2="366" y2="45" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrD16)"/>
+      <line x1="442" y1="45" x2="466" y2="45" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrD16)"/>
+      <line x1="592" y1="45" x2="664" y2="45" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrD16)"/>
+      <circle cx="628" cy="24" r="13" fill="#EA4335"/>
+      <text x="628" y="29" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">?</text>
+      <text x="628" y="78" text-anchor="middle" font-size="10" font-weight="600" fill="#c5221f">when does this emit?</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14px">
+    <li>Nothing new — source, window, count, sink</li>
+    <li>But one question is still open: <strong>when</strong> does the 08:00 window actually emit?</li>
+  </ul>
+  <div class="callout" style="font-size:13px;padding:8px 14px">With out-of-order data, "the minute is over" and "its data has all arrived" are <strong>different moments</strong>. Section 3 tells them apart.</div>
+</section>
+<details class="notes" data-title="The dashboard pipeline so far">
+  <summary>Speaker notes &mdash; The dashboard pipeline so far</summary>
+  <div class="n-body"><ul>
+    <li>This slide is the narrative hinge of the module. Leave the red question mark on screen going into the lab and the next section &mdash; the whole watermark section exists to remove it.</li>
+    <li>Point at each pipeline step and name its question: source + timestamp attribute = where time comes from; WindowInto = <em>where</em> in event time; Map + CombinePerKey = <em>what</em> to compute; the sink = where results land. The only unanswered question hovers over the edge into the sink: <em>when</em>.</li>
+    <li>If a student answers "it fires when the minute ends" &mdash; perfect setup: whose clock? Bo's 08:00 tap arrives at 08:09. Firing at wall-clock 08:01 silently loses it. That's the next section's opening slide.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. LAB 1 ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content" style="top:130px;max-width:400px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Lab</h1>
+    <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Batch Analytics Pipelines with Dataflow (Python/Java)</div>
+    <ul class="body" style="font-size:14.5px">
+      <li>Write a pipeline that aggregates site traffic by user</li>
+      <li>Write a pipeline that aggregates site traffic by minute</li>
+      <li>Implement windowing on time series data</li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Lab: Batch Analytics Pipelines">
+  <summary>Speaker notes &mdash; Lab: Batch Analytics Pipelines</summary>
+  <div class="n-body"><ul>
+    <li>Typical duration: 60 minutes.</li>
+    <li><strong>Deliberately batch:</strong> students practice <code>WindowInto</code> and the <code>TimestampedValue</code> DoFn without simultaneously fighting streaming semantics. Everything they write here transfers verbatim to the streaming lab at the end of the module.</li>
+    <li>The "by user" aggregation is Module 5 material (key + combine); the "by minute" aggregation is this module's — same shape, but the key is a window. That contrast <em>is</em> the lesson.</li>
+    <li>On return, re-show the previous slide's red question mark: the batch run answered "when do results emit?" with end-of-file. Streaming can't &mdash; and that's where we pick up.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. DIVIDER: WATERMARKS ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 4</div>
+    <h1>Watermarks</h1>
+    <div class="sub"><em>When</em> is a window's data complete? The watermark is the pipeline's moving estimate of completeness — the streaming replacement for end-of-file.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Streams &amp; time</span><span>Windows</span><span class="current">Watermarks</span><span>Triggers</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Watermarks">
+  <summary>Speaker notes &mdash; Section 3: Watermarks</summary>
+  <div class="n-body"><ul>
+    <li>The spine of this section: the problem (when may we emit?), the concept (the watermark as an adaptive completeness estimate — shown three ways: a moving line on the event-time axis, the classic event&times;processing-time graph, and per-stage propagation through the pipeline), the machinery (how Dataflow actually computes it for Pub/Sub), the classification it enables (on-time vs. late) and the policy for late data. Then two slides on how you <em>observe</em> the watermark in Dataflow's metrics.</li>
+    <li>Vocabulary discipline: the watermark is <em>metadata about progress</em>, not data. Nothing in the PCollection changes; the runner just tracks a claim about how complete the input is.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. WHEN CAN WE EMIT THE RESULT? ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">When can we emit the result?</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">It's 08:01:00 on the wall clock. May we emit "views for 08:00"? Bo's 08:00 tap is still in the subway.</p>
+  <ul class="body" style="font-size:14px">
+    <li>Emitting at the wall-clock minute boundary — and never looking back — drops every straggler: <strong>silently wrong</strong></li>
+    <li>Waiting forever emits nothing — perfectly complete, perfectly useless</li>
+    <li>We need an <em>estimate</em> of "all data up to time T has probably arrived"</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="790" height="176" viewBox="0 0 790 176">
+      <defs><marker id="arrCl" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#c5221f"/></marker></defs>
+      <g font-family="Roboto Mono,monospace" font-size="9.5">
+        <rect x="20" y="14" width="240" height="86" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.6"/>
+        <text x="32" y="34" fill="#1a73e8" font-weight="600">[08:00, 08:01)</text>
+        <rect x="32" y="44" width="176" height="20" rx="5" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="40" y="58" fill="#202124">('home', amy, 08:00:12)</text>
+        <rect x="32" y="70" width="176" height="20" rx="5" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="40" y="84" fill="#202124">('home', amy, 08:00:41)</text>
+      </g>
+      <g font-family="Roboto Mono,monospace" font-size="9.5">
+        <rect x="520" y="44" width="180" height="24" rx="6" fill="#fff" stroke="#FBBC04" stroke-width="1.6"/>
+        <text x="530" y="60" fill="#202124">('cart', bo, 08:00:52)</text>
+      </g>
+      <path d="M516 56 C 400 56 330 50 264 56" fill="none" stroke="#c5221f" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#arrCl)"/>
+      <text x="392" y="42" text-anchor="middle" font-size="10.5" font-weight="600" fill="#c5221f">belongs here, hasn't arrived</text>
+      <text x="610" y="86" text-anchor="middle" font-size="9.5" fill="#b06000">still in the subway — arrives 08:09</text>
+
+      <g font-size="12">
+        <text x="30" y="136" fill="#c5221f" font-weight="700">&#10007;</text>
+        <text x="48" y="136" fill="#202124" font-size="12.5">emit at wall-clock 08:01, done &mdash; loses bo (and every straggler, forever, silently)</text>
+        <text x="30" y="162" fill="#c5221f" font-weight="700">&#10007;</text>
+        <text x="48" y="162" fill="#202124" font-size="12.5">wait until we're "sure" &mdash; with unbounded lag, "sure" never comes; nothing ever emits</text>
+      </g>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">This trade-off — latency vs. completeness — has no free lunch. The <strong>watermark</strong> is Beam's honest, moving estimate of where "complete" currently is.</div>
+</section>
+<details class="notes" data-title="When can we emit the result?">
+  <summary>Speaker notes &mdash; When can we emit the result?</summary>
+  <div class="n-body"><ul>
+    <li>Let students propose the middle road: "just wait a fixed 5 minutes past the window." That's a static heuristic &mdash; and a perfectly reasonable instinct. The watermark is the <em>adaptive</em> version of exactly that instinct: instead of a hard-coded delay, the pipeline continuously measures how delayed its data actually is and moves the "safe to close" line accordingly.</li>
+    <li>Stress the word <em>silently</em> on the first bullet. Dropping Bo doesn't error, doesn't warn by default &mdash; the count is just 2 instead of 3, and nobody knows. Silent correctness loss is the villain of this whole section.</li>
+    <li>These are the same characters and events from Section 1 &mdash; amy's two taps are in, bo's is in flight, and cy (13:42) isn't even on the slide yet. Cy returns two slides from now as the definition of "late."</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. THE WATERMARK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The watermark</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">The watermark is the pipeline's running claim: <em>"I believe I have now seen (nearly) everything with event time earlier than T."</em></p>
+  <ul class="body" style="font-size:13px">
+    <li>Picture a <strong>moving line on the event-time axis</strong>: the pipeline's current boundary between "probably all here" and "still arriving"</li>
+    <li>A window whose end the watermark has passed is <em>complete as far as the pipeline can tell</em> — the default moment to emit its result</li>
+    <li>It's a <strong>heuristic</strong>, continuously re-estimated from the data actually in flight — usually right, occasionally passed by a straggler</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="820" height="192" viewBox="0 0 820 192">
+      <defs><marker id="arrWt" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/></marker></defs>
+      <line x1="40" y1="146" x2="800" y2="146" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrWt)"/>
+      <text x="796" y="166" text-anchor="end" font-size="10.5" fill="#5f6368">event time</text>
+      <g font-size="10" fill="#5f6368" text-anchor="middle" font-family="Roboto Mono,monospace">
+        <line x1="100" y1="142" x2="100" y2="150" stroke="#9aa0a6"/><text x="100" y="164">08:00</text>
+        <line x1="300" y1="142" x2="300" y2="150" stroke="#9aa0a6"/><text x="300" y="164">08:01</text>
+        <line x1="500" y1="142" x2="500" y2="150" stroke="#9aa0a6"/><text x="500" y="164">08:02</text>
+        <line x1="700" y1="142" x2="700" y2="150" stroke="#9aa0a6"/><text x="700" y="164">08:03</text>
+      </g>
+      <rect x="100" y="58" width="196" height="62" rx="6" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+      <text x="108" y="74" font-size="9" font-family="Roboto Mono,monospace" fill="#188038" font-weight="600">[08:00, 08:01)</text>
+      <rect x="304" y="58" width="192" height="62" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="312" y="74" font-size="9" font-family="Roboto Mono,monospace" fill="#1a73e8" font-weight="600">[08:01, 08:02)</text>
+      <rect x="504" y="58" width="192" height="62" rx="6" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="512" y="74" font-size="9" font-family="Roboto Mono,monospace" fill="#1a73e8" font-weight="600">[08:02, 08:03)</text>
+      <g fill="#1a73e8">
+        <circle cx="140" cy="100" r="5"/><circle cx="236" cy="106" r="5"/><circle cx="273" cy="92" r="5"/>
+        <circle cx="330" cy="102" r="5"/><circle cx="368" cy="92" r="5"/>
+        <circle cx="560" cy="100" r="5"/>
+      </g>
+      <line x1="404" y1="28" x2="404" y2="146" stroke="#F29900" stroke-width="2.5"/>
+      <text x="404" y="18" text-anchor="middle" font-size="10.5" font-weight="600" fill="#F29900">watermark &mdash; 08:01:31</text>
+      <text x="396" y="42" text-anchor="end" font-size="9.5" font-weight="600" fill="#188038">"seen everything earlier than this"</text>
+      <text x="412" y="42" font-size="9.5" fill="#5f6368">"may still be missing data"</text>
+      <text x="198" y="50" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">end is behind the watermark &mdash; emits</text>
+      <text x="440" y="114" font-size="9.5" fill="#5f6368">still filling</text>
+      <text x="420" y="188" text-anchor="middle" font-size="9.5" fill="#5f6368">the dot at 08:02 arrived early &mdash; fine; the watermark trails the oldest thing still <tspan font-style="italic">missing</tspan>, not the newest thing seen</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13px;padding:9px 14px">Nothing about your data changed — the watermark is <strong>metadata about progress</strong>, the streaming replacement for end-of-file.</div>
+</section>
+<details class="notes" data-title="The watermark">
+  <summary>Speaker notes &mdash; The watermark</summary>
+  <div class="n-body"><ul>
+    <li>Say the claim sentence twice; everything in this section is a footnote to it. The watermark is a <em>position in event time</em> that only ever moves forward &mdash; not a timer, not a configured delay.</li>
+    <li>The end-of-file connection is worth making explicit: batch always had a watermark too &mdash; it just jumps from &minus;&infin; to +&infin; the instant the file ends, so nobody ever needed to name it. Streaming is what makes the watermark move gradually and become visible.</li>
+    <li>Read the figure left to right: the first window's end (08:01) is behind the watermark (08:01:31) &mdash; complete as far as the pipeline can tell, so it emits. The second window straddles the line &mdash; still open. The early dot at 08:02 makes the key asymmetry: data <em>ahead</em> of the watermark arriving is normal and harmless; the watermark is held back by the oldest thing believed still missing.</li>
+    <li>Two more views of the same idea follow: the classic event-time &times; processing-time graph (next slide), and the per-stage view (after that). Then, where the number actually comes from on Dataflow + Pub/Sub. Different students latch onto different pictures &mdash; that's why there are three.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. THE WATERMARK AS A GRAPH ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The same watermark, as a graph</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Chart the watermark's position against the wall clock and you get the classic picture: a curve chasing the diagonal.</p>
+  <div class="cols">
+    <div style="flex:0 0 40%">
+      <ul class="body" style="font-size:13.5px">
+        <li>X is event time; Y is the wall clock, flowing upward. The dashed 45&deg; line is the fantasy of zero lag</li>
+        <li>At any wall-clock moment, the curve marks how far event time is "probably complete" — the vertical gap to the ideal line is the current lag</li>
+        <li>Lag breathes: it grows when publishers buffer or the pipeline falls behind, shrinks as it catches up — that wobble is exactly what Dataflow charts for you (metrics slides ahead)</li>
+      </ul>
+    </div>
+    <div class="figure">
+      <svg width="440" height="296" viewBox="0 0 440 296">
+        <defs><marker id="arrWm" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/></marker></defs>
+        <line x1="56" y1="250" x2="420" y2="250" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrWm)"/>
+        <line x1="56" y1="250" x2="56" y2="16" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrWm)"/>
+        <text x="404" y="272" text-anchor="end" font-size="10.5" fill="#5f6368">event time</text>
+        <text x="30" y="140" font-size="10.5" fill="#5f6368" transform="rotate(-90 30 140)" text-anchor="middle">processing time</text>
+
+        <line x1="80" y1="250" x2="360" y2="10" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="5 4"/>
+        <text x="368" y="16" font-size="9.5" fill="#5f6368">ideal (no lag)</text>
+
+        <path d="M80 250 C 105 218 130 200 150 185 C 172 168 188 158 200 150 C 222 134 238 100 250 85 C 268 64 285 68 300 55 C 315 42 322 36 332 28" fill="none" stroke="#F29900" stroke-width="2.5"/>
+        <text x="342" y="46" font-size="10" font-weight="600" fill="#F29900">watermark</text>
+
+        <path d="M250 85 L250 121" fill="none" stroke="#c5221f" stroke-width="1.2"/>
+        <path d="M244 93 L250 85 L256 93 M244 113 L250 121 L256 113" fill="none" stroke="#c5221f" stroke-width="1.2"/>
+        <text x="242" y="106" text-anchor="end" font-size="9.5" fill="#c5221f">lag = vertical gap&nbsp;</text>
+
+        <line x1="280" y1="250" x2="280" y2="72" stroke="#4285F4" stroke-width="1" stroke-dasharray="3 3"/>
+        <text x="280" y="266" text-anchor="middle" font-size="10" font-family="Roboto Mono,monospace" fill="#1a73e8">08:01</text>
+        <circle cx="280" cy="67" r="9" fill="none" stroke="#34A853" stroke-width="2.2"/>
+        <text x="130" y="60" font-size="9.5" font-weight="600" fill="#188038">watermark passes 08:01 —</text>
+        <text x="130" y="73" font-size="9.5" font-weight="600" fill="#188038">window [08:00, 08:01) emits</text>
+        <line x1="240" y1="64" x2="269" y2="66" stroke="#188038" stroke-width="1"/>
+      </svg>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Same claim as the moving line, second picture. This is the plot the Streaming 101/102 papers use — and the shape Dataflow's <strong>data freshness</strong> chart is secretly graphing.</div>
+</section>
+<details class="notes" data-title="The watermark as a graph">
+  <summary>Speaker notes &mdash; The watermark as a graph</summary>
+  <div class="n-body"><ul>
+    <li>Read the plot slowly &mdash; this is the treatment the literature uses, and it rewards patience. X is event time, Y is processing time (wall clock, flowing upward). The dashed 45&deg; line is a fantasy world with zero lag: data is processed the instant it happens. The orange curve is reality: at any wall-clock moment (a horizontal line), the watermark says how far event time is "probably complete." The vertical gap between the curve and the ideal line is the current lag.</li>
+    <li>The green circle is the payoff: the moment the watermark crosses event time 08:01, the [08:00, 08:01) window is complete as far as the pipeline can tell and emits its result (Section 4 makes the trigger behind that explicit).</li>
+    <li>Tie it back to the previous slide: a horizontal slice of this plot at one wall-clock moment <em>is</em> the previous slide's moving line. This graph is all of those snapshots stacked.</li>
+    <li>The wobble in the curve matters: lag grows when publishers buffer or the pipeline falls behind, shrinks when it catches up. The gap between ideal and watermark is precisely what Dataflow charts as <strong>data freshness</strong> (metrics slides at the end of this section).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. EVERY STAGE HAS A WATERMARK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Every stage has a watermark</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">It isn't one number for the whole job. The watermark starts at the source and flows through the pipeline — and every aggregation consults the watermark <em>at its own stage</em>.</p>
+  <ul class="body" style="font-size:12.5px">
+    <li>The <strong>source</strong> estimates the first watermark from what it knows about data not yet read (next slide: how Pub/Sub does it)</li>
+    <li>Each transform's <strong>output watermark</strong> = the older of its input watermark and its oldest buffered, not-yet-emitted work — downstream watermarks trail upstream ones</li>
+    <li>Every <code>GroupByKey</code> / <code>Combine</code> emits a window when <em>its</em> input watermark passes the window's end — not just the one next to the source</li>
+    <li>Multiple inputs (<code>Flatten</code>, joins): the <strong>minimum</strong> across them; and a watermark only ever moves forward</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="800" height="140" viewBox="0 0 800 140">
+      <defs><marker id="arrPw" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
+      <rect x="20" y="20" width="160" height="34" rx="17" fill="#9aa0a6"/>
+      <text x="100" y="42" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">ReadFromPubSub</text>
+      <line x1="180" y1="37" x2="248" y2="37" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrPw)"/>
+      <rect x="252" y="20" width="230" height="34" rx="17" fill="#4285F4"/>
+      <text x="367" y="42" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">WindowInto + CombinePerKey</text>
+      <line x1="482" y1="37" x2="550" y2="37" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrPw)"/>
+      <rect x="554" y="20" width="170" height="34" rx="17" fill="#9aa0a6"/>
+      <text x="639" y="42" text-anchor="middle" font-size="11.5" font-weight="600" fill="#fff">WriteToBigQuery</text>
+
+      <g font-family="Roboto Mono,monospace" font-size="10">
+        <line x1="100" y1="60" x2="100" y2="74" stroke="#F29900" stroke-width="2"/>
+        <text x="100" y="90" text-anchor="middle" fill="#F29900" font-weight="600">08:01:31</text>
+        <text x="100" y="104" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">watermark out: estimated</text>
+        <text x="100" y="116" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">from the backlog</text>
+        <line x1="367" y1="60" x2="367" y2="74" stroke="#F29900" stroke-width="2"/>
+        <text x="367" y="90" text-anchor="middle" fill="#F29900" font-weight="600">08:00:58</text>
+        <text x="367" y="104" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">watermark out: held back by</text>
+        <text x="367" y="116" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">windows buffered here, not yet emitted</text>
+        <line x1="639" y1="60" x2="639" y2="74" stroke="#F29900" stroke-width="2"/>
+        <text x="639" y="90" text-anchor="middle" fill="#F29900" font-weight="600">08:00:58</text>
+        <text x="639" y="104" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">the sink sees the aggregation's</text>
+        <text x="639" y="116" text-anchor="middle" font-size="9" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">watermark, not the source's</text>
+      </g>
+      <text x="400" y="136" text-anchor="middle" font-size="9.5" fill="#5f6368">one job, several watermarks — each stage's is a little older than the one upstream</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:12.5px;padding:8px 14px">Batch has all of this too — a file source's watermark simply jumps to +&infin; at end-of-file, so every stage's windows become emittable the moment reading finishes.</div>
+</section>
+<details class="notes" data-title="Every stage has a watermark">
+  <summary>Speaker notes &mdash; Every stage has a watermark</summary>
+  <div class="n-body"><ul>
+    <li>This is the slide that stops "the watermark" from sounding like a Pub/Sub feature. The source only <em>starts</em> it; propagation is generic Beam model (Streaming 102's input/output watermark formulation): every transform has an input watermark (what upstream claims complete) and an output watermark (what it can promise downstream), and the output waits on the transform's own buffered work.</li>
+    <li>Concrete reading of the figure: the source believes everything before 08:01:31 has arrived. The Combine, though, is still holding the [08:00, 08:01) window's partial sums it hasn't emitted yet &mdash; so it can only promise 08:00:58 downstream. The instant it emits that window, its output watermark jumps forward. Aggregations are where watermarks pause.</li>
+    <li>Why students should care: chained aggregations (e.g. per-minute counts re-windowed into per-hour maxima) each fire off their <em>local</em> watermark, in order &mdash; the hourly window can't emit before the minute windows feeding it have. It composes correctly with no extra code; that's the payoff of watermarks being runner metadata rather than user logic.</li>
+    <li>Dataflow's UI shows this per-stage value as "watermark" on each step in the job graph, and the job-level data freshness chart tracks the <em>output</em> end. Deep dive: the Streaming 102 essay (Additional material) &mdash; its watermark-propagation section is the canonical treatment.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. WHERE THE NUMBER COMES FROM: PUB/SUB ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Where the number comes from: Pub/Sub on Dataflow</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">Pub/Sub promises delivery — not order, not completeness. So Dataflow estimates the source watermark from the one thing it <em>can</em> see: the backlog.</p>
+  <ul class="body" style="font-size:12.5px">
+    <li>Dataflow polls a Pub/Sub API that reports the <strong>age of the oldest unacknowledged message</strong> on the subscription — the watermark never claims completeness past work still sitting in the backlog</li>
+    <li>By default that tracks <strong>publish time</strong>; with <code>timestamp_attribute</code>, Dataflow also creates a hidden <strong>tracking subscription</strong> to inspect the <em>event times</em> still in the backlog — so old buffered events hold the watermark back too</li>
+    <li>What no estimate can see: an event <strong>not yet published</strong> (Cy's phone in airplane mode) is in no backlog anywhere — the watermark can pass it, and it arrives <em>late</em></li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="790" height="132" viewBox="0 0 790 132">
+      <defs><marker id="arrPs" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
+      <g font-family="Roboto Mono,monospace" font-size="9.5">
+        <rect x="14" y="14" width="290" height="86" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="26" y="32" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif" font-size="10.5" font-weight="600">subscription backlog (unacked)</text>
+        <rect x="26" y="40" width="180" height="18" rx="4" fill="#fef7e0" stroke="#F29900"/>
+        <text x="34" y="53" fill="#202124">published 08:01:31</text>
+        <text x="214" y="53" fill="#F29900" font-weight="600">&larr; oldest</text>
+        <rect x="26" y="62" width="180" height="18" rx="4" fill="#fff" stroke="#dadce0"/>
+        <text x="34" y="75" fill="#202124">published 08:01:55</text>
+        <rect x="26" y="84" width="180" height="12" rx="4" fill="#fff" stroke="#dadce0"/>
+      </g>
+      <line x1="304" y1="57" x2="370" y2="57" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrPs)"/>
+      <rect x="374" y="38" width="216" height="38" rx="8" fill="#fff" stroke="#F29900" stroke-width="1.6"/>
+      <text x="482" y="55" text-anchor="middle" font-size="10" fill="#202124">nothing older can be complete, so</text>
+      <text x="482" y="69" text-anchor="middle" font-size="10.5" font-family="Roboto Mono,monospace" font-weight="600" fill="#F29900">watermark &asymp; 08:01:31</text>
+      <g>
+        <rect x="618" y="20" width="30" height="52" rx="6" fill="#fff" stroke="#c5221f" stroke-width="1.5"/>
+        <circle cx="633" cy="62" r="2.5" fill="#c5221f"/>
+        <rect x="623" y="27" width="20" height="27" rx="2" fill="#fce8e6"/>
+        <text x="712" y="36" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c5221f">cy: not yet published</text>
+        <text x="712" y="49" text-anchor="middle" font-size="9" fill="#5f6368">in no backlog — invisible</text>
+        <text x="712" y="61" text-anchor="middle" font-size="9" fill="#5f6368">to any estimate</text>
+      </g>
+      <text x="395" y="124" text-anchor="middle" font-size="9.5" fill="#5f6368">the watermark is anchored to the oldest <tspan font-style="italic">visible</tspan> work — what was never sent can't hold it back</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:12.5px;padding:8px 14px">Every source estimates differently (Kafka: per-partition progress; files: what's left to read), but the contract is identical: a best-effort completeness claim, honest enough to act on — never a guarantee.</div>
+</section>
+<details class="notes" data-title="Where the number comes from: Pub/Sub">
+  <summary>Speaker notes &mdash; Where the number comes from: Pub/Sub</summary>
+  <div class="n-body"><ul>
+    <li>Mechanics, in order: (1) the Pub/Sub connector uses a private Pub/Sub API that exposes the age of the oldest unacknowledged message per subscription &mdash; fresher than the public Cloud Monitoring metric; (2) with a custom <code>timestamp_attribute</code>, Dataflow additionally creates a second, <em>tracking</em> subscription and samples the backlog's event-time attribute values to estimate an event-time watermark, since publish order and event order no longer match. Source: the Dataflow docs page "Streaming with Pub/Sub" (linked from Additional material's streaming-pipelines doc).</li>
+    <li>The tracking-subscription detail is also the honest answer to "is this exact?" &mdash; it's sampling a backlog that changes constantly. Treat the watermark as a well-informed estimate with engineering behind it, not folklore &mdash; and still fallible in exactly one direction: events that were never published in time.</li>
+    <li>Cy is that direction: her 08:00 tap sat on her phone until 13:42. No subscription, no backlog, no API could know it existed. This is why "perfect watermark" requires a source that can <em>bound</em> lateness &mdash; and why the late-data policy (two slides ahead) exists at all.</li>
+    <li>If asked about self-hosted runners: same division of labor &mdash; the runner owns watermark tracking, the source's <code>UnboundedReader.getWatermark()</code> supplies the estimate. Nothing about the concept is Dataflow-specific; only this estimation machinery is.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. EARLY, ON TIME, AND LATE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">On time — or late</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">One rule sorts every arriving element: compare its event time to the current watermark.</p>
+  <div class="cols">
+    <div style="flex:0 0 40%">
+      <ul class="body" style="font-size:13.5px">
+        <li>Arrives while the watermark is still <em>behind</em> its window's end &rarr; <strong>on time</strong></li>
+        <li>Arrives after the watermark passed its window's end &rarr; <strong>late</strong></li>
+        <li>Late is <em>defined by</em> the watermark — without a watermark, "late" is meaningless</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div style="font-size:12px;color:#5f6368;line-height:1.7">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#34A853"></span> amy — arrives 08:01, on time<br>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FBBC04"></span> bo — arrives 08:09, on time (barely)<br>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EA4335"></span> cy — arrives 13:42, late
+      </div>
+    </div>
+    <div class="figure">
+      <svg width="450" height="284" viewBox="0 0 450 284">
+        <text x="12" y="16" font-size="10" font-weight="600" fill="#5f6368">where they belong (event time)</text>
+        <rect x="70" y="26" width="180" height="38" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="78" y="40" font-size="9" font-family="Roboto Mono,monospace" font-weight="600" fill="#1a73e8">[08:00, 08:01)</text>
+        <circle cx="98" cy="53" r="6" fill="#34A853"/>
+        <circle cx="216" cy="53" r="6" fill="#FBBC04"/>
+        <circle cx="238" cy="53" r="6" fill="#EA4335"/>
+        <line x1="40" y1="72" x2="430" y2="72" stroke="#9aa0a6" stroke-width="1.2"/>
+        <g font-size="9.5" fill="#5f6368" text-anchor="middle" font-family="Roboto Mono,monospace">
+          <line x1="70" y1="68" x2="70" y2="76" stroke="#9aa0a6"/><text x="70" y="88">08:00</text>
+          <line x1="250" y1="68" x2="250" y2="76" stroke="#9aa0a6"/><text x="250" y="88">08:01</text>
+        </g>
+        <text x="330" y="52" font-size="9.5" fill="#5f6368">all three taps, same minute</text>
+
+        <text x="12" y="122" font-size="10" font-weight="600" fill="#5f6368">when they arrive (processing time)</text>
+        <rect x="40" y="132" width="252" height="70" fill="#e6f4ea" opacity=".6"/>
+        <rect x="292" y="132" width="138" height="70" fill="#fce8e6" opacity=".6"/>
+        <text x="160" y="147" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">on time</text>
+        <text x="368" y="147" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c5221f">late</text>
+        <line x1="292" y1="126" x2="292" y2="210" stroke="#F29900" stroke-width="2.5"/>
+        <text x="292" y="120" text-anchor="middle" font-size="9" font-weight="600" fill="#F29900">watermark passes 08:01</text>
+        <line x1="40" y1="202" x2="430" y2="202" stroke="#9aa0a6" stroke-width="1.2"/>
+        <g font-size="9.5" fill="#5f6368" text-anchor="middle" font-family="Roboto Mono,monospace">
+          <line x1="60" y1="198" x2="60" y2="206" stroke="#9aa0a6"/><text x="60" y="220">08:00</text>
+          <line x1="170" y1="198" x2="170" y2="206" stroke="#9aa0a6"/><text x="170" y="220">08:05</text>
+          <line x1="280" y1="198" x2="280" y2="206" stroke="#9aa0a6"/><text x="280" y="220">08:10</text>
+          <path d="M332 196 L338 208 M342 196 L348 208" stroke="#9aa0a6" fill="none"/>
+          <line x1="400" y1="198" x2="400" y2="206" stroke="#9aa0a6"/><text x="400" y="220">13:42</text>
+        </g>
+        <circle cx="82" cy="178" r="6" fill="#34A853"/>
+        <text x="82" y="166" text-anchor="middle" font-size="8.5" fill="#188038">amy 08:01</text>
+        <circle cx="258" cy="178" r="6" fill="#FBBC04"/>
+        <text x="252" y="166" text-anchor="middle" font-size="8.5" fill="#b06000">bo 08:09</text>
+        <circle cx="400" cy="178" r="6" fill="#EA4335"/>
+        <text x="396" y="166" text-anchor="middle" font-size="8.5" fill="#c5221f">cy 13:42</text>
+
+        <text x="225" y="248" text-anchor="middle" font-size="9.5" fill="#5f6368">same window, three fates — only <tspan font-style="italic">arrival vs. the watermark</tspan> differs;</text>
+        <text x="225" y="262" text-anchor="middle" font-size="9.5" fill="#5f6368">"late" is a property of the race, not of the event</text>
+      </svg>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Same three taps from Section 1 — now the pipeline can <strong>name</strong> which one is a problem, and by how much.</div>
+</section>
+<details class="notes" data-title="On time — or late">
+  <summary>Speaker notes &mdash; On time — or late</summary>
+  <div class="n-body"><ul>
+    <li>Walk the two lanes top to bottom: the top lane is event time &mdash; all three taps sit inside [08:00, 08:01), and nothing about the events themselves differs. The bottom lane is arrival &mdash; the orange marker is the moment the watermark passed 08:01 (about 08:10 wall clock, held back adaptively by real lag). Amy and Bo arrive before that moment: on time. Cy arrives hours after it (note the axis break): late <em>by definition</em>, not by any property of the event itself.</li>
+    <li>Bo being "barely on time" is a feature of the adaptive watermark: because real lag held the watermark back, the window hadn't emitted at wall-clock 08:01 &mdash; the naive emit-at-the-boundary strategy from the start of this section would have dropped him.</li>
+    <li>"Early" firings &mdash; results emitted <em>before</em> the watermark &mdash; also exist, and arrive with triggers in Section 4. Keep this slide to on-time vs. late to avoid overload; the trigger section names all three panes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. WHAT HAPPENS TO LATE DATA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">What happens to late data</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Default policy: late data is <strong>dropped</strong> — Cy's tap never reaches the 08:00 count — unless you allow lateness.</p>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <pre class="code small"><span class="lang">Python</span><span class="kw">from</span> apache_beam.utils.timestamp <span class="kw">import</span> (
+    Duration)
+
+per_minute = events | beam.WindowInto(
+    window.FixedWindows(<span class="kw">60</span>),
+    allowed_lateness=Duration(seconds=<span class="kw">10</span> * <span class="kw">60</span>))
+    <span class="cm"># accept data up to 10 min late; on-time</span>
+    <span class="cm"># result still emits at the watermark</span></pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Default <code>allowed_lateness</code> is <strong>0</strong>: when the watermark passes the window's end, the result emits and the window's state is freed — late arrivals have nowhere to land</li>
+        <li>With lateness: the on-time result still emits at the watermark, <em>nothing is delayed</em> — but the state is retained afterward, and each late arrival emits a correction</li>
+        <li>Once the watermark passes end-of-window + allowed lateness, the window <strong>expires</strong>: state freed, further stragglers dropped. Lateness is a budget of retained state, not a free setting</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure" style="margin-top:4px">
+        <svg width="352" height="240" viewBox="0 0 352 240">
+          <defs><marker id="arrLd" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
+          <rect x="10" y="30" width="150" height="60" rx="8" fill="#fff" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="20" y="48" font-size="9.5" font-family="Roboto Mono,monospace" fill="#1a73e8" font-weight="600">[08:00, 08:01)</text>
+          <text x="20" y="64" font-size="9" font-family="Roboto Mono,monospace" fill="#202124">amy 08:00:12</text>
+          <text x="20" y="78" font-size="9" font-family="Roboto Mono,monospace" fill="#202124">amy 08:00:41</text>
+          <rect x="176" y="42" width="120" height="36" rx="8" fill="none" stroke="#FBBC04" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <text x="236" y="58" text-anchor="middle" font-size="8.5" fill="#b06000">state retained while the</text>
+          <text x="236" y="71" text-anchor="middle" font-size="8.5" fill="#b06000">watermark is &lt; 08:11</text>
+          <line x1="168" y1="18" x2="168" y2="100" stroke="#F29900" stroke-width="2"/>
+          <text x="168" y="12" text-anchor="middle" font-size="8.5" font-weight="600" fill="#F29900">watermark passes 08:01</text>
+
+          <line x1="120" y1="94" x2="120" y2="118" stroke="#34A853" stroke-width="1.4" marker-end="url(#arrLd)"/>
+          <rect x="60" y="122" width="132" height="24" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+          <text x="126" y="138" text-anchor="middle" font-size="9" font-family="Roboto Mono,monospace" fill="#202124">on-time pane &rarr; 2</text>
+
+          <rect x="206" y="96" width="80" height="20" rx="5" fill="#fff" stroke="#EA4335" stroke-width="1.4"/>
+          <text x="246" y="110" text-anchor="middle" font-size="8.5" font-family="Roboto Mono,monospace" fill="#c5221f">cy (late)</text>
+          <line x1="246" y1="116" x2="246" y2="140" stroke="#EA4335" stroke-width="1.4" marker-end="url(#arrLd)"/>
+          <rect x="206" y="144" width="132" height="24" rx="6" fill="#fce8e6" stroke="#EA4335"/>
+          <text x="272" y="160" text-anchor="middle" font-size="9" font-family="Roboto Mono,monospace" fill="#202124">update &rarr; 3</text>
+
+          <g transform="translate(310 30)">
+            <rect x="0" y="6" width="20" height="24" rx="2" fill="none" stroke="#5f6368" stroke-width="1.5"/>
+            <line x1="-4" y1="6" x2="24" y2="6" stroke="#5f6368" stroke-width="1.5"/>
+            <line x1="6" y1="12" x2="6" y2="24" stroke="#5f6368" stroke-width="1.2"/>
+            <line x1="14" y1="12" x2="14" y2="24" stroke="#5f6368" stroke-width="1.2"/>
+          </g>
+          <text x="320" y="76" text-anchor="middle" font-size="8.5" fill="#5f6368">watermark past 08:11:</text>
+          <text x="320" y="88" text-anchor="middle" font-size="8.5" fill="#5f6368">window expired — dropped</text>
+
+          <text x="176" y="200" text-anchor="middle" font-size="9" fill="#5f6368">the on-time result emits at the watermark, as always; cy arrives during</text>
+          <text x="176" y="214" text-anchor="middle" font-size="9" fill="#5f6368">the lateness budget and emits a correction; after expiry — dropped</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:12.5px;padding:8px 14px">Dropping is <strong>silent</strong> correctness loss. Decide a lateness budget on purpose, and watch Dataflow's <code>droppedDueToLateness</code> counter rather than assuming zero.</div>
+</section>
+<details class="notes" data-title="What happens to late data">
+  <summary>Speaker notes &mdash; What happens to late data</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>.withAllowedLateness(Duration.standardMinutes(10))</code>.</li>
+    <li><strong>Precision worth insisting on:</strong> allowed lateness does <em>not</em> postpone the on-time result &mdash; it emits when the watermark passes the window's end, exactly as before. What lateness buys is the window's afterlife: state is retained, and (with the default trigger) each late arrival emits an updated result. When the watermark passes end + lateness, the window <em>expires</em> &mdash; state garbage-collected, later stragglers dropped. So yes: state really is lost at the lateness limit; that's the deliberate trade.</li>
+    <li>Vocabulary note: this deck says a window <em>emits</em> at the watermark and <em>expires</em> at end + lateness &mdash; avoid the ambiguous "closes," which students hear as either one. What corrections <em>contain</em> (a running total? just the new elements?) is the accumulation-mode question &mdash; parked to Section 4, where it belongs.</li>
+    <li>Python's <code>allowed_lateness</code> is fully supported &mdash; older course material claimed otherwise; that correction stands.</li>
+    <li>How to pick the budget: look at the actual lag distribution (data freshness chart, next slide) and the business's tolerance. A 10-minute budget catches Bo's subway ride; catching Cy's transatlantic flight would mean holding every window's state for six hours &mdash; probably not worth it for a dashboard, possibly worth it for billing. It's a genuine business decision, which is why Beam won't make it for you.</li>
+    <li>Cy's five-hour lateness with a 10-minute budget: still dropped &mdash; but now <em>by explicit policy</em>, with a metric counting it, not by silent default.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 26. WATCHING THE WATERMARK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Watching the watermark: Dataflow's two metrics</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">You never see "the watermark" as a number — you see its shadow in two Job Metrics charts.</p>
+  <ul class="body" style="font-size:14px">
+    <li><strong>Data freshness</strong>: how far real time has pulled ahead of the watermark — "how stale is the newest complete result?"</li>
+    <li><strong>System latency</strong>: how long an element currently takes to get through — "is the pipeline itself slow?"</li>
+    <li>Dataflow's autoscaler reads the same signals you do</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="760" height="196" viewBox="0 0 760 196">
+      <rect x="4" y="4" width="752" height="188" rx="10" fill="#f8f9fa" stroke="#dadce0"/>
+      <text x="24" y="28" font-size="11" font-weight="600" fill="#5f6368">Job Metrics</text>
+
+      <rect x="24" y="38" width="340" height="144" rx="6" fill="#fff" stroke="#dadce0"/>
+      <text x="36" y="58" font-size="10.5" font-weight="600" fill="#202124">Data freshness</text>
+      <text x="352" y="58" text-anchor="end" font-size="9" fill="#5f6368">now &minus; watermark</text>
+      <polyline points="36,112 76,104 116,110 156,96 196,104 236,88 276,100 328,92" fill="none" stroke="#F29900" stroke-width="2"/>
+      <circle cx="328" cy="92" r="3.5" fill="#F29900"/>
+      <text x="322" y="84" text-anchor="end" font-size="9.5" font-weight="600" fill="#F29900">9 min</text>
+      <text x="36" y="136" font-size="9" fill="#202124" font-weight="600">Example: it's 08:10 and freshness reads 9 min</text>
+      <text x="36" y="150" font-size="9" fill="#5f6368">&rarr; the watermark sits at 08:01: the [08:00, 08:01) result has</text>
+      <text x="36" y="162" font-size="9" fill="#5f6368">only just emitted. The dashboard runs ~9 minutes behind live.</text>
+
+      <rect x="396" y="38" width="340" height="144" rx="6" fill="#fff" stroke="#dadce0"/>
+      <text x="408" y="58" font-size="10.5" font-weight="600" fill="#202124">System latency</text>
+      <text x="724" y="58" text-anchor="end" font-size="9" fill="#5f6368">longest an element has been in flight</text>
+      <polyline points="408,108 448,102 488,106 528,100 568,104 608,98 648,102 700,100" fill="none" stroke="#4285F4" stroke-width="2"/>
+      <circle cx="700" cy="100" r="3.5" fill="#4285F4"/>
+      <text x="694" y="92" text-anchor="end" font-size="9.5" font-weight="600" fill="#1a73e8">45 s</text>
+      <text x="408" y="136" font-size="9" fill="#202124" font-weight="600">Example: system latency reads 45 s</text>
+      <text x="408" y="150" font-size="9" fill="#5f6368">&rarr; the slowest element now in flight entered 45 s ago. With freshness</text>
+      <text x="408" y="162" font-size="9" fill="#5f6368">at 9 min, processing is fast — the staleness is arrival lag, not the pipeline.</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Freshness answers "is my <strong>data</strong> behind?"; latency answers "is my <strong>pipeline</strong> behind?" You need both to diagnose which one is the problem.</div>
+</section>
+<details class="notes" data-title="Watching the watermark">
+  <summary>Speaker notes &mdash; Watching the watermark</summary>
+  <div class="n-body"><ul>
+    <li>Show a real streaming job's Job Metrics page here if one is available &mdash; these two charts are on the job's page in the console, and connecting them to the watermark concept is this slide's entire job.</li>
+    <li>Data freshness is literally the vertical gap from the watermark-as-a-graph plot, charted over wall-clock time. When the freshness line climbs, the watermark is falling behind real time &mdash; results for recent windows aren't out yet.</li>
+    <li>Walk the on-slide example as one story: at 08:10 freshness reads 9 min (watermark at 08:01 &mdash; the 08:00 window just emitted) while system latency reads 45 s (elements clear the pipeline fast). Conclusion in one breath: <em>the pipeline is healthy; the data is just arriving late</em> &mdash; a publisher-side or network problem, and adding workers would change nothing. The contrasting story: freshness 9 min <em>and</em> latency 7 min means elements themselves crawl &mdash; now it <em>is</em> the pipeline. Same first number, opposite diagnosis; that's why you need both.</li>
+    <li>The two can move independently, and that independence is diagnostic: a publisher outage raises freshness while latency stays flat (nothing to process, but what arrives moves fast); a slow external call in a DoFn raises latency first. The next slide's 2&times;2 table turns the combinations into diagnoses.</li>
+    <li>These charts return in the Monitoring &amp; Troubleshooting module; here the goal is just to connect them to the watermark concept &mdash; the watermark is not hidden, it's <em>published</em>, as freshness.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. READING THE TWO METRICS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Reading the two metrics together</h1>
+  <table class="tbl" style="font-size:13.5px">
+    <tr><th style="width:20%"></th><th style="width:37%">Data freshness <strong>stable</strong></th><th>Data freshness <strong>climbing</strong> (results growing staler)</th></tr>
+    <tr>
+      <td><strong>System latency stable</strong></td>
+      <td><span class="yes">Ideal</span> — keeping pace with input</td>
+      <td><strong style="color:#b06000">Backlog growing</strong> — input outruns throughput (a flash sale doubles the click stream). Each element still processes quickly; there are just more than the workers can drain, so the watermark falls behind. Autoscaling's home case</td>
+    </tr>
+    <tr>
+      <td><strong>System latency climbing</strong> (elements taking longer)</td>
+      <td><strong style="color:#b06000">Processing slowing</strong> — each element takes longer (an enrichment API degrading, a growing hot key). Volume is unchanged and results are still on time — but staleness follows if it keeps slowing</td>
+      <td><span class="no">Risk</span> — slower per element <em>and</em> falling behind: the two compound. Or the pipeline is <strong>stuck</strong>, not slow — a poison message in endless retry halts the watermark entirely. Investigate now</td>
+    </tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout warn" style="font-size:13.5px">Note the asymmetry: autoscaling rescues the top-right cell but not the bottom-left — workers waiting on a slow external call idle their CPUs, so no scale-up signal ever comes. Details in Monitoring &amp; Troubleshooting.</div>
+</section>
+<details class="notes" data-title="Reading the two metrics together">
+  <summary>Speaker notes &mdash; Reading the two metrics together</summary>
+  <div class="n-body"><ul>
+    <li>Walk one story per cell:
+      <ul>
+        <li><strong>Top-right (traffic spike):</strong> a flash sale doubles the click stream. Each element still processes quickly (latency stable) but the backlog grows, so the watermark &mdash; and freshness &mdash; falls behind. This is the case autoscaling exists for.</li>
+        <li><strong>Bottom-left (slow external API):</strong> a DoFn calls an enrichment service that's degrading. Elements take longer and longer (latency climbs) even though input volume is unchanged. Note: autoscaling won't help if workers are mostly <em>waiting</em> &mdash; CPU is idle, so no scale-up signal.</li>
+        <li><strong>Bottom-right (stuck or drowning):</strong> both climbing &mdash; either genuinely falling behind on both fronts, or a stuck DoFn (deadlock, infinite retry on a poison message) that halts the watermark entirely. Either way: investigate now.</li>
+      </ul>
+    </li>
+    <li>This table is worth photographing &mdash; it's the fastest first-pass diagnosis of any unhealthy streaming job, before opening a single log.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 28. DIVIDER: TRIGGERS ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 4</div>
+    <h1>Triggers</h1>
+    <div class="sub"><em>When</em> — and how often — to emit results, and <em>how</em> successive results relate. The policy layer on top of windows and watermarks.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>Streams &amp; time</span><span>Windows</span><span>Watermarks</span><span class="current">Triggers</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Triggers">
+  <summary>Speaker notes &mdash; Section 4: Triggers</summary>
+  <div class="n-body"><ul>
+    <li>Arc: the problem (the dashboard can't wait an hour) &rarr; the default trigger made visible &rarr; early firings &rarr; late firings, which force the accumulation-mode question &rarr; the sink-driven decision rule &rarr; triggers that ignore the watermark entirely (processing-time and data-driven, closing the GlobalWindows loop) &rarr; the consolidated pipeline and best practices.</li>
+    <li>Vocabulary to establish early and use relentlessly: <strong>window</strong> (the group), <strong>firing</strong> (the moment), <strong>pane</strong> (the emitted result). One window can emit many panes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 29. THE DASHBOARD CAN'T WAIT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The dashboard can't wait</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Product upgrades the ask: hourly totals — but "don't make me stare at a blank tile for an hour, and do fix the number if stragglers arrive."</p>
+  <ul class="body" style="font-size:14px">
+    <li>One window now wants <strong>three kinds of output</strong>: early estimates while it's open, a best answer at the watermark, corrections for late data</li>
+    <li>The watermark alone gives only the middle one</li>
+    <li>A <strong>trigger</strong> is the policy for when a window emits a result pane</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="figure">
+    <svg width="800" height="170" viewBox="0 0 800 170">
+      <rect x="20" y="26" width="560" height="44" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="32" y="53" font-size="11" font-family="Roboto Mono,monospace" font-weight="600" fill="#1a73e8">[08:00, 09:00)</text>
+      <line x1="580" y1="12" x2="580" y2="84" stroke="#F29900" stroke-width="2"/>
+      <text x="580" y="8" text-anchor="middle" font-size="9" font-weight="600" fill="#F29900">watermark passes 09:00</text>
+
+      <g>
+        <line x1="240" y1="48" x2="240" y2="92" stroke="#9aa0a6" stroke-width="1.4"/>
+        <polygon points="240,92 240,104 252,98" fill="#9aa0a6"/>
+        <line x1="400" y1="48" x2="400" y2="92" stroke="#9aa0a6" stroke-width="1.4"/>
+        <polygon points="400,92 400,104 412,98" fill="#9aa0a6"/>
+        <line x1="580" y1="84" x2="580" y2="92" stroke="#34A853" stroke-width="1.4"/>
+        <polygon points="580,92 580,104 592,98" fill="#34A853"/>
+        <line x1="680" y1="48" x2="680" y2="92" stroke="#EA4335" stroke-width="1.4"/>
+        <polygon points="680,92 680,104 692,98" fill="#EA4335"/>
+      </g>
+      <text x="240" y="118" text-anchor="middle" font-size="9.5" fill="#5f6368">early: estimate</text>
+      <text x="400" y="118" text-anchor="middle" font-size="9.5" fill="#5f6368">early: estimate</text>
+      <text x="580" y="118" text-anchor="middle" font-size="9.5" font-weight="600" fill="#188038">on time: best answer</text>
+      <text x="700" y="118" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c5221f">late: correction</text>
+
+      <g font-family="Roboto Mono,monospace" font-size="11">
+        <rect x="216" y="128" width="52" height="24" rx="5" fill="#f8f9fa" stroke="#dadce0"/><text x="242" y="144" text-anchor="middle" fill="#5f6368">118</text>
+        <rect x="376" y="128" width="52" height="24" rx="5" fill="#f8f9fa" stroke="#dadce0"/><text x="402" y="144" text-anchor="middle" fill="#5f6368">253</text>
+        <rect x="552" y="128" width="56" height="24" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="580" y="144" text-anchor="middle" font-weight="700" fill="#188038">347</text>
+        <rect x="656" y="128" width="52" height="24" rx="5" fill="#fce8e6" stroke="#EA4335"/><text x="682" y="144" text-anchor="middle" fill="#c5221f">348</text>
+      </g>
+      <text x="460" y="168" text-anchor="middle" font-size="9.5" fill="#5f6368">each firing emits a pane — the dashboard tile updates: 118 &rarr; 253 &rarr; 347 &rarr; 348</text>
+    </svg>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Four words carry this section — the <strong>window</strong> is the group; a trigger <strong>fires</strong> (the moment); each firing emits a <strong>pane</strong>, one result element for that window; the window <strong>expires</strong> when its allowed lateness runs out. One window, many panes.</div>
+</section>
+<details class="notes" data-title="The dashboard can't wait">
+  <summary>Speaker notes &mdash; The dashboard can't wait</summary>
+  <div class="n-body"><ul>
+    <li><strong>Vocabulary beat &mdash; do not skip:</strong> window (the group), firing (the moment a trigger goes off), pane (the result a firing emits). The Java trigger API is unreadable without "pane," and even the Python one talks about panes in its accumulation modes. The original deck never named it; naming it now saves the rest of the section.</li>
+    <li>The three kinds of output map exactly onto the watermark: <em>before</em> it (early panes &mdash; speculative), <em>at</em> it (the on-time pane &mdash; the watermark's best answer), <em>after</em> it (late panes &mdash; corrections, only if lateness is allowed). Triggers are the knob for the before and after; the watermark still anchors the middle.</li>
+    <li>The tile sequence at the bottom is the whole scenario in four numbers: 118 and 253 are honest partials, 347 is the watermark-complete answer, 348 is a straggler correction. Ask which number was "wrong" &mdash; none of them; each was the best answer <em>at its moment</em>. That reframing is what makes accumulation modes (two slides ahead) feel natural.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 30. THE DEFAULT TRIGGER ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The default trigger: fire once at the watermark</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">What you've been running all along, written out explicitly:</p>
+  <div class="cols">
+    <div style="flex:0 0 54%">
+      <pre class="code small"><span class="lang">Python</span><span class="kw">from</span> apache_beam.transforms.trigger <span class="kw">import</span> (
+    AfterWatermark, AccumulationMode)
+
+per_minute = events | beam.WindowInto(
+    window.FixedWindows(<span class="kw">60</span>),
+    trigger=AfterWatermark(),
+    accumulation_mode=AccumulationMode.DISCARDING)</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li>No trigger specified = <code>AfterWatermark()</code>: each window fires once, when the watermark passes its end — one pane, its only result</li>
+        <li>With the defaults (<code>allowed_lateness=0</code>), that pane is also the <em>only</em> pane, and late data is dropped</li>
+        <li>In Python, naming a trigger explicitly also requires naming <code>accumulation_mode</code> — Beam refuses to guess how panes relate</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure" style="margin-top:14px">
+        <svg width="330" height="190" viewBox="0 0 330 190">
+          <rect x="14" y="28" width="240" height="40" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="26" y="53" font-size="10.5" font-family="Roboto Mono,monospace" font-weight="600" fill="#1a73e8">[08:00, 08:01)</text>
+          <line x1="254" y1="14" x2="254" y2="80" stroke="#F29900" stroke-width="2"/>
+          <text x="254" y="10" text-anchor="middle" font-size="8.5" font-weight="600" fill="#F29900">watermark</text>
+          <line x1="254" y1="80" x2="254" y2="98" stroke="#34A853" stroke-width="1.4"/>
+          <polygon points="254,98 254,110 266,104" fill="#34A853"/>
+          <line x1="254" y1="112" x2="254" y2="124" stroke="#34A853" stroke-width="1.2"/>
+          <rect x="196" y="128" width="116" height="26" rx="6" fill="#e6f4ea" stroke="#34A853"/>
+          <text x="254" y="145" text-anchor="middle" font-size="10" font-family="Roboto Mono,monospace" fill="#202124">('home', 2)</text>
+          <text x="165" y="180" text-anchor="middle" font-size="9.5" fill="#5f6368">one window, one pane — everything so far was this</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13px;padding:9px 14px">Defaults are a real policy: <em>complete-ish, once, drop the rest.</em> Perfect for many pipelines — now you can change it deliberately.</div>
+</section>
+<details class="notes" data-title="The default trigger">
+  <summary>Speaker notes &mdash; The default trigger</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>.triggering(AfterWatermark.pastEndOfWindow())</code> &mdash; and Java likewise requires an explicit accumulation call (<code>.discardingFiredPanes()</code> or <code>.accumulatingFiredPanes()</code>) once you set any trigger.</li>
+    <li>Imports used through this section, so they're stated once: <code>from apache_beam.transforms.trigger import AfterWatermark, AfterProcessingTime, AfterCount, Repeatedly, AfterAny, AccumulationMode</code>.</li>
+    <li>Why Beam refuses to guess the accumulation mode: with one firing per window it doesn't matter &mdash; but the only reason to name a trigger is to get <em>more</em> firings, and then it matters enormously (slides ahead). Forcing the choice at the same moment you take control of firing is the API protecting you.</li>
+    <li>Pedagogical point of the slide: nothing changes. This code behaves identically to the bare <code>WindowInto</code> from Section 2 &mdash; the defaults were always a policy; now they're visible and editable.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 31. EARLY FIRINGS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Early firings: estimates before the watermark</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Hourly window, but show a number every 30 seconds of wall-clock time while it fills.</p>
+  <div class="cols">
+    <div style="flex:0 0 54%">
+      <pre class="code small"><span class="lang">Python</span>per_hour = events | beam.WindowInto(
+    window.FixedWindows(<span class="kw">3600</span>),
+    trigger=AfterWatermark(
+        early=AfterProcessingTime(<span class="kw">30</span>)),
+        <span class="cm"># fire every 30 s until the watermark</span>
+    accumulation_mode=AccumulationMode.ACCUMULATING,
+    allowed_lateness=Duration(seconds=<span class="kw">0</span>))</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13px">
+        <li><code>early=</code> decorates the watermark trigger with extra firings <em>before</em> it</li>
+        <li><code>AfterProcessingTime(30)</code> runs on the worker's clock — the dashboard's refresh rate, independent of event time</li>
+        <li>Each pane is a <strong>new element</strong> emitted downstream — a new row, a new message. Nothing is updated in place; the consumer keeps the latest</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure" style="margin-top:8px">
+        <svg width="340" height="212" viewBox="0 0 340 212">
+          <rect x="10" y="24" width="252" height="38" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+          <text x="20" y="48" font-size="10" font-family="Roboto Mono,monospace" font-weight="600" fill="#1a73e8">[08:00, 09:00)</text>
+          <line x1="262" y1="10" x2="262" y2="72" stroke="#F29900" stroke-width="2"/>
+          <text x="262" y="6" text-anchor="middle" font-size="8.5" font-weight="600" fill="#F29900">watermark</text>
+          <g>
+            <line x1="140" y1="44" x2="140" y2="84" stroke="#9aa0a6" stroke-width="1.3"/>
+            <polygon points="140,84 140,95 151,90" fill="#9aa0a6"/>
+            <line x1="200" y1="44" x2="200" y2="84" stroke="#9aa0a6" stroke-width="1.3"/>
+            <polygon points="200,84 200,95 211,90" fill="#9aa0a6"/>
+            <line x1="262" y1="72" x2="262" y2="84" stroke="#34A853" stroke-width="1.3"/>
+            <polygon points="262,84 262,95 273,90" fill="#34A853"/>
+          </g>
+          <g font-family="Roboto Mono,monospace" font-size="9.5">
+            <rect x="116" y="100" width="48" height="22" rx="5" fill="#f8f9fa" stroke="#dadce0"/><text x="140" y="115" text-anchor="middle" fill="#5f6368">118</text>
+            <rect x="176" y="100" width="48" height="22" rx="5" fill="#f8f9fa" stroke="#dadce0"/><text x="200" y="115" text-anchor="middle" fill="#5f6368">253</text>
+            <rect x="230" y="100" width="90" height="22" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="275" y="115" text-anchor="middle" fill="#188038" font-weight="700">347 final</text>
+          </g>
+          <text x="140" y="136" text-anchor="middle" font-size="8.5" fill="#5f6368">+30 s</text>
+          <text x="200" y="136" text-anchor="middle" font-size="8.5" fill="#5f6368">+60 s</text>
+          <g>
+            <rect x="60" y="150" width="230" height="48" rx="8" fill="#fff" stroke="#dadce0"/>
+            <text x="74" y="168" font-size="9" fill="#5f6368">dashboard tile — shows the latest pane received</text>
+            <text x="74" y="188" font-size="13" font-family="Roboto Mono,monospace" font-weight="600" fill="#202124">118 &rarr; 253 &rarr; 347</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Early firings trade compute for freshness — the aggregation reruns per firing. Combiner-friendly aggregations (Module 5) keep that cheap.</div>
+</section>
+<details class="notes" data-title="Early firings">
+  <summary>Speaker notes &mdash; Early firings</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>AfterWatermark.pastEndOfWindow().withEarlyFirings(AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(30)))</code>.</li>
+    <li><strong>Be precise about what the pipeline actually does &mdash; students misread this:</strong> every 30 s the trigger fires and the pipeline emits a <em>new element</em> with the revised aggregate &mdash; a new BigQuery row, a new Pub/Sub message. The pipeline never reaches out and updates a tile; three firings = three elements downstream. It's the <em>consumer</em> (the dashboard query) that must pick the most recent one &mdash; which is why the sink pattern on the accumulation-mode slide matters.</li>
+    <li><strong>Why ACCUMULATING here:</strong> since the consumer keeps only the latest pane, each pane must be the full running value &mdash; 118, then 253 (not 135), then 347. The decision rule lands formally two slides ahead; this is its first sighting in the wild.</li>
+    <li>Processing time is the right clock for a refresh rate &mdash; "every 30 seconds of <em>our</em> time" &mdash; precisely because it shouldn't care how event time is distributed inside the window.</li>
+    <li>Note the explicit <code>allowed_lateness=0</code>: early firings and lateness are independent knobs. This slide adds only the "before" panes; the "after" panes come next.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 32. LATE FIRINGS + ACCUMULATION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Late firings, and the accumulation question</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">Python</span>per_hour = events | beam.WindowInto(
+    window.FixedWindows(<span class="kw">3600</span>),
+    trigger=AfterWatermark(
+        early=AfterProcessingTime(<span class="kw">30</span>),
+        late=AfterCount(<span class="kw">1</span>)),
+        <span class="cm"># re-fire for each late element</span>
+    allowed_lateness=Duration(seconds=<span class="kw">2</span> * <span class="kw">3600</span>),
+    accumulation_mode=AccumulationMode.ACCUMULATING)</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li><code>late=</code> adds firings <em>after</em> the watermark, for as long as <code>allowed_lateness</code> keeps the window alive</li>
+        <li>This window now emits many panes — so what's <em>in</em> each pane? That's the <strong>accumulation mode</strong></li>
+        <li><strong>ACCUMULATING</strong>: every pane = everything so far. <strong>DISCARDING</strong>: every pane = only what's new since the last pane</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure" style="margin-top:2px">
+        <svg width="350" height="248" viewBox="0 0 350 248">
+          <g>
+            <line x1="30" y1="30" x2="330" y2="30" stroke="#dadce0" stroke-width="1.4"/>
+            <line x1="90"  y1="22" x2="90"  y2="38" stroke="#9aa0a6" stroke-width="2"/>
+            <line x1="170" y1="22" x2="170" y2="38" stroke="#9aa0a6" stroke-width="2"/>
+            <line x1="250" y1="22" x2="250" y2="38" stroke="#34A853" stroke-width="2.4"/>
+            <line x1="310" y1="22" x2="310" y2="38" stroke="#EA4335" stroke-width="2.4"/>
+            <text x="90"  y="14" text-anchor="middle" font-size="8.5" fill="#5f6368">early</text>
+            <text x="170" y="14" text-anchor="middle" font-size="8.5" fill="#5f6368">early</text>
+            <text x="250" y="14" text-anchor="middle" font-size="8.5" font-weight="600" fill="#188038">watermark</text>
+            <text x="310" y="14" text-anchor="middle" font-size="8.5" font-weight="600" fill="#c5221f">late</text>
+          </g>
+          <g font-size="8.5" fill="#5f6368">
+            <text x="90"  y="52" text-anchor="middle">sees [5, 8]</text>
+            <text x="170" y="52" text-anchor="middle">then [3, 15]</text>
+            <text x="250" y="52" text-anchor="middle">then [9]</text>
+            <text x="310" y="52" text-anchor="middle">then [4]</text>
+          </g>
+
+          <text x="30" y="86" font-size="10" font-weight="600" fill="#188038">ACCUMULATING — every pane is everything so far</text>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="30"  y="94" width="66"  height="22" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="63"  y="109" text-anchor="middle" fill="#202124">[5,8]</text>
+            <rect x="104" y="94" width="88"  height="22" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="148" y="109" text-anchor="middle" fill="#202124">[5,8,3,15]</text>
+            <rect x="200" y="94" width="100" height="22" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="250" y="109" text-anchor="middle" fill="#202124">[5,8,3,15,9]</text>
+          </g>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="30" y="122" width="118" height="22" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="89" y="137" text-anchor="middle" fill="#202124">[5,8,3,15,9,4]</text>
+            <text x="160" y="137" font-size="8.5" fill="#5f6368" font-family="Google Sans,Roboto,sans-serif">&larr; the late pane, sum = 44</text>
+          </g>
+
+          <text x="30" y="176" font-size="10" font-weight="600" fill="#b06000">DISCARDING — every pane is only what's new</text>
+          <g font-family="Roboto Mono,monospace" font-size="8.5">
+            <rect x="30"  y="184" width="66" height="22" rx="5" fill="#fef7e0" stroke="#FBBC04"/><text x="63"  y="199" text-anchor="middle" fill="#202124">[5,8]</text>
+            <rect x="104" y="184" width="66" height="22" rx="5" fill="#fef7e0" stroke="#FBBC04"/><text x="137" y="199" text-anchor="middle" fill="#202124">[3,15]</text>
+            <rect x="178" y="184" width="50" height="22" rx="5" fill="#fef7e0" stroke="#FBBC04"/><text x="203" y="199" text-anchor="middle" fill="#202124">[9]</text>
+            <rect x="236" y="184" width="50" height="22" rx="5" fill="#fef7e0" stroke="#FBBC04"/><text x="261" y="199" text-anchor="middle" fill="#202124">[4]</text>
+          </g>
+          <text x="30" y="232" font-size="8.5" fill="#5f6368">same firings, different pane contents — the consumer adds them up</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:12.5px;padding:8px 14px">Accumulation only matters when a trigger fires more than once — which is exactly why it lives here and not in the windows section.</div>
+</section>
+<details class="notes" data-title="Late firings + accumulation">
+  <summary>Speaker notes &mdash; Late firings + accumulation</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>.withLateFirings(AfterPane.elementCountAtLeast(1))</code>, then <code>.accumulatingFiredPanes()</code> / <code>.discardingFiredPanes()</code>.</li>
+    <li>Walk the numbers once for each mode &mdash; they're chosen so the totals differ visibly. Accumulating: 13 &rarr; 31 &rarr; 40 &rarr; 44, each pane the full answer so far. Discarding: 13 &rarr; 18 &rarr; 9 &rarr; 4, non-overlapping increments that <em>sum</em> to 44. Both are correct; they're answers to different consumers &mdash; next slide.</li>
+    <li><strong>Cost note, said here and tabled next slide:</strong> ACCUMULATING holds all pane input in window state until the window closes &mdash; wide windows plus accumulating mode is a real memory cost. Discarding lets state flush at each firing.</li>
+    <li>There is a third mode in the model (RETRACTING &mdash; emit a withdrawal of the previous pane, then the new one); it's long-standing model theory but not generally available in the SDKs &mdash; mention only if asked.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 33. CHOOSING AN ACCUMULATION MODE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Choosing an accumulation mode: look at your sink</h1>
+  <table class="tbl" style="font-size:14.5px">
+    <tr><th style="width:44%">Your sink / consumer</th><th style="width:20%">Mode</th><th>Why</th></tr>
+    <tr>
+      <td>A reader that keeps the <strong>latest</strong> — dashboard tile; BigQuery rows read through a "newest pane per window" view</td>
+      <td><strong style="color:#188038">ACCUMULATING</strong></td>
+      <td>Each pane is the complete current answer; the reader keeps the newest and can ignore the rest</td>
+    </tr>
+    <tr>
+      <td>A reader that <strong>adds</strong> — append-only log, downstream sum, Pub/Sub of deltas; BigQuery view that sums panes per window</td>
+      <td><strong style="color:#b06000">DISCARDING</strong></td>
+      <td>Panes are non-overlapping increments; consumer adds them up</td>
+    </tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout good" style="font-size:14px">Ask "what does the <strong>reader</strong> of my output do with two panes for the same window?" If it keeps the latest — accumulate. If it adds — discard. (Discarding suits associative, commutative aggregations; it also keeps state small on wide windows.)</div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:9px 14px">Streaming writes to BigQuery <strong>append</strong> — they don't update in place. Write every pane as its own row (window start + pane timestamp), and put the mode's logic in a view: latest-per-window for accumulating, <code>SUM</code>-per-window for discarding.</div>
+</section>
+<details class="notes" data-title="Choosing an accumulation mode">
+  <summary>Speaker notes &mdash; Choosing an accumulation mode</summary>
+  <div class="n-body"><ul>
+    <li><strong>Wrong pairings are the classic silent bug &mdash; walk both failures with the previous slide's numbers:</strong>
+      <ul>
+        <li>Accumulating panes into a <em>summing</em> consumer: it adds 13 + 31 + 40 + 44 = 128 &mdash; massive double counting, and the number even looks plausible.</li>
+        <li>Discarding panes into an <em>overwriting</em> tile: the tile shows 4 (the last pane) where the total is 44 &mdash; the dashboard mysteriously "loses" traffic at every refresh.</li>
+      </ul>
+    </li>
+    <li>Neither failure raises an error anywhere &mdash; pipeline healthy, sink healthy, numbers wrong. That's why the rule is worth memorizing as a sentence: <em>keeps the latest &rarr; accumulate; adds &rarr; discard</em>.</li>
+    <li><strong>Spell out the BigQuery mechanics, because "the tile replaces its number" hides them:</strong> the pipeline appends one row per pane &mdash; streaming inserts can't update rows, and an upsert/<code>MERGE</code> per firing would be fighting the tool. Schema: <code>window_start, pane_ts, page, views</code>. Accumulating: the dashboard reads a view like <code>SELECT ... QUALIFY ROW_NUMBER() OVER (PARTITION BY window_start, page ORDER BY pane_ts DESC) = 1</code>. Discarding: the view is <code>SELECT window_start, page, SUM(views) ... GROUP BY ...</code>. A Pub/Sub topic of deltas feeding another pipeline is the most common DISCARDING consumer.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 34. TRIGGERS WITHOUT WATERMARKS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">Triggers without watermarks</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14px">Scenario: a running total of orders since launch — one endless window, results on <em>our</em> schedule: every 100 orders or every 60 seconds, whichever comes first.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="code small"><span class="lang">Python</span>running = orders | beam.WindowInto(
+    window.GlobalWindows(),
+    trigger=Repeatedly(
+        AfterAny(AfterCount(<span class="kw">100</span>),
+                 AfterProcessingTime(<span class="kw">60</span>))),
+    accumulation_mode=AccumulationMode.ACCUMULATING)</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li><code>AfterCount</code> (data-driven) and <code>AfterProcessingTime</code> ignore event time entirely</li>
+        <li><code>AfterAny</code> / <code>AfterAll</code> / <code>AfterEach</code> compose them; <code>Repeatedly(...)</code> keeps a trigger re-arming forever</li>
+        <li>This is the legal way to aggregate an unbounded stream in the global window — the trigger supplies what the watermark can't</li>
+      </ul>
+    </div>
+    <div>
+      <div class="figure" style="margin-top:10px">
+        <svg width="340" height="196" viewBox="0 0 340 196">
+          <rect x="8" y="30" width="324" height="40" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5" stroke-dasharray="7 5"/>
+          <text x="20" y="55" font-size="10" font-family="Roboto Mono,monospace" font-weight="600" fill="#1a73e8">GlobalWindows — never ends</text>
+          <g>
+            <line x1="80"  y1="52" x2="80"  y2="92" stroke="#9aa0a6" stroke-width="1.3"/><polygon points="80,92 80,103 91,98" fill="#9aa0a6"/>
+            <line x1="170" y1="52" x2="170" y2="92" stroke="#9aa0a6" stroke-width="1.3"/><polygon points="170,92 170,103 181,98" fill="#9aa0a6"/>
+            <line x1="280" y1="52" x2="280" y2="92" stroke="#9aa0a6" stroke-width="1.3"/><polygon points="280,92 280,103 291,98" fill="#9aa0a6"/>
+          </g>
+          <text x="80"  y="116" text-anchor="middle" font-size="8.5" fill="#5f6368">100 elements</text>
+          <text x="170" y="116" text-anchor="middle" font-size="8.5" fill="#5f6368">60 s (quiet spell)</text>
+          <text x="280" y="116" text-anchor="middle" font-size="8.5" fill="#5f6368">100 elements</text>
+          <g font-family="Roboto Mono,monospace" font-size="9.5">
+            <rect x="52"  y="128" width="56" height="24" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="80"  y="144" text-anchor="middle" fill="#202124">100</text>
+            <rect x="142" y="128" width="56" height="24" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="170" y="144" text-anchor="middle" fill="#202124">187</text>
+            <rect x="252" y="128" width="56" height="24" rx="5" fill="#e6f4ea" stroke="#34A853"/><text x="280" y="144" text-anchor="middle" fill="#202124">287</text>
+          </g>
+          <text x="170" y="182" text-anchor="middle" font-size="9" fill="#5f6368">a growing total, emitted on a schedule the data and clock set</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout warn" style="font-size:12.5px;padding:8px 14px"><code>AfterCount(100)</code> alone strands elements 1&ndash;99 of a slow stream forever — nothing fires until the count is met. Compose a time-based trigger alongside it, as here.</div>
+</section>
+<details class="notes" data-title="Triggers without watermarks">
+  <summary>Speaker notes &mdash; Triggers without watermarks</summary>
+  <div class="n-body"><ul>
+    <li>Java: <code>Repeatedly.forever(AfterFirst.of(AfterPane.elementCountAtLeast(100), AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(60))))</code>.</li>
+    <li>This closes the loop from the window-choosing table: "over everything, on my own schedule" = <code>GlobalWindows</code> + a repeated trigger. The watermark never passes the global window's end (there isn't one), so without a trigger this aggregation would be the illegal construction from Section 2 &mdash; the trigger is what makes it legal.</li>
+    <li><code>Repeatedly</code> matters: most triggers fire once and are done; wrapping in <code>Repeatedly(...)</code> re-arms after every firing. Forgetting it yields exactly one pane, ever &mdash; a classic head-scratcher.</li>
+    <li>If a student asks about micro-batching: it's just processing-time windows/triggers &mdash; Beam contains it as a special case rather than being built on it.</li>
+    <li>Per-record custom firing logic beyond these (e.g., "fire when I see a FLUSH record") is <strong>State and Timers</strong> territory &mdash; next module. Second plant.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 35. THE WHOLE DASHBOARD, ANNOTATED ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1 style="margin-bottom:10px">The whole dashboard, annotated</h1>
+  <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python</span>per_minute = (p
+    | beam.io.ReadFromPubSub(subscription=SUB,
+                             timestamp_attribute=<span class="st">"event_ts"</span>)  <span class="cm"># WHERE time comes from</span>
+    | beam.Map(json.loads)
+    | beam.WindowInto(
+          window.FixedWindows(<span class="kw">60</span>),                    <span class="cm"># WHERE in event time</span>
+          trigger=AfterWatermark(                     <span class="cm"># WHEN to emit:</span>
+              early=AfterProcessingTime(<span class="kw">30</span>),          <span class="cm">#   estimates,</span>
+              late=AfterCount(<span class="kw">1</span>)),                    <span class="cm">#   corrections</span>
+          allowed_lateness=Duration(seconds=<span class="kw">600</span>),     <span class="cm"># WHEN to give up</span>
+          accumulation_mode=AccumulationMode.ACCUMULATING)  <span class="cm"># HOW panes relate</span>
+    | beam.Map(<span class="kw">lambda</span> e: (e[<span class="st">"page"</span>], <span class="kw">1</span>))
+    | beam.CombinePerKey(<span class="fn">sum</span>)                         <span class="cm"># WHAT to compute</span>
+    | beam.io.WriteToBigQuery(TABLE, ...))</pre>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14px">
+    <li>Every line answers one of the four questions — nothing here is boilerplate</li>
+    <li>The red question mark from Section 2 is resolved: this window fires early, on time, and late — and the sink overwrites</li>
+  </ul>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13px;padding:9px 14px">This block is the module. If you can annotate each argument with its question — <strong>what / where / when / how</strong> — you own streaming in Beam.</div>
+</section>
+<details class="notes" data-title="The whole dashboard, annotated">
+  <summary>Speaker notes &mdash; The whole dashboard, annotated</summary>
+  <div class="n-body"><ul>
+    <li><strong>Do this as a live exercise:</strong> show the code with the comments hidden (or retype it plain) and have students supply the annotations. Every argument maps to a question from slide 3; if they can do the mapping, the module landed.</li>
+    <li>Why ACCUMULATING here: the sink is the dashboard's BigQuery table &mdash; one appended row per pane, read through a latest-pane-per-window view, so each pane must be the full current answer (previous slide's rule).</li>
+    <li>Why 600 seconds of lateness: it catches Bo's subway ride comfortably; it deliberately gives up on Cy's transatlantic flight. Restate that this was a business decision, made visible in code &mdash; with <code>droppedDueToLateness</code> counting what falls outside it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 36. BEST PRACTICES CHECKLIST ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Best practices</h1>
+  <ol class="steps" style="font-size:14.5px">
+    <li><strong>Window in event time, stamp early.</strong> Use the true event timestamp (<code>timestamp_attribute</code>, or <code>TimestampedValue</code> right after the source), never arrival time — unless micro-batching is genuinely the requirement</li>
+    <li><strong>Set <code>allowed_lateness</code> on purpose.</strong> The default silently drops stragglers; pick a budget from the data (watch data freshness and <code>droppedDueToLateness</code>) and pay the state cost knowingly</li>
+    <li><strong>Match accumulation to the sink.</strong> Reader keeps the latest pane &rarr; ACCUMULATING; reader adds panes up &rarr; DISCARDING. This is the most common silent-wrong-number bug</li>
+    <li><strong>Never leave a count trigger alone.</strong> Pair <code>AfterCount</code> with a time-based trigger via <code>AfterAny</code>, or quiet periods strand data</li>
+    <li><strong>Watch freshness and latency together.</strong> They're the watermark's public face; the 2&times;2 table turns them into a diagnosis</li>
+  </ol>
+</section>
+<details class="notes" data-title="Best practices">
+  <summary>Speaker notes &mdash; Best practices</summary>
+  <div class="n-body"><ul>
+    <li>Each item traces to one slide of this module &mdash; this list is the revision-safe summary. Read it as "the five decisions every streaming pipeline makes, whether or not anyone made them on purpose."</li>
+    <li>Items 2 and 3 are the two <em>silent</em> failure modes &mdash; worth repeating that neither ever raises an error; both just produce wrong numbers with a healthy-looking pipeline.</li>
+    <li>Segue to the lab: item 2 is exactly what students are about to verify experimentally &mdash; they'll watch late data drop with the defaults, then rescue it with allowed lateness.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 37. LAB 2 ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <circle cx="880" cy="180" r="420" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content" style="top:120px;max-width:420px">
+    <div class="kicker"></div>
+    <h1 style="font-size:30px">Lab</h1>
+    <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Using Dataflow for Streaming Analytics (Python/Java)</div>
+    <ul class="body" style="font-size:14.5px">
+      <li>Read data from a streaming source</li>
+      <li>Write data to a streaming sink</li>
+      <li>Window data in a streaming context</li>
+      <li>Experimentally verify the effects of lag</li>
+    </ul>
+  </div>
+</section>
+<details class="notes" data-title="Lab: Streaming Analytics">
+  <summary>Speaker notes &mdash; Lab: Streaming Analytics</summary>
+  <div class="n-body"><ul>
+    <li>Typical duration: 60 minutes.</li>
+    <li><strong>"Experimentally verify the effects of lag" is the payoff of the whole module:</strong> students inject lag into the event generator, <em>watch</em> late data silently disappear under default settings, then rescue it with <code>allowed_lateness</code>. Seeing the count come out wrong &mdash; with no error anywhere &mdash; teaches more than any slide.</li>
+    <li>Everything transfers from Lab 1: same windowing code, now fed by Pub/Sub instead of files. The new pieces are the streaming source/sink and the lateness experiment.</li>
+    <li>While jobs run, have students find the data freshness and system latency charts on their own job &mdash; closing the loop on the metrics slides.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 38. ADDITIONAL MATERIAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Readings</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/" style="color:#1a73e8">Streaming 101</a> &amp; <a href="https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/" style="color:#1a73e8">Streaming 102</a> (Tyler Akidau) — the origin of the what/where/when/how frame</li>
+        <li>Beam Programming Guide: <a href="https://beam.apache.org/documentation/programming-guide/#windowing" style="color:#1a73e8">Windowing</a> · <a href="https://beam.apache.org/documentation/programming-guide/#triggers" style="color:#1a73e8">Triggers</a></li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Reference</p>
+      <ul class="body" style="font-size:15px">
+        <li><a href="https://tour.beam.apache.org/" style="color:#1a73e8">Tour of Beam</a> — runnable windowing/trigger units</li>
+        <li>Dataflow docs: <a href="https://cloud.google.com/dataflow/docs/concepts/streaming-pipelines" style="color:#1a73e8">streaming pipelines</a> · <a href="https://cloud.google.com/dataflow/docs/guides/using-monitoring-intf" style="color:#1a73e8">monitoring (data freshness &amp; system latency)</a></li>
+        <li><a href="https://beam.apache.org/get-started/mobile-gaming-example/" style="color:#1a73e8">Beam mobile-gaming examples</a> — sessions, triggers, and late data end to end</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li><strong>Streaming 101/102</strong> are the canonical essays behind this module's structure &mdash; the four questions, the watermark plots, the accumulate-vs-discard framing all originate there. Best single follow-up read for students who want the theory.</li>
+    <li><strong>Tour of Beam</strong> has runnable, in-browser units for windowing and triggers &mdash; good homework between class days.</li>
+    <li>The <strong>mobile-gaming examples</strong> walkthrough is the best end-to-end code study: sessions, early/late firings, and late data handled in one realistic pipeline, in both Java and Python.</li>
+  </ul></div>
+</details>
+
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>

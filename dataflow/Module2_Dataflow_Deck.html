@@ -1,0 +1,2126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Module 2: Dataflow — Running Beam on Google Cloud</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px 16px 44px;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code .lang {
+    float: right;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 15px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 15px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 34px; margin-bottom: 14px; }
+  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  .figure svg { max-width: 100%; height: auto; }
+  .figcap {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list for skew slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 15.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel below the stage. In print, each appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 22px;
+    width: 960px;
+    flex: none;
+  }
+  #notes-panel summary,
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #notes-panel summary::-webkit-details-marker,
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+  #notes-panel summary::before,
+  #deck > details.notes summary::before {
+    content: "▸";
+    display: inline-block;
+    transition: transform .15s ease;
+    color: var(--g-blue);
+  }
+  #notes-panel[open] summary::before,
+  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
+  #notes-panel summary:focus-visible {
+    outline: 2px solid var(--g-blue);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 16px; bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 50;
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #80868b;
+    z-index: 50;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px; height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Dataflow: Running Beam<br>on Google Cloud</h1>
+    <div class="sub">Module 2 &middot; Serverless Data Processing with Dataflow</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> Module 1 established that a Beam pipeline is a portable <em>description</em> of a computation. This module is about the machine that runs it on Google Cloud &mdash; what Dataflow actually does with your pipeline, and what that costs.</li>
+    <li>The module was historically titled "Separating Compute and Storage" &mdash; that idea is still the spine (Sections 2&ndash;5), but it now lands <em>after</em> students understand what the base service does. Feature names (Shuffle service, Streaming Engine, FlexRS) don't appear until the service mechanics are solid.</li>
+    <li>Rough timing: 45&ndash;60 minutes of lecture across the six sections.</li>
+    <li>Everything factual on these slides (flags, defaults, prices) was verified against the July 2026 documentation; the final slide carries the links. Prices are us-central1 and drift &mdash; re-check the pricing page before teaching cost slides as gospel.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. AGENDA ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Agenda</h1>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:16px">
+        <li>What Dataflow actually does — the cluster it builds, the plumbing it runs</li>
+        <li>Graph optimization, autoscaling, and streaming semantics</li>
+        <li>What a job costs</li>
+        <li>The design theme: <span class="blue">get state off the workers</span></li>
+        <li>Dataflow Shuffle service (batch)</li>
+        <li>Streaming Engine (streaming)</li>
+        <li>Flexible Resource Scheduling (FlexRS)</li>
+        <li>Choosing between them, and a knowledge check</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 260px;display:flex;align-items:center;justify-content:center">
+      <svg width="210" height="200" viewBox="0 0 210 200" aria-hidden="true">
+        <rect x="20" y="16" width="120" height="34" rx="6" fill="#4285F4"/>
+        <circle cx="36" cy="33" r="5" fill="#fff" opacity=".9"/>
+        <rect x="50" y="29" width="70" height="8" rx="3" fill="#fff" opacity=".55"/>
+        <rect x="20" y="58" width="120" height="34" rx="6" fill="#4285F4" opacity=".85"/>
+        <circle cx="36" cy="75" r="5" fill="#fff" opacity=".9"/>
+        <rect x="50" y="71" width="70" height="8" rx="3" fill="#fff" opacity=".55"/>
+        <rect x="20" y="100" width="120" height="34" rx="6" fill="#4285F4" opacity=".7"/>
+        <circle cx="36" cy="117" r="5" fill="#fff" opacity=".9"/>
+        <rect x="50" y="113" width="70" height="8" rx="3" fill="#fff" opacity=".55"/>
+        <rect x="20" y="142" width="120" height="34" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="80" y="164" text-anchor="middle" font-size="11" fill="#1a73e8">added by autoscaling</text>
+        <rect x="158" y="46" width="40" height="104" rx="8" fill="#FBBC04"/>
+        <rect x="166" y="58" width="24" height="6" rx="3" fill="#fff" opacity=".7"/>
+        <rect x="166" y="70" width="24" height="6" rx="3" fill="#fff" opacity=".7"/>
+        <rect x="166" y="82" width="24" height="6" rx="3" fill="#fff" opacity=".7"/>
+        <text x="178" y="170" text-anchor="middle" font-size="10" fill="#5f6368">state</text>
+        <text x="105" y="196" text-anchor="middle" font-size="10.5" fill="#5f6368">a cluster per job &nbsp;·&nbsp; state kept off it</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agenda">
+  <summary>Speaker notes &mdash; Agenda</summary>
+  <div class="n-body"><ul>
+    <li>The ordering is deliberate:
+      <ul>
+        <li><strong>Service mechanics come before any feature names.</strong> Students first see what happens when a pipeline is submitted &mdash; VMs created in their project, work distributed, graph optimized, cluster torn down &mdash; so that Shuffle service and Streaming Engine later read as refinements of a picture they already hold, not as a vocabulary list.</li>
+        <li><strong>Pricing comes early</strong> (end of Section 1), because every feature in Sections 3&ndash;5 is partly a cost story and needs the baseline table to land.</li>
+        <li><strong>One theme carries Sections 2&ndash;5:</strong> a worker holding data is a worker you can't take away. Shuffle service, Streaming Engine, and FlexRS are that one idea applied three times.</li>
+      </ul>
+    </li>
+    <li>Set expectations for what is <em>not</em> here: IAM and quotas (Module 3), security (Module 4), writing the pipelines themselves (Module 5 onward), and the full windowing/trigger treatment (streaming modules).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. DIVIDER: SECTION 1 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 6</div>
+    <h1>What Dataflow actually does</h1>
+    <div class="sub">What happens when you hand a Beam pipeline to Dataflow: the cluster it builds for you, the data plumbing it runs, how it rewrites and scales your job &mdash; and what you pay for.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">The service</span><span>The theme</span><span>Shuffle service</span><span>Streaming Engine</span><span>FlexRS</span><span>Wrap-up</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: What Dataflow actually does">
+  <summary>Speaker notes &mdash; Section 1: What Dataflow actually does</summary>
+  <div class="n-body"><ul>
+    <li>This is the longest section (eight slides) on purpose &mdash; it's the foundation the old version of this module skipped. If it lands, the three named features later are each a ten-minute story.</li>
+    <li>The section answers, in order: who runs the pipeline (1.1), what submission actually does (1.2), what the cluster is (1.3), how data gets split and moved (1.4), how the graph is rewritten (1.5), how the cluster resizes (1.6), what streaming adds (1.7), and what it all costs (1.8).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. WHO RUNS IT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>You wrote a pipeline. Now who runs it?</h1>
+  <p class="lede" style="margin-bottom:12px;font-size:15px">Scenario for this module: nightly sales files land in Cloud Storage (~500&nbsp;GB). Your Beam pipeline computes revenue per product and writes it to BigQuery. Later, the same events arrive continuously on Pub/Sub.</p>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li>A Beam pipeline is a <strong>description</strong> of a computation — a graph. It does nothing until a <strong>runner</strong> executes it</li>
+        <li>Running it at this scale needs:
+          <ul>
+            <li>machines — enough of them, then none of them</li>
+            <li>splitting the input across those machines</li>
+            <li>regrouping data for the aggregation</li>
+            <li>surviving machine failures mid-job</li>
+          </ul>
+        </li>
+        <li><strong>Dataflow</strong> is the Google Cloud runner: a fully managed service that does that whole list, per job</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="330" height="250" viewBox="0 0 330 250">
+        <text x="12" y="18" font-size="11.5" font-weight="600" fill="#5f6368">Your options</text>
+        <rect x="8" y="30" width="314" height="56" rx="8" fill="#f1f3f4"/>
+        <text x="22" y="53" font-size="12.5" font-weight="600" fill="#202124">DirectRunner on one machine</text>
+        <text x="22" y="71" font-size="11" fill="#5f6368">fine for dev and tests — not for 500 GB</text>
+        <rect x="8" y="96" width="314" height="56" rx="8" fill="#f1f3f4"/>
+        <text x="22" y="119" font-size="12.5" font-weight="600" fill="#202124">Your own Flink / Spark cluster</text>
+        <text x="22" y="137" font-size="11" fill="#5f6368">works — but sizing, patching, idle cost are yours</text>
+        <rect x="8" y="162" width="314" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="22" y="185" font-size="12.5" font-weight="600" fill="#1a73e8">Dataflow</text>
+        <text x="22" y="203" font-size="11" fill="#5f6368">no cluster to create, size, patch, or delete</text>
+        <text x="165" y="242" text-anchor="middle" font-size="10.5" fill="#5f6368">same Beam code in all three — only the runner changes</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="You wrote a pipeline. Now who runs it?">
+  <summary>Speaker notes &mdash; You wrote a pipeline. Now who runs it?</summary>
+  <div class="n-body"><ul>
+    <li><strong>Anchor the scenario</strong> — it carries the whole module. Batch flavor: nightly files, revenue per product, BigQuery. Streaming flavor (from slide 1.7 on): the same events on Pub/Sub. Every diagram that follows is this pipeline.</li>
+    <li>Be honest about the alternatives rather than dismissive: the DirectRunner is genuinely the right tool for development and unit tests, and a self-managed Flink or Spark cluster is a legitimate choice for teams that already operate one. Dataflow's pitch is specifically <em>no cluster operations</em>: nothing exists before the job, nothing is left after it.</li>
+    <li>The "needs" list is the section's table of contents in disguise: machines (1.2&ndash;1.3), splitting and regrouping (1.4), surviving failure (1.4), plus two things the student may not know to ask for yet &mdash; graph optimization (1.5) and autoscaling (1.6).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. LIFECYCLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What happens when you run your pipeline</h1>
+  <div class="figure">
+    <svg width="832" height="330" viewBox="0 0 832 330">
+      <defs>
+        <marker id="arrLC" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/>
+        </marker>
+      </defs>
+      <!-- your machine -->
+      <rect x="8" y="118" width="150" height="86" rx="8" fill="#f1f3f4"/>
+      <text x="83" y="142" text-anchor="middle" font-size="12" font-weight="600" fill="#202124">Your machine / CI</text>
+      <text x="83" y="160" text-anchor="middle" font-size="10.5" fill="#5f6368">pipeline code +</text>
+      <text x="83" y="174" text-anchor="middle" font-size="10.5" fill="#5f6368">--runner=DataflowRunner</text>
+      <!-- staging bucket -->
+      <rect x="240" y="16" width="170" height="58" rx="8" fill="#fff" stroke="#FBBC04" stroke-width="2"/>
+      <text x="325" y="39" text-anchor="middle" font-size="12" font-weight="600" fill="#202124">Cloud Storage</text>
+      <text x="325" y="56" text-anchor="middle" font-size="10.5" fill="#5f6368">staged code &amp; dependencies</text>
+      <!-- dataflow service -->
+      <rect x="222" y="112" width="206" height="98" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="325" y="136" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1a73e8">Dataflow service</text>
+      <text x="325" y="152" text-anchor="middle" font-size="10.5" fill="#5f6368">(Google-managed project)</text>
+      <text x="325" y="172" text-anchor="middle" font-size="11" fill="#3c4043">validates &amp; optimizes the graph,</text>
+      <text x="325" y="188" text-anchor="middle" font-size="11" fill="#3c4043">distributes work, monitors, autoscales</text>
+      <!-- your project -->
+      <rect x="492" y="86" width="332" height="160" rx="10" fill="none" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="506" y="106" font-size="11" font-weight="600" fill="#5f6368">Your project</text>
+      <rect x="512" y="120" width="88" height="62" rx="6" fill="#4285F4"/>
+      <text x="556" y="147" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">worker VM</text>
+      <text x="556" y="163" text-anchor="middle" font-size="9.5" fill="#dbe6fd">your code</text>
+      <rect x="612" y="120" width="88" height="62" rx="6" fill="#4285F4"/>
+      <text x="656" y="147" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">worker VM</text>
+      <text x="656" y="163" text-anchor="middle" font-size="9.5" fill="#dbe6fd">your code</text>
+      <rect x="712" y="120" width="88" height="62" rx="6" fill="#4285F4"/>
+      <text x="756" y="147" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">worker VM</text>
+      <text x="756" y="163" text-anchor="middle" font-size="9.5" fill="#dbe6fd">your code</text>
+      <text x="658" y="212" text-anchor="middle" font-size="10.5" fill="#5f6368">Compute Engine VMs, created for this job</text>
+      <text x="658" y="228" text-anchor="middle" font-size="10.5" fill="#5f6368">read the source, write the sink</text>
+      <!-- arrows -->
+      <line x1="158" y1="140" x2="236" y2="62" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrLC)"/>
+      <line x1="158" y1="161" x2="218" y2="161" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrLC)"/>
+      <line x1="428" y1="161" x2="488" y2="161" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrLC)"/>
+      <line x1="512" y1="112" x2="416" y2="66" stroke="#5f6368" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrLC)"/>
+      <!-- numbered steps -->
+      <circle cx="180" cy="92" r="11" fill="#1a73e8"/><text x="180" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">1</text>
+      <circle cx="188" cy="182" r="11" fill="#1a73e8"/><text x="188" y="186" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">2</text>
+      <circle cx="458" cy="140" r="11" fill="#1a73e8"/><text x="458" y="144" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">3</text>
+      <circle cx="462" cy="84" r="11" fill="#1a73e8"/><text x="462" y="88" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">4</text>
+      <circle cx="658" cy="266" r="11" fill="#1a73e8"/><text x="658" y="270" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">5</text>
+      <!-- legend -->
+      <text x="8" y="264" font-size="11.5" fill="#3c4043"><tspan font-weight="700" fill="#1a73e8">1</tspan> SDK stages code to Cloud Storage &nbsp;&nbsp;<tspan font-weight="700" fill="#1a73e8">2</tspan> …and sends the <tspan font-weight="600">job graph</tspan> to the Dataflow API</text>
+      <text x="8" y="286" font-size="11.5" fill="#3c4043"><tspan font-weight="700" fill="#1a73e8">3</tspan> service creates worker VMs in <tspan font-weight="600">your</tspan> project &nbsp;&nbsp;<tspan font-weight="700" fill="#1a73e8">4</tspan> workers download the staged code</text>
+      <text x="8" y="308" font-size="11.5" fill="#3c4043"><tspan font-weight="700" fill="#1a73e8">5</tspan> job ends — success <tspan font-style="italic">or</tspan> failure — and the VMs are <tspan font-weight="600">deleted</tspan></text>
+    </svg>
+  </div>
+</section>
+<details class="notes" data-title="What happens when you run your pipeline">
+  <summary>Speaker notes &mdash; What happens when you run your pipeline</summary>
+  <div class="n-body"><ul>
+    <li><strong>This is the module's anchor diagram</strong> &mdash; it returns, annotated, on the last slide, and Module 3 hangs the whole IAM story on the same picture (who is allowed to do each arrow).</li>
+    <li>Worth being precise about what "submitting" is, because two different payloads travel: the <em>code</em> (JARs / Python packages) goes to the Cloud Storage staging location for the <em>workers</em> to download at startup; the <em>graph</em> (serialized to JSON) goes to the Dataflow API (<code>projects.locations.jobs.create</code>). The service never runs your code &mdash; it runs the graph; your code runs on the workers.</li>
+    <li>Two boxes, two owners: the Dataflow service lives in a Google-managed project; the worker VMs are ordinary Compute Engine instances in <em>your</em> project (visible in the console, billed as Dataflow SKUs). Worker VMs aren't shared across pipelines &mdash; resources are allocated per job.</li>
+    <li><strong>The cleanup guarantee</strong> is a docs quote worth repeating: "By default, Compute Engine VMs are deleted when the Dataflow job completes, regardless of whether the job succeeds or fails." Nothing to remember to tear down.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/pipeline-lifecycle">Pipeline lifecycle</a>, <a href="https://docs.cloud.google.com/dataflow/docs/concepts/security-and-permissions">Security and permissions</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. CLUSTER PER JOB ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>A cluster per job, managed for you</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li>Workers are ordinary <strong>Compute Engine VMs</strong> — you can see them in the console, but you never create, SSH to, patch, or delete them</li>
+        <li><strong>Per-job and ephemeral</strong>: two jobs = two independent worker pools; no shared cluster to size or schedule around, no idle cluster to pay for</li>
+        <li>You set the knobs you care about — the service chooses the rest:
+          <ul>
+            <li><code>--max_num_workers</code> — the ceiling (best practice: set this, not an exact size)</li>
+            <li><code>--machine_type</code> — only if you must; by default Dataflow selects the machine type, and the disk, for you</li>
+          </ul>
+        </li>
+        <li>Contrast: on a self-managed cluster, sizing, upgrades, and bin-packing jobs onto it are <em>your</em> problem</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="330" height="260" viewBox="0 0 330 260">
+        <text x="12" y="16" font-size="11" font-weight="600" fill="#5f6368">One project, two jobs tonight</text>
+        <rect x="8" y="26" width="150" height="104" rx="8" fill="none" stroke="#4285F4" stroke-width="1.3"/>
+        <text x="83" y="46" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">job: sales-nightly</text>
+        <rect x="22" y="58" width="56" height="26" rx="4" fill="#4285F4"/>
+        <rect x="88" y="58" width="56" height="26" rx="4" fill="#4285F4"/>
+        <rect x="22" y="92" width="56" height="26" rx="4" fill="#4285F4"/>
+        <rect x="88" y="92" width="56" height="26" rx="4" fill="#4285F4"/>
+        <rect x="172" y="26" width="150" height="104" rx="8" fill="none" stroke="#34A853" stroke-width="1.3"/>
+        <text x="247" y="46" text-anchor="middle" font-size="11" font-weight="600" fill="#188038">job: inventory-sync</text>
+        <rect x="186" y="58" width="56" height="26" rx="4" fill="#34A853"/>
+        <rect x="252" y="58" width="56" height="26" rx="4" fill="#34A853"/>
+        <rect x="186" y="92" width="56" height="26" rx="4" fill="#34A853"/>
+        <text x="279" y="110" font-size="9.5" fill="#5f6368">(smaller job,</text>
+        <text x="279" y="122" font-size="9.5" fill="#5f6368">fewer VMs)</text>
+        <!-- timeline -->
+        <line x1="20" y1="196" x2="310" y2="196" stroke="#9aa0a6" stroke-width="1.2"/>
+        <text x="20" y="216" font-size="9.5" fill="#5f6368">00:00</text>
+        <text x="150" y="216" font-size="9.5" fill="#5f6368">01:00</text>
+        <text x="284" y="216" font-size="9.5" fill="#5f6368">02:00</text>
+        <rect x="34" y="172" width="130" height="14" rx="7" fill="#4285F4" opacity=".85"/>
+        <rect x="96" y="152" width="96" height="14" rx="7" fill="#34A853" opacity=".85"/>
+        <text x="40" y="183" font-size="9" fill="#fff">VMs exist only here</text>
+        <text x="165" y="244" text-anchor="middle" font-size="10.5" fill="#5f6368">workers appear at job start, disappear at job end</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="A cluster per job, managed for you">
+  <summary>Speaker notes &mdash; A cluster per job, managed for you</summary>
+  <div class="n-body"><ul>
+    <li><strong>"Serverless with visible servers"</strong> is the honest description: the VMs are real and in your project (students will meet them again in Module 3 when they hit CPU and in-use-IP quotas), but their lifecycle is entirely the service's job.</li>
+    <li>Machine-type defaults changed in the docs: don't teach "the default is n1-standard-1" anymore &mdash; the fixed per-mode defaults are gone from the quotas page. The teachable sentence is the worker-VM guide's: "By default, Dataflow selects the machine type for the worker VMs that run your job, along with the size and type of Persistent Disk." Override with <code>--machine_type</code> (Python) / <code>--workerMachineType</code> (Java) only when the job's profile demands it; shared-core types (f1-micro, e2-small…) aren't supported under the SLA.</li>
+    <li>If asked for the feature name, the docs are currently inconsistent: the quotas page says "By default, Dataflow uses Auto VM Selection to select machine types&hellip; from a flexible range of compatible VM families at runtime," but the right-fitting page describes <strong>Instance Flexibility (Auto VM Selection)</strong> as something that turns on when you use <code>min_ram</code>/<code>cpu_count</code> resource hints &mdash; and notes it isn't supported with Dataflow Prime. Safest classroom line: "you don't pick a machine type unless you need to; Dataflow does" &mdash; without leaning on the feature name.</li>
+    <li>Fixing <code>--num_workers</code> to "tune" a job mostly disables the service's best feature (autoscaling, slide 1.6). The knob worth setting is the ceiling &mdash; it bounds both cost and quota consumption.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/guides/configure-worker-vm">Configure worker VMs</a>, <a href="https://docs.cloud.google.com/dataflow/docs/guides/right-fitting#auto_vm_selection">Auto VM Selection</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. PLUMBING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The plumbing you don't write: splitting and moving data</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14.5px">500&nbsp;GB of sales files must be read by many workers at once — and then records for the <em>same product</em> must find each other for the aggregation.</p>
+  <div class="cols">
+    <div style="flex:0 0 46%">
+      <ul class="body" style="font-size:14px">
+        <li>Input is split into <strong>bundles</strong>, handed to workers; a failed bundle is retried automatically — 4 attempts in batch, indefinitely in streaming</li>
+        <li>Where all values for a key must meet, Dataflow runs the <strong>shuffle</strong> — repartitioning data by key across workers. You write <code>CombinePerKey</code>; the service moves the data</li>
+        <li><strong>Dynamic work rebalancing</strong>: a straggler's remaining work is split and given to idle workers — no manual sharding</li>
+        <li>Corollary: hand-rolled sharding (<code>withNumShards</code>) <em>caps</em> the parallelism Dataflow may find — let the service choose</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="420" height="290" viewBox="0 0 420 290">
+        <defs>
+          <marker id="arrPl" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/>
+          </marker>
+        </defs>
+        <!-- input -->
+        <rect x="6" y="16" width="76" height="96" rx="6" fill="#fff" stroke="#FBBC04" stroke-width="2"/>
+        <text x="44" y="38" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">input files</text>
+        <line x1="16" y1="50" x2="72" y2="50" stroke="#f1f3f4" stroke-width="6"/>
+        <line x1="16" y1="64" x2="72" y2="64" stroke="#f1f3f4" stroke-width="6"/>
+        <line x1="16" y1="78" x2="72" y2="78" stroke="#f1f3f4" stroke-width="6"/>
+        <line x1="16" y1="92" x2="72" y2="92" stroke="#f1f3f4" stroke-width="6"/>
+        <text x="44" y="128" text-anchor="middle" font-size="9.5" fill="#5f6368">split into bundles</text>
+        <!-- workers (map stage) -->
+        <line x1="82" y1="40" x2="128" y2="34" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="82" y1="64" x2="128" y2="86" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="82" y1="88" x2="128" y2="138" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <rect x="132" y="16" width="86" height="40" rx="5" fill="#4285F4"/>
+        <text x="175" y="40" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">worker 1</text>
+        <rect x="132" y="68" width="86" height="40" rx="5" fill="#4285F4"/>
+        <text x="175" y="92" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">worker 2</text>
+        <rect x="132" y="120" width="86" height="40" rx="5" fill="#4285F4"/>
+        <text x="175" y="144" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">worker 3</text>
+        <text x="175" y="176" text-anchor="middle" font-size="9.5" fill="#5f6368">parse, filter, key by product</text>
+        <!-- shuffle -->
+        <line x1="218" y1="36" x2="286" y2="40" stroke="#EA4335" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="218" y1="44" x2="286" y2="104" stroke="#EA4335" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="218" y1="88" x2="286" y2="48" stroke="#EA4335" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="218" y1="96" x2="286" y2="112" stroke="#EA4335" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="218" y1="140" x2="286" y2="56" stroke="#EA4335" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <line x1="218" y1="148" x2="286" y2="120" stroke="#EA4335" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <text x="252" y="192" text-anchor="middle" font-size="10" font-weight="600" fill="#c5221f">the shuffle</text>
+        <text x="252" y="205" text-anchor="middle" font-size="9" fill="#5f6368">repartition by key</text>
+        <!-- workers (agg stage) -->
+        <rect x="290" y="22" width="120" height="42" rx="5" fill="#34A853"/>
+        <text x="350" y="41" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">worker A</text>
+        <text x="350" y="56" text-anchor="middle" font-size="9" fill="#e6f4ea">all "shoes", all "hats"</text>
+        <rect x="290" y="86" width="120" height="42" rx="5" fill="#34A853"/>
+        <text x="350" y="105" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">worker B</text>
+        <text x="350" y="120" text-anchor="middle" font-size="9" fill="#e6f4ea">all "socks", …</text>
+        <!-- straggler strip -->
+        <rect x="6" y="222" width="404" height="58" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
+        <text x="18" y="242" font-size="10.5" font-weight="600" fill="#3c4043">Dynamic work rebalancing</text>
+        <rect x="18" y="252" width="150" height="16" rx="8" fill="#dadce0"/>
+        <rect x="18" y="252" width="52" height="16" rx="8" fill="#EA4335"/>
+        <text x="96" y="264" font-size="9" fill="#3c4043">slow worker: remaining work…</text>
+        <line x1="172" y1="260" x2="216" y2="260" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrPl)"/>
+        <rect x="220" y="252" width="84" height="16" rx="8" fill="#34A853"/>
+        <rect x="312" y="252" width="84" height="16" rx="8" fill="#34A853"/>
+        <text x="308" y="278" text-anchor="middle" font-size="9" fill="#5f6368">…split and handed to idle workers, automatically</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The plumbing you don't write">
+  <summary>Speaker notes &mdash; The plumbing you don't write</summary>
+  <div class="n-body"><ul>
+    <li><strong>Connect back to Module 5's GroupByKey slide if students have seen it</strong> (course order varies): there the shuffle was a Beam <em>concept</em> &mdash; "values for a key must meet." Here it becomes a <em>service responsibility</em> &mdash; Dataflow does the repartitioning. Where that shuffled data physically lives is Section 3's entire story; plant the question now: "while the shuffle is in flight, where is that data?"</li>
+    <li>Bundle retry semantics are worth stating precisely (they're exam-favorite facts): batch retries a failing bundle <strong>4 times</strong>, then the whole job fails; streaming retries <strong>indefinitely</strong> &mdash; which is why a poison-pill record can stall a streaming pipeline (the dead-letter pattern from Module 5 is the cure).</li>
+    <li>Dynamic work rebalancing triggers on work imbalances and stragglers; the docs' fine print: it can't split finer than a single record, and it needs parallelizable input (a source being read, or a materialized intermediate result). Its documented enemy is fixed sharding &mdash; <code>withNumShards</code> limits Dataflow "to parallelizing based on your chosen number of shards." Google's blog name for this is "liquid sharding" &mdash; same feature.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/dynamic-work-rebalancing">Dynamic work rebalancing</a>, <a href="https://docs.cloud.google.com/dataflow/docs/pipeline-lifecycle">Pipeline lifecycle</a> (error handling), <a href="https://beam.apache.org/documentation/runtime/model/">Beam execution model</a> (bundles).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. FUSION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The service rewrites your graph before running it</h1>
+  <div class="cols">
+    <div style="flex:0 0 47%">
+      <pre class="code small"><span class="lang">Python</span>(p
+ | beam.io.ReadFromText(<span class="st">'gs://sales/*'</span>)
+ | beam.Map(parse_row)        <span class="cm"># &#9488;</span>
+ | beam.Filter(is_valid)      <span class="cm"># &#9500; fused:</span>
+ | beam.Map(to_amount)        <span class="cm"># &#9496; one pass</span>
+ | beam.CombinePerKey(sum)    <span class="cm"># &#8592; shuffle</span>
+ | beam.io.WriteToBigQuery(&#8230;))</pre>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Fusion</strong>: consecutive element-wise steps run as one stage, in a single pass — intermediate PCollections are never materialized</li>
+        <li><strong>Combine optimization</strong>: aggregations combine <em>locally on each worker</em> before the shuffle — don't hand-roll this</li>
+        <li>Steps run in any order the data dependencies allow</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="400" height="300" viewBox="0 0 400 300">
+        <defs>
+          <marker id="arrFu" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/>
+          </marker>
+        </defs>
+        <text x="14" y="18" font-size="11" font-weight="600" fill="#5f6368">You wrote (6 steps)</text>
+        <g font-size="10" font-weight="600">
+          <rect x="14" y="28" width="82" height="24" rx="12" fill="#4285F4"/><text x="55" y="44" text-anchor="middle" fill="#fff">Read</text>
+          <rect x="14" y="60" width="82" height="24" rx="12" fill="#4285F4"/><text x="55" y="76" text-anchor="middle" fill="#fff">Parse</text>
+          <rect x="14" y="92" width="82" height="24" rx="12" fill="#4285F4"/><text x="55" y="108" text-anchor="middle" fill="#fff">Filter</text>
+          <rect x="14" y="124" width="82" height="24" rx="12" fill="#4285F4"/><text x="55" y="140" text-anchor="middle" fill="#fff">KeyBy</text>
+          <rect x="14" y="156" width="82" height="24" rx="12" fill="#EA4335"/><text x="55" y="172" text-anchor="middle" fill="#fff">Sum</text>
+          <rect x="14" y="188" width="82" height="24" rx="12" fill="#4285F4"/><text x="55" y="204" text-anchor="middle" fill="#fff">Write</text>
+        </g>
+        <line x1="55" y1="52" x2="55" y2="58" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrFu)"/>
+        <line x1="55" y1="84" x2="55" y2="90" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrFu)"/>
+        <line x1="55" y1="116" x2="55" y2="122" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrFu)"/>
+        <line x1="55" y1="148" x2="55" y2="154" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrFu)"/>
+        <line x1="55" y1="180" x2="55" y2="186" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrFu)"/>
+        <!-- big arrow -->
+        <line x1="120" y1="120" x2="188" y2="120" stroke="#5f6368" stroke-width="2" marker-end="url(#arrFu)"/>
+        <text x="154" y="108" text-anchor="middle" font-size="10" fill="#5f6368">fusion</text>
+        <!-- executed -->
+        <text x="204" y="18" font-size="11" font-weight="600" fill="#5f6368">Dataflow runs (2 stages)</text>
+        <rect x="204" y="28" width="182" height="96" rx="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="295" y="50" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">Stage 1 — fused</text>
+        <text x="295" y="70" text-anchor="middle" font-size="10" fill="#3c4043">Read → Parse → Filter → KeyBy</text>
+        <text x="295" y="88" text-anchor="middle" font-size="10" fill="#3c4043">+ partial (per-worker) sums</text>
+        <text x="295" y="106" text-anchor="middle" font-size="9.5" fill="#5f6368">one pass over each element</text>
+        <line x1="295" y1="124" x2="295" y2="152" stroke="#c5221f" stroke-width="1.6" stroke-dasharray="5 3" marker-end="url(#arrFu)"/>
+        <text x="308" y="142" font-size="9.5" fill="#c5221f">shuffle</text>
+        <rect x="204" y="156" width="182" height="74" rx="10" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="295" y="178" text-anchor="middle" font-size="11" font-weight="600" fill="#1a73e8">Stage 2 — fused</text>
+        <text x="295" y="198" text-anchor="middle" font-size="10" fill="#3c4043">final Sum → Write</text>
+        <text x="295" y="216" text-anchor="middle" font-size="9.5" fill="#5f6368">per key, after regrouping</text>
+        <text x="200" y="262" text-anchor="middle" font-size="10.5" fill="#5f6368">the console's <tspan font-weight="600">Execution details</tspan> tab shows these fused stages —</text>
+        <text x="200" y="278" text-anchor="middle" font-size="10.5" fill="#5f6368">not your six steps. Don't be surprised.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The service rewrites your graph">
+  <summary>Speaker notes &mdash; The service rewrites your graph</summary>
+  <div class="n-body"><ul>
+    <li><strong>Why fusion matters to a student:</strong> adding more small, well-named steps costs approximately nothing at run time &mdash; so write readable pipelines. The expensive seams are the <em>shuffle boundaries</em>, and after this slide the student can read a job graph and point at them.</li>
+    <li>Docs wording worth quoting: fusing steps "prevents the Dataflow service from needing to materialize every intermediate PCollection," and the service "respects data dependencies… but otherwise steps might be executed in any order."</li>
+    <li><strong>Combine optimization</strong> (partial / multi-level combining): each worker pre-sums its own records for a key, so what crosses the shuffle is one partial sum per worker per key, not every record. The docs say explicitly: "it is strongly recommended that you do not attempt to make this optimization by hand." This is also the setup for Section 3's cost punchline &mdash; shuffle is billed by the GiB.</li>
+    <li>If asked how to <em>prevent</em> fusion (the high-fan-out case: a step that expands each element into thousands, where fusing it with its consumer caps parallelism at the small input's size): the current documented tool is the <code>Redistribute</code> transform (<code>Redistribute.arbitrarily</code> / <code>.byKey</code>). Older material says <code>Reshuffle</code> &mdash; Beam now marks it internal-only.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataflow/docs/pipeline-lifecycle">Pipeline lifecycle</a> (fusion optimization, combine optimization, prevent fusion).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. AUTOSCALING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Autoscaling: the cluster resizes itself mid-job</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>On by default</strong> for all batch jobs, and for streaming jobs on Streaming Engine</li>
+        <li>Batch: worker count re-evaluated about every 30&nbsp;seconds from progress and estimated remaining work</li>
+        <li>Streaming: tracks source <strong>backlog</strong> and worker CPU utilization</li>
+        <li>You set the ceiling — <code>--max_num_workers</code> (defaults to 2,000, which is also the per-job quota)</li>
+        <li>Billing follows actual workers, per second — <strong>scale-down is money back</strong></li>
+        <li>The one exception: <strong>Persistent Disk</strong> is billed on the exact value of <code>--max_num_workers</code>, not the average — so a ceiling isn't free when workers carry big disks</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13px;padding:10px 14px">Best practice: don't pin <code>--num_workers</code> to "tune" a job. Set a max; let the service move within it.</div>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="360" height="270" viewBox="0 0 360 270">
+        <defs>
+          <marker id="arrAs" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/>
+          </marker>
+        </defs>
+        <text x="14" y="16" font-size="11" font-weight="600" fill="#5f6368">One batch job, start to finish</text>
+        <!-- axes -->
+        <line x1="36" y1="30" x2="36" y2="180" stroke="#9aa0a6" stroke-width="1.2"/>
+        <line x1="36" y1="180" x2="340" y2="180" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrAs)"/>
+        <text x="20" y="40" font-size="9" fill="#5f6368" transform="rotate(-90 20 40) translate(-70 0)">workers</text>
+        <text x="336" y="196" text-anchor="end" font-size="9.5" fill="#5f6368">time</text>
+        <!-- max line -->
+        <line x1="36" y1="44" x2="340" y2="44" stroke="#c5221f" stroke-width="1" stroke-dasharray="5 4"/>
+        <text x="338" y="40" text-anchor="end" font-size="9.5" fill="#c5221f">--max_num_workers</text>
+        <!-- worker step curve -->
+        <path d="M 36 168 L 76 168 L 76 128 L 116 128 L 116 76 L 216 76 L 216 108 L 260 108 L 260 148 L 304 148 L 304 168 L 336 168"
+              fill="none" stroke="#1a73e8" stroke-width="2.5"/>
+        <path d="M 36 168 L 76 168 L 76 128 L 116 128 L 116 76 L 216 76 L 216 108 L 260 108 L 260 148 L 304 148 L 304 168 L 336 168 L 336 180 L 36 180 Z"
+              fill="#4285F4" opacity=".14"/>
+        <text x="166" y="66" text-anchor="middle" font-size="9.5" fill="#1a73e8">ramp up for the heavy middle</text>
+        <text x="284" y="138" text-anchor="middle" font-size="9.5" fill="#1a73e8">drain down</text>
+        <!-- cost track -->
+        <text x="14" y="222" font-size="10.5" font-weight="600" fill="#3c4043">You pay only for the shaded area —</text>
+        <text x="14" y="238" font-size="10.5" fill="#5f6368">worker-seconds actually used, not a fixed cluster</text>
+        <text x="14" y="262" font-size="10.5" fill="#5f6368">rented for the whole night.</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Autoscaling">
+  <summary>Speaker notes &mdash; Autoscaling</summary>
+  <div class="n-body"><ul>
+    <li>Precision on the defaults, per current docs: "Horizontal Autoscaling is enabled by default on all batch pipelines," and it's on by default for streaming jobs <em>that use Streaming Engine</em>. A non-Streaming-Engine streaming job needs <code>--autoscaling_algorithm=THROUGHPUT_BASED</code> plus a max &mdash; one more quiet reason Streaming Engine (Section 4) is the recommended path.</li>
+    <li>The batch signal is not CPU alone: the service estimates the pipeline's <em>parallelism</em> (threads needed to process the remaining work efficiently) and re-plans roughly every 30 seconds. Streaming scales on backlog plus utilization.</li>
+    <li>Flags: <code>--max_num_workers</code> (Python/Go) / <code>--maxNumWorkers</code> (Java); a minimum can be pinned with <code>--dataflow_service_options=min_num_workers</code>. The autoscaling page states the default plainly: "The default value is 2,000" &mdash; and the quotas page's limit matches: "Each Dataflow job can use a maximum of 2,000 Compute Engine instances," rising to 4,000 for Streaming Engine streaming jobs or service-based Shuffle batch jobs when no worker zone is specified.</li>
+    <li>The Persistent Disk exception is the pricing page verbatim: "Compute Engine usage is based on the average number of workers, whereas Persistent Disk usage is based on the exact value of <code>--maxNumWorkers</code>." A streaming job allocates its disk pool up front (1:1 worker:disk minimum, up to 15 disks per worker as the pool is redistributed). Where it bites: a non-Streaming-Engine streaming job carries <strong>400&nbsp;GB</strong> per disk, so an absurdly generous ceiling is a real line item. With Streaming Engine's 30&nbsp;GB boot disks (or Shuffle's 25&nbsp;GB), it's noise. So: a generous ceiling, not an unlimited one.</li>
+    <li>The diagram's second message is the billing model preview: the bill is the area under the step curve. That framing makes slide 1.8's per-second billing bullet obvious instead of novel.</li>
+    <li>Vertical autoscaling (resizing worker <em>memory</em>) exists but is a Dataflow Prime feature &mdash; park it unless asked.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataflow/docs/horizontal-autoscaling">Horizontal Autoscaling</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. STREAMING SEMANTICS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Streaming: correct answers, even out of order</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The same sales events now arrive on Pub/Sub. Mobile clients retry uploads — events arrive <em>late</em>, and sometimes <em>twice</em>. You want per-hour revenue, correct.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Exactly-once processing</strong> (the default): every record gets a unique ID; Dataflow tracks IDs it has processed and discards redeliveries — sums stay correct</li>
+        <li>A <strong>watermark</strong>: "a threshold that indicates when Dataflow expects all of the data in a window to have arrived" — a <em>high-water mark</em> on event time: everything below the line has arrived, so the 2–3&nbsp;PM window can <em>close</em> and emit while data keeps flowing</li>
+        <li>Watermarks are Beam semantics, not a Dataflow feature — every runner tracks one, and <em>the data source determines it</em></li>
+        <li>Dataflow's edge is the estimate: its own Pub/Sub connector reads a private API — the age of the oldest unacknowledged message — for a low-latency, high-accuracy watermark. Beam's reference Pub/Sub connector (other runners) can only estimate from messages it has already seen</li>
+        <li>Late data isn't silently lost — Beam's windowing model (allowed lateness, triggers) decides; details in the streaming modules</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="380" height="280" viewBox="0 0 380 280">
+        <defs>
+          <marker id="arrWm" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/>
+          </marker>
+        </defs>
+        <text x="14" y="16" font-size="11" font-weight="600" fill="#5f6368">Event time — the 2–3 PM window</text>
+        <!-- axis -->
+        <line x1="20" y1="200" x2="360" y2="200" stroke="#9aa0a6" stroke-width="1.2" marker-end="url(#arrWm)"/>
+        <text x="60" y="218" text-anchor="middle" font-size="10" fill="#5f6368">2:00</text>
+        <text x="260" y="218" text-anchor="middle" font-size="10" fill="#5f6368">3:00</text>
+        <!-- window -->
+        <rect x="60" y="60" width="200" height="140" fill="#e8f0fe" opacity=".65"/>
+        <line x1="60" y1="60" x2="60" y2="200" stroke="#4285F4" stroke-width="1.4"/>
+        <line x1="260" y1="60" x2="260" y2="200" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="160" y="52" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a73e8">hourly window</text>
+        <!-- events -->
+        <circle cx="88" cy="150" r="7" fill="#34A853"/>
+        <circle cx="126" cy="118" r="7" fill="#34A853"/>
+        <circle cx="163" cy="162" r="7" fill="#34A853"/>
+        <circle cx="199" cy="102" r="7" fill="#34A853"/>
+        <circle cx="236" cy="140" r="7" fill="#34A853"/>
+        <!-- duplicate -->
+        <circle cx="199" cy="102" r="12" fill="none" stroke="#EA4335" stroke-width="1.6" stroke-dasharray="3 2"/>
+        <text x="199" y="84" text-anchor="middle" font-size="9" fill="#c5221f">delivered twice → counted once</text>
+        <!-- watermark -->
+        <line x1="292" y1="60" x2="292" y2="200" stroke="#c5221f" stroke-width="2"/>
+        <text x="292" y="230" text-anchor="middle" font-size="10" font-weight="600" fill="#c5221f">watermark — risen to ~3:05</text>
+        <text x="292" y="244" text-anchor="middle" font-size="9" fill="#5f6368">everything left of the line has arrived;</text>
+        <text x="292" y="256" text-anchor="middle" font-size="9" fill="#5f6368">it passed 3:00, so the window</text>
+        <text x="292" y="268" text-anchor="middle" font-size="9" fill="#5f6368">closed and the result was emitted</text>
+        <!-- late event -->
+        <circle cx="330" cy="130" r="7" fill="#FBBC04"/>
+        <path d="M 330 137 Q 320 168 240 158" fill="none" stroke="#FBBC04" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arrWm)"/>
+        <text x="333" y="112" text-anchor="middle" font-size="9" fill="#b06000">late event —</text>
+        <text x="333" y="123" text-anchor="middle" font-size="9" fill="#b06000">policy decides</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Streaming: correct answers, even out of order">
+  <summary>Speaker notes &mdash; Streaming semantics</summary>
+  <div class="n-body"><ul>
+    <li><strong>Altitude control:</strong> the goal is that students can say what a watermark <em>is</em> and what Dataflow does about it that a self-configured runner doesn't. Windowing mechanics, triggers, and allowed lateness get their own modules &mdash; park the details. The next slide walks one window through in wall-clock time.</li>
+    <li><strong>Why it's called a watermark</strong> (students ask): it's the water-level metaphor, a <em>high-water mark</em>. Picture arrived data as water rising up the event-time axis; the watermark is the line it has risen to &mdash; everything below the line is submerged (has arrived), everything above may still be coming. The research lineage (Google's MillWheel, the Dataflow model paper &mdash; the systems behind this service) calls it the <em>low watermark</em>: the oldest event time that could still be outstanding. Nothing to do with the faint stamp on paper.</li>
+    <li><strong>Why the diagram draws it past 3:00 rather than at 3:00:</strong> the watermark is a <em>moving</em> threshold that advances as the backlog drains &mdash; the window closes at the moment it <em>passes</em> 3:00, and the drawing shows a moment shortly after. At wall-clock 3:00 the watermark is usually still short of 3:00 (messages in flight, phones retrying); minutes later the oldest unacknowledged message has an event time past 3:00 &mdash; say 3:05 &mdash; so the watermark stands at ~3:05 and the 2&ndash;3&nbsp;PM window has closed. The gap between wall clock and watermark is exactly the <strong>data freshness</strong> chart in the monitoring UI.</li>
+    <li>Exactly-once mechanics, one level deeper if the room wants it: every step-to-step output is checkpointed; each worker keeps time-bucketed Bloom filters over seen record IDs so the dedup check rarely touches stable storage. For Pub/Sub, dedup keys on the message ID (or a custom attribute via <code>withIdAttribute</code>).</li>
+    <li><strong>Two honest caveats</strong> if probed: (1) exactly-once covers the pipeline's <em>processing</em>, not user-code side effects &mdash; an external API call inside a DoFn can still fire twice on retry; (2) there is a cheaper <strong>at-least-once</strong> streaming mode (<code>--dataflow_service_options=streaming_mode_at_least_once</code>) for ETL-style pipelines that tolerate duplicates &mdash; it returns in Section 4.</li>
+    <li>The runner contrast, said carefully &mdash; don't claim other runners lack watermarks. Beam's programming guide: "Beam tracks a watermark&hellip; In practice, your PCollection's data source determines the watermark, and watermarks can be more precise or complex." What differs is the <em>estimate</em>: the Pub/Sub docs say Beam "provides a reference implementation of the Pub/Sub I/O connector for use by non-Dataflow runners," while Dataflow's custom implementation uses Google-internal APIs "to offer low-latency watermarks, high watermark accuracy, and efficient deduplication." Some connectors do put the estimate in your hands (KafkaIO's configurable watermark policies are the classic example) &mdash; but that's per-connector, not "all other runners."</li>
+    <li>Is the "intelligent" part only about Pub/Sub? Essentially yes: the legacy course phrase "intelligent watermarking" maps to Dataflow's <em>source-side estimation</em> for Pub/Sub (the private API above, plus a "tracking subscription" it creates to inspect event times in the backlog). Watermark tracking and propagation through the pipeline graph is standard Beam on every runner.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/concepts/exactly-once">Exactly-once processing</a>, <a href="https://docs.cloud.google.com/dataflow/docs/concepts/streaming-with-cloud-pubsub">Read from Pub/Sub to Dataflow</a>, <a href="https://docs.cloud.google.com/dataflow/docs/concepts/streaming-pipelines">Streaming pipelines</a> (watermark definition), <a href="https://beam.apache.org/documentation/programming-guide/#watermarks-and-late-data">Beam programming guide &sect;8.4</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10b. WATERMARK WORKED EXAMPLE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Watching one window close</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">Two clocks matter. The <strong>wall clock</strong> means nothing to the pipeline — the <strong>watermark</strong> passing 3:00 is what closes the 2–3&nbsp;PM window.</p>
+  <div class="cols">
+    <div style="flex:0 0 46%">
+      <pre class="code small"><span class="lang">Python</span>(p
+ | beam.io.ReadFromPubSub(
+       subscription=sub)
+   <span class="cm"># each message stamped with event time</span>
+ | beam.WindowInto(
+       window.FixedWindows(3600))
+   <span class="cm"># hourly windows, on event time</span>
+ | beam.Map(<span class="kw">lambda</span> e: (e.product, e.amount))
+ | beam.CombinePerKey(sum)
+   <span class="cm"># emits when the watermark</span>
+   <span class="cm"># passes the window's end</span>
+ | beam.io.WriteToBigQuery(&#8230;))</pre>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px;padding:9px 13px">The gap between the two clocks is the <strong>Data freshness</strong> chart in the Dataflow monitoring UI.</div>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="410" height="300" viewBox="0 0 410 300">
+        <text x="12" y="16" font-size="11" font-weight="600" fill="#5f6368">Wall-clock time, one afternoon</text>
+        <line x1="52" y1="30" x2="52" y2="288" stroke="#dadce0" stroke-width="2"/>
+        <!-- 2:00-3:00 -->
+        <circle cx="52" cy="46" r="6" fill="#34A853"/>
+        <text x="10" y="50" font-size="10" font-weight="600" fill="#3c4043">2:00</text>
+        <text x="68" y="42" font-size="10.5" fill="#202124">Events flow in; the 2–3 PM window holds a</text>
+        <text x="68" y="56" font-size="10.5" fill="#202124">running sum per product — watermark creeps along behind</text>
+        <!-- 3:00 -->
+        <circle cx="52" cy="106" r="6" fill="#FBBC04"/>
+        <text x="10" y="110" font-size="10" font-weight="600" fill="#3c4043">3:00</text>
+        <text x="68" y="96" font-size="10.5" font-weight="600" fill="#b06000">Window does not close.</text>
+        <text x="68" y="110" font-size="10.5" fill="#202124">Oldest unacknowledged message has event time 2:58</text>
+        <text x="68" y="124" font-size="10.5" fill="#202124">→ watermark = 2:58 — data may still be missing</text>
+        <!-- 3:04 -->
+        <circle cx="52" cy="172" r="6" fill="#34A853"/>
+        <text x="10" y="176" font-size="10" font-weight="600" fill="#3c4043">3:04</text>
+        <text x="68" y="162" font-size="10.5" fill="#202124">Backlog drains; oldest unacknowledged event time: 3:05</text>
+        <text x="68" y="176" font-size="10.5" font-weight="600" fill="#188038">→ watermark passes 3:00: window closes,</text>
+        <text x="68" y="190" font-size="10.5" font-weight="600" fill="#188038">(shoes, $442.50) … written to BigQuery</text>
+        <!-- 3:09 -->
+        <circle cx="52" cy="238" r="6" fill="#EA4335"/>
+        <text x="10" y="242" font-size="10" font-weight="600" fill="#3c4043">3:09</text>
+        <text x="68" y="228" font-size="10.5" fill="#202124">A phone reconnects and uploads a 2:57 sale —</text>
+        <text x="68" y="242" font-size="10.5" font-weight="600" fill="#c5221f">late data: allowed lateness / triggers decide</text>
+        <text x="68" y="256" font-size="10.5" fill="#5f6368">(streaming module — not silently wrong, not silently lost)</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Watching one window close">
+  <summary>Speaker notes &mdash; Watching one window close</summary>
+  <div class="n-body"><ul>
+    <li><strong>This slide exists to separate the two clocks.</strong> Students' instinct is "at 3:00 the hourly window closes." Walk the timeline slowly: at wall-clock 3:00 the watermark is still at 2:58, because the service can see that messages with older event times are still unacknowledged &mdash; closing now would drop them. Four minutes later nothing older than 3:05 is outstanding, the watermark passes 3:00, and <em>that</em> is the close. The lag is the price of a correct answer &mdash; and it's visible as <strong>Data freshness</strong> in the job's monitoring page.</li>
+    <li><strong>Where Dataflow gets its confidence</strong> (this is the "intelligent" part, and it's Pub/Sub-specific): the custom connector reads a private Pub/Sub API for "the age of the oldest unacknowledged message in a subscription," and when the pipeline uses event timestamps, Dataflow also creates a <em>tracking subscription</em> to inspect the event times still in the backlog. That's how it can assert "nothing older than 3:05 is still out there" instead of guessing.</li>
+    <li>On a runner using Beam's reference Pub/Sub connector, the same pipeline still has a watermark &mdash; but it's estimated only from messages already seen, so it advances less accurately: either cautiously (results always later than needed) or optimistically (more data lands late).</li>
+    <li>The 3:09 event: it's in the 2&ndash;3&nbsp;PM window by event time but arrived after the result was emitted. Beam's default configuration does not allow late data (it's discarded); allowed lateness and triggers can instead re-emit a corrected pane. That's the streaming course's opening act &mdash; here, plant only "the model has a policy for this."</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/concepts/streaming-with-cloud-pubsub">Read from Pub/Sub to Dataflow</a> (private API, tracking subscription), <a href="https://docs.cloud.google.com/dataflow/docs/guides/using-monitoring-intf">Dataflow monitoring interface</a> (data freshness).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. PRICING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What you pay for</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:14px">Per job, billed in <strong>per-second increments</strong>, on what the job actually uses. Workers are billed as Dataflow SKUs — the Dataflow charge covers the VMs.</p>
+  <div class="cols">
+    <div style="flex:0 0 58%">
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>Resource (us-central1)</th><th>Batch</th><th>FlexRS</th><th>Streaming</th></tr>
+        <tr><td>vCPU / hr</td><td>$0.056</td><td>$0.0336</td><td>$0.069</td></tr>
+        <tr><td>Memory / GiB-hr</td><td>$0.003557</td><td>$0.0021342</td><td>$0.003557</td></tr>
+        <tr><td>Standard PD / GiB-hr</td><td colspan="3">$0.000054</td></tr>
+        <tr class="hl"><td>Service backend</td><td>Shuffle<br>$0.011 / GiB</td><td>Shuffle<br>$0.011 / GiB</td><td>Streaming Engine<br>$0.018 / GiB <span class="muted">(default)</span><br>$0.089 / Compute Unit <span class="muted">(opt-in)</span></td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <ul class="body" style="font-size:12.5px">
+        <li>Default worker shapes: batch 1&nbsp;vCPU / 3.75&nbsp;GB · FlexRS 2 / 7.5 · streaming 4 / 15</li>
+        <li>Streaming has committed-use discounts: 20% (1&nbsp;yr) / 40% (3&nbsp;yr)</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Autoscaling is the cost lever</strong> — fewer worker-seconds, smaller bill</li>
+        <li>The highlighted row is this module: Sections 3–5 exist to shrink or exploit this table</li>
+        <li>Billed separately: the services around the pipeline — Cloud Storage, Pub/Sub, BigQuery, networking, logging</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:12.5px;padding:10px 14px">Don't memorize the numbers — learn the <strong>shape</strong>: which knob moves which line item. The pricing page is the source of truth; rates shown are July 2026, us-central1.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What you pay for">
+  <summary>Speaker notes &mdash; What you pay for</summary>
+  <div class="n-body"><ul>
+    <li><strong>Worked example to do on the whiteboard</strong> (batch, defaults, Shuffle service): 10 workers &times; 1 hour = 10 vCPU-hr ($0.56) + 37.5 GiB-hr memory ($0.13) + 250 GiB-hr of 25 GB disks (&asymp;$0.01) + say 100 GiB shuffled &mdash; tiering bills the first 250 GiB at 25%, so 25 GiB &times; $0.011 &asymp; $0.28. Total &asymp; <strong>$1 for the nightly job</strong>. The point isn't the number; it's that students see which lines dominate (vCPU, then shuffle volume).</li>
+    <li>Three structural facts that outlive any rate change: (1) billing is per job, per second, on four-ish meters; (2) worker usage appears as Dataflow SKUs, not Compute Engine line items; (3) batch and streaming vCPU rates differ, and FlexRS is exactly 40% off batch vCPU and memory ($0.0336 = 0.6 &times; $0.056) &mdash; that's Section 5's hook, visible right in the table.</li>
+    <li>The Streaming Engine cell shows both billing models on purpose. The pricing page: "Unless you enable resource-based billing, jobs are billed by using data-processed billing" &mdash; so <strong>$0.018/GiB is what a job gets by default</strong>, even though the docs label it <em>legacy</em>; Compute Units are opt-in (Section 4 has the flag). Unit pedantry worth pre-empting: the SKU is priced per Streaming Engine Compute Unit &mdash; a metered count, not a per-hour rate; time is baked into how the units are metered, not into the price unit.</li>
+    <li>GPUs/TPUs, snapshots, and Confidential VM add-ons have their own meters &mdash; out of scope here.</li>
+    <li>Reference: <a href="https://cloud.google.com/dataflow/pricing">Dataflow pricing</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. DIVIDER: SECTION 2 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 6</div>
+    <h1>The theme: get state off the workers</h1>
+    <div class="sub">One idea explains the rest of this module — why the service moves job state out of the worker VMs, and what that buys you.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The service</span><span class="current">The theme</span><span>Shuffle service</span><span>Streaming Engine</span><span>FlexRS</span><span>Wrap-up</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: The theme">
+  <summary>Speaker notes &mdash; Section 2: The theme</summary>
+  <div class="n-body"><ul>
+    <li>One slide, deliberately: this is the module's original title ("Separating Compute and Storage") distilled into a claim students can test each of the next three features against.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. THE THEME ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Why "separating compute and storage" is the theme</h1>
+  <div class="cols">
+    <div style="flex:0 0 40%">
+      <ul class="body" style="font-size:14px">
+        <li>A worker holding data is a worker you <strong>can't easily take away</strong>:
+          <ul>
+            <li>scale-down must first move its data</li>
+            <li>a lost VM loses its data — re-work</li>
+            <li>disks are sized for the peak, paid for always</li>
+          </ul>
+        </li>
+        <li>Dataflow's answer: move job <strong>state</strong> — shuffled data (batch), window state (streaming) — into Google-managed backend services</li>
+        <li>Workers become nearly <strong>stateless compute</strong>: easy to scale, cheap to run, safe to lose</li>
+        <li>The rest of the module is this idea, three times: <span class="blue">Shuffle service</span> · <span class="blue">Streaming Engine</span> · <span class="blue">FlexRS</span> (its payoff)</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="430" height="290" viewBox="0 0 430 290">
+        <text x="14" y="18" font-size="11.5" font-weight="600" fill="#5f6368">Before — state on workers</text>
+        <g>
+          <rect x="14" y="30" width="90" height="52" rx="6" fill="#4285F4"/>
+          <text x="59" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">worker</text>
+          <rect x="26" y="60" width="66" height="14" rx="3" fill="#FBBC04"/>
+          <text x="59" y="71" text-anchor="middle" font-size="8.5" fill="#3c2f00">state on disk</text>
+        </g>
+        <g>
+          <rect x="116" y="30" width="90" height="52" rx="6" fill="#4285F4"/>
+          <text x="161" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">worker</text>
+          <rect x="128" y="60" width="66" height="14" rx="3" fill="#FBBC04"/>
+          <text x="161" y="71" text-anchor="middle" font-size="8.5" fill="#3c2f00">state on disk</text>
+        </g>
+        <g opacity=".95">
+          <rect x="218" y="30" width="90" height="52" rx="6" fill="#4285F4"/>
+          <text x="263" y="52" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">worker</text>
+          <rect x="230" y="60" width="66" height="14" rx="3" fill="#FBBC04"/>
+          <line x1="222" y1="34" x2="304" y2="78" stroke="#c5221f" stroke-width="3"/>
+          <line x1="304" y1="34" x2="222" y2="78" stroke="#c5221f" stroke-width="3"/>
+        </g>
+        <text x="322" y="48" font-size="9.5" fill="#c5221f">VM dies →</text>
+        <text x="322" y="60" font-size="9.5" fill="#c5221f">its state dies too;</text>
+        <text x="322" y="72" font-size="9.5" fill="#c5221f">work is redone</text>
+        <text x="14" y="118" font-size="10" fill="#5f6368">scale-down blocked: releasing a worker means first moving its state</text>
+        <!-- divider -->
+        <line x1="14" y1="134" x2="416" y2="134" stroke="#dadce0" stroke-width="1"/>
+        <text x="14" y="156" font-size="11.5" font-weight="600" fill="#5f6368">After — state in the service backend</text>
+        <g>
+          <rect x="14" y="168" width="76" height="38" rx="6" fill="#4285F4"/>
+          <text x="52" y="191" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">worker</text>
+          <rect x="102" y="168" width="76" height="38" rx="6" fill="#4285F4"/>
+          <text x="140" y="191" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">worker</text>
+          <g>
+            <rect x="190" y="168" width="76" height="38" rx="6" fill="#4285F4"/>
+            <text x="228" y="191" text-anchor="middle" font-size="10" font-weight="600" fill="#fff">worker</text>
+            <line x1="194" y1="172" x2="262" y2="202" stroke="#c5221f" stroke-width="2.5"/>
+            <line x1="262" y1="172" x2="194" y2="202" stroke="#c5221f" stroke-width="2.5"/>
+          </g>
+          <text x="286" y="184" font-size="9.5" fill="#188038">replaced;</text>
+          <text x="286" y="196" font-size="9.5" fill="#188038">state unaffected</text>
+        </g>
+        <line x1="52" y1="206" x2="52" y2="226" stroke="#9aa0a6" stroke-width="1.2"/>
+        <line x1="140" y1="206" x2="140" y2="226" stroke="#9aa0a6" stroke-width="1.2"/>
+        <line x1="228" y1="206" x2="228" y2="226" stroke="#9aa0a6" stroke-width="1.2"/>
+        <rect x="14" y="230" width="402" height="40" rx="8" fill="#FBBC04" opacity=".9"/>
+        <text x="215" y="250" text-anchor="middle" font-size="11" font-weight="600" fill="#3c2f00">Dataflow backend — shuffle data · window state</text>
+        <text x="215" y="264" text-anchor="middle" font-size="9.5" fill="#3c2f00">regional, replicated, Google-managed</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Why separating compute and storage is the theme">
+  <summary>Speaker notes &mdash; The theme</summary>
+  <div class="n-body"><ul>
+    <li>Give the claim in one sentence and let the diagram carry it: <strong>state on a worker couples the data's fate to the VM's fate</strong>. Decouple them and everything the last section promised (autoscaling, fault tolerance, cheap workers) gets better.</li>
+    <li>Preview the three applications so students know the map: batch shuffle data &rarr; <strong>Shuffle service</strong> (Section 3); streaming window state and streaming shuffle &rarr; <strong>Streaming Engine</strong> (Section 4); and once workers are disposable, running 90% of them on preemptible VMs becomes safe &rarr; <strong>FlexRS</strong> (Section 5).</li>
+    <li>"Nearly stateless" is deliberate wording &mdash; workers still hold in-flight bundles and caches; the point is that <em>durable job state</em> lives elsewhere.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. DIVIDER: SECTION 3 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 6</div>
+    <h1>Dataflow Shuffle service <span class="muted" style="font-weight:400">(batch)</span></h1>
+    <div class="sub">The shuffle from Section 1 has to put its data somewhere. Moving it off the workers is the first application of the theme &mdash; what it does, why it's faster, and what it costs.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The service</span><span>The theme</span><span class="current">Shuffle service</span><span>Streaming Engine</span><span>FlexRS</span><span>Wrap-up</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: Dataflow Shuffle service">
+  <summary>Speaker notes &mdash; Section 3: Dataflow Shuffle service</summary>
+  <div class="n-body"><ul>
+    <li>Framing matters: this is <em>not</em> an optional add-on students must remember to enable &mdash; it's how batch Dataflow works today, by default, everywhere. The section explains the machinery they're already using and the line item it puts on the bill.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. WHERE DOES SHUFFLED DATA LIVE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Where does the shuffled data live?</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">Before <code>CombinePerKey</code> can finish, every product's records must be brought together — the shuffle. While the job runs, that regrouped data has to sit <em>somewhere</em>.</p>
+  <div class="cols">
+    <div style="flex:0 0 40%">
+      <ul class="body" style="font-size:13.5px">
+        <li>The worker-based way: shuffle data written to worker CPU, memory, and <strong>Persistent Disk</strong> — historically a 250&nbsp;GB disk per batch worker, largely for this</li>
+        <li>Consequences: big disks whether busy or not; a lost worker loses its shuffle data; a worker holding shuffle data can't be released</li>
+        <li>The <strong>Shuffle service</strong> moves the operation into the Dataflow backend — it "partitions and groups data by key in a scalable, efficient, fault-tolerant manner"</li>
+        <li>It's the base operation behind <code>GroupByKey</code>, <code>CoGroupByKey</code>, and <code>Combine</code></li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="440" height="300" viewBox="0 0 440 300">
+        <defs>
+          <marker id="arrSh" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/>
+          </marker>
+        </defs>
+        <!-- compute box -->
+        <rect x="8" y="26" width="150" height="200" rx="8" fill="#e8f0fe"/>
+        <text x="83" y="48" text-anchor="middle" font-size="11.5" font-weight="600" fill="#1a73e8">Compute</text>
+        <g fill="#4285F4">
+          <rect x="24" y="62" width="54" height="30" rx="4"/>
+          <rect x="88" y="62" width="54" height="30" rx="4"/>
+          <rect x="24" y="100" width="54" height="30" rx="4"/>
+          <rect x="88" y="100" width="54" height="30" rx="4"/>
+          <rect x="24" y="138" width="54" height="30" rx="4"/>
+          <rect x="88" y="138" width="54" height="30" rx="4"/>
+        </g>
+        <text x="83" y="196" text-anchor="middle" font-size="9.5" fill="#5f6368">slim workers —</text>
+        <text x="83" y="209" text-anchor="middle" font-size="9.5" fill="#5f6368">25 GB boot disk</text>
+        <!-- petabit pipe -->
+        <line x1="158" y1="120" x2="212" y2="120" stroke="#5f6368" stroke-width="8" opacity=".25"/>
+        <line x1="158" y1="120" x2="212" y2="120" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrSh)"/>
+        <text x="185" y="102" text-anchor="middle" font-size="9.5" fill="#5f6368">Google's</text>
+        <text x="185" y="141" text-anchor="middle" font-size="9.5" fill="#5f6368">network</text>
+        <!-- shuffle service box -->
+        <rect x="216" y="26" width="216" height="230" rx="8" fill="#fef7e0"/>
+        <text x="324" y="48" text-anchor="middle" font-size="11.5" font-weight="600" fill="#b06000">Dataflow service backend</text>
+        <rect x="230" y="60" width="188" height="182" rx="6" fill="none" stroke="#FBBC04" stroke-width="1.3"/>
+        <text x="244" y="80" font-size="10" font-weight="600" fill="#5f6368">Your job's region</text>
+        <rect x="244" y="92" width="160" height="58" rx="5" fill="#fff" stroke="#dadce0"/>
+        <text x="324" y="112" text-anchor="middle" font-size="10" font-weight="600" fill="#3c4043">Dataflow Shuffle</text>
+        <text x="324" y="128" text-anchor="middle" font-size="9" fill="#5f6368">"partitions and groups data by key in a</text>
+        <text x="324" y="140" text-anchor="middle" font-size="9" fill="#5f6368">scalable, efficient, fault-tolerant manner"</text>
+        <text x="325" y="180" text-anchor="middle" font-size="9.5" fill="#5f6368">you pick the region;</text>
+        <text x="325" y="193" text-anchor="middle" font-size="9.5" fill="#5f6368">Dataflow picks the zone —</text>
+        <text x="325" y="206" text-anchor="middle" font-size="9.5" fill="#5f6368">never pin a zone yourself</text>
+        <text x="325" y="228" text-anchor="middle" font-size="9.5" font-weight="600" fill="#b06000">served back per key</text>
+        <text x="220" y="286" text-anchor="middle" font-size="10.5" fill="#5f6368">workers stream key/value data out — the backend groups it — workers read groups back</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Where does the shuffled data live?">
+  <summary>Speaker notes &mdash; Where does the shuffled data live?</summary>
+  <div class="n-body"><ul>
+    <li>Open by cashing the check from slide 1.4: "while the shuffle is in flight, where is that data?" Two possible answers &mdash; on the workers (the old way, still how most non-Dataflow runners work), or in a purpose-built service (Dataflow's default).</li>
+    <li>The quoted line ("partitions and groups data by key in a scalable, efficient, fault-tolerant manner") and the transform list are verbatim from the docs &mdash; shuffle is the base operation behind <code>GroupByKey</code>, <code>CoGroupByKey</code>, and <code>Combine</code>.</li>
+    <li>The diagram deliberately claims only what the current docs claim: the shuffle moves "out of the worker VMs and into the Dataflow service backend"; workers must be in the same region as the job; and you specify a <em>region</em> only &mdash; "Dataflow automatically selects the zone in the region you specified." The richer internals story (petabit-bisection network, in-memory tiers with disk spill, multi-zone placement) comes from older Google architecture talks and blog posts, not the current product docs &mdash; fine as instructor color if a student pushes, but flag it as such rather than presenting it as documented product fact.</li>
+    <li>Data locality note for security-minded rooms (Module 4 hook): the documented commitment is regional &mdash; workers and the shuffle backend are tied to the job's region, with zone selection automatic.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataflow/docs/shuffle-for-batch">Dataflow shuffle for batch jobs</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. SHUFFLE BENEFITS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What the Shuffle service buys you</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:15px">
+        <li><span class="blue">Faster</span> execution for the majority of batch pipelines — shuffle runs on purpose-built infrastructure, not general-purpose VMs</li>
+        <li><span class="blue">Leaner workers</span> — shuffle no longer consumes worker CPU, memory, or disk: the 250&nbsp;GB batch worker disk becomes a <strong>25&nbsp;GB boot disk</strong></li>
+        <li><span class="blue">Better autoscaling</span> — workers hold no shuffle data, so they can be released the moment they're idle</li>
+        <li><span class="blue">Fault tolerance</span> — an unhealthy VM holding shuffle data no longer fails the whole job</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="330" height="250" viewBox="0 0 330 250">
+        <text x="14" y="18" font-size="11" font-weight="600" fill="#5f6368">Per-worker disk, batch job</text>
+        <rect x="40" y="34" width="70" height="170" rx="6" fill="#dadce0"/>
+        <rect x="40" y="34" width="70" height="170" rx="6" fill="none" stroke="#9aa0a6"/>
+        <text x="75" y="128" text-anchor="middle" font-size="12" font-weight="700" fill="#3c4043">250 GB</text>
+        <text x="75" y="222" text-anchor="middle" font-size="10" fill="#5f6368">worker-based</text>
+        <text x="75" y="236" text-anchor="middle" font-size="10" fill="#5f6368">shuffle</text>
+        <rect x="190" y="187" width="70" height="17" rx="4" fill="#34A853"/>
+        <text x="225" y="180" text-anchor="middle" font-size="12" font-weight="700" fill="#188038">25 GB</text>
+        <text x="225" y="222" text-anchor="middle" font-size="10" fill="#5f6368">with the</text>
+        <text x="225" y="236" text-anchor="middle" font-size="10" fill="#5f6368">Shuffle service</text>
+        <line x1="120" y1="120" x2="180" y2="160" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSh)"/>
+      </svg>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13.5px">All four benefits are the docs' own list — and you get them without doing anything: <strong>batch jobs use Dataflow Shuffle by default.</strong></div>
+</section>
+<details class="notes" data-title="What the Shuffle service buys you">
+  <summary>Speaker notes &mdash; What the Shuffle service buys you</summary>
+  <div class="n-body"><ul>
+    <li>The four bullets are near-verbatim from the shuffle-for-batch page; the disk numbers are from the pricing-page footnote ("250 GB Persistent Disk if not using Dataflow Shuffle, 25 GB Persistent Disk if using Dataflow Shuffle").</li>
+    <li>Tie each benefit back to the theme slide rather than treating them as four separate facts: they're all corollaries of "the VM no longer holds the state." Faster is the only one that isn't &mdash; that one comes from shuffle running on specialized infrastructure.</li>
+    <li>The autoscaling benefit is the docs' phrasing too: "VMs don't hold any shuffle data and can therefore be scaled down earlier."</li>
+    <li>If a job is genuinely disk-heavy for other reasons, <code>--disk_size_gb</code> raises the boot disk from the 25 GB default.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. SHUFFLE: ON? COST? ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Shuffle service: is it on? What does it cost?</h1>
+  <div class="cols">
+    <div style="flex:0 0 48%">
+      <ul class="body" style="font-size:14px">
+        <li><strong>On by default for every batch job, in all Dataflow regions.</strong> Nothing to enable — the feature page itself documents no enable/disable flag anymore</li>
+        <li>One real constraint: specify <code>--region</code>, not a zone — an incompatible region/zone pair blocks the service</li>
+        <li>Billed <strong>per GiB of data processed during shuffle</strong> — you trade worker CPU/disk cost for a data-volume line item</li>
+        <li>Best practice, now with a price tag: <strong>minimize shuffled bytes</strong> — <code>CombinePerKey</code> (pre-combines per worker) over <code>GroupByKey</code>-then-sum is a billable difference</li>
+      </ul>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:13px">
+        <tr><th>Shuffle volume (per job)</th><th>Billed at</th></tr>
+        <tr><td>First 250 GiB</td><td>25% of volume</td></tr>
+        <tr><td>Next 4,870 GiB</td><td>50% of volume</td></tr>
+        <tr><td>Beyond 5 TiB</td><td>100% of volume</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13px;padding:10px 14px">Rate: <strong>$0.011 / GiB</strong> (us-central1). Docs' worked example: a job that shuffles 1&nbsp;TiB is billed for 449.5&nbsp;GiB &mdash; about <strong>$4.94</strong>.</div>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:10px 14px">A small aggregation costs pennies. A job that shuffles tens of TiB pays real money &mdash; that's the job to Combine early.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Shuffle service: is it on? What does it cost?">
+  <summary>Speaker notes &mdash; Shuffle: on? cost?</summary>
+  <div class="n-body"><ul>
+    <li><strong>Update from older course material:</strong> earlier decks said Shuffle was default only "in supported regions" and pointed to docs "to learn how to enable it." Both halves are stale &mdash; the current page's first sentence is "Batch jobs use Dataflow shuffle by default," it's available in all Dataflow regions, and the enable/disable instructions are gone from the feature page.</li>
+    <li>Precision if challenged on "no flag": the old opt-in experiment <code>--experiments=shuffle_mode=service</code> hasn't vanished from the doc set &mdash; the troubleshooting page still suggests it for shuffle-bound jobs "not using the service-based shuffle," and the FlexRS page uses <code>--additional-experiments=flexible_resource_scheduling,shuffle_mode=service,delayed_launch</code> as a workaround for templates that don't support the FlexRS option. Read those as legacy remnants for edge cases, not as evidence a normal batch job needs the flag.</li>
+    <li>If asked whether you <em>can</em> turn it off: the legacy worker-based mode still exists in the API (<code>ShuffleMode: VM_BASED</code>), but forcing it means workers shuffle peer-to-peer and need a firewall rule allowing traffic on ports 12345&ndash;12346 &mdash; and a Google KB article ("Error disabling Dataflow Shuffle or Streaming Engine") exists precisely because people break jobs this way. Teach it as "the default, effectively always on."</li>
+    <li>Walk the tier table once with the 1 TiB example: 250 &times; 0.25 + 774 &times; 0.5 = 449.5 billable GiB. The discount structure rewards mid-size jobs; past 5 TiB you pay full volume &mdash; which is exactly when combiner discipline (Module 5) pays for itself in dollars.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/shuffle-for-batch">Dataflow shuffle for batch jobs</a>, <a href="https://cloud.google.com/dataflow/pricing">Pricing</a> (rates and volume adjustments).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. DIVIDER: SECTION 4 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 6</div>
+    <h1>Streaming Engine</h1>
+    <div class="sub">The same idea for streaming: window state and the streaming shuffle move off the worker VMs into the service backend &mdash; with no changes to your pipeline code.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The service</span><span>The theme</span><span>Shuffle service</span><span class="current">Streaming Engine</span><span>FlexRS</span><span>Wrap-up</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Streaming Engine">
+  <summary>Speaker notes &mdash; Section 4: Streaming Engine</summary>
+  <div class="n-body"><ul>
+    <li>Bridge sentence: "Shuffle service is batch-only. Streaming jobs shuffle too &mdash; continuously &mdash; and they hold window state on top. Same problem, same answer, different service."</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. STREAMING VERSION OF THE PROBLEM ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The streaming version of the same problem</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The Pub/Sub pipeline runs 24/7. Follow one event through <code>CombinePerKey(sum)</code> and two things appear that batch never kept for long.</p>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Window state</strong>: at 2:41&nbsp;PM the 2–3&nbsp;PM window is a table of running sums — one <em>(product, window) → sum</em> entry per product — that must survive until the watermark closes the window</li>
+        <li><strong>Streaming shuffle</strong>: no "map finishes, then shuffle" here — each worker owns a slice of the key space, and <em>every arriving event</em> is routed to its key's owner the moment it arrives, so each sum accrues in exactly one place</li>
+        <li>Both are durable, per-key, and live as long as the job runs. The question of this section: <em>where</em> do they live?</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="430" height="290" viewBox="0 0 430 290">
+        <defs>
+          <marker id="arrSx" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/>
+          </marker>
+        </defs>
+        <!-- event card -->
+        <rect x="12" y="20" width="150" height="58" rx="6" fill="#fff" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="87" y="38" text-anchor="middle" font-size="10" font-weight="600" fill="#c5221f">event, from Pub/Sub</text>
+        <text x="87" y="54" text-anchor="middle" font-size="9.5" fill="#3c4043">product: "shoes" · $30.00</text>
+        <text x="87" y="68" text-anchor="middle" font-size="9.5" fill="#3c4043">event time: 2:41 PM</text>
+        <!-- route arrow -->
+        <path d="M 162 50 Q 240 50 296 96" fill="none" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrSx)"/>
+        <text x="240" y="34" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c5221f">streaming shuffle</text>
+        <text x="240" y="47" text-anchor="middle" font-size="9" fill="#5f6368">route by key: "shoes" → worker 2</text>
+        <!-- worker 1 -->
+        <rect x="12" y="110" width="190" height="106" rx="7" fill="#fff" stroke="#9aa0a6"/>
+        <rect x="12" y="110" width="190" height="22" rx="7" fill="#4285F4"/>
+        <text x="107" y="125" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">worker 1 — owns keys a–m</text>
+        <text x="24" y="150" font-size="9.5" font-weight="600" fill="#5f6368">window state, 2–3 PM:</text>
+        <text x="24" y="168" font-size="10" fill="#3c4043">gloves&nbsp;&nbsp;$121.00</text>
+        <text x="24" y="184" font-size="10" fill="#3c4043">hats&nbsp;&nbsp;&nbsp;&nbsp;$86.00</text>
+        <!-- worker 2 -->
+        <rect x="226" y="110" width="192" height="106" rx="7" fill="#fff" stroke="#9aa0a6"/>
+        <rect x="226" y="110" width="192" height="22" rx="7" fill="#4285F4"/>
+        <text x="322" y="125" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">worker 2 — owns keys n–z</text>
+        <text x="238" y="150" font-size="9.5" font-weight="600" fill="#5f6368">window state, 2–3 PM:</text>
+        <text x="238" y="168" font-size="10" fill="#3c4043">shoes&nbsp;&nbsp;<tspan text-decoration="line-through" fill="#9aa0a6">$412.50</tspan>&nbsp;<tspan font-weight="700" fill="#188038">$442.50</tspan></text>
+        <text x="238" y="184" font-size="10" fill="#3c4043">socks&nbsp;&nbsp;$57.25</text>
+        <text x="238" y="205" font-size="8.5" fill="#5f6368">+ the still-open 3–4 PM window, and so on</text>
+        <!-- emit -->
+        <line x1="322" y1="216" x2="322" y2="244" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSx)"/>
+        <text x="215" y="264" text-anchor="middle" font-size="10" fill="#5f6368">watermark passes 3:00 → each row emitted to BigQuery, state freed —</text>
+        <text x="215" y="279" text-anchor="middle" font-size="10" fill="#5f6368">until then, every entry must survive worker loss and rescaling</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The streaming version of the same problem">
+  <summary>Speaker notes &mdash; The streaming version of the same problem</summary>
+  <div class="n-body"><ul>
+    <li><strong>Make both nouns concrete before any feature talk.</strong> Window state: at 2:41&nbsp;PM the job is holding a running sum for every product sold since 2:00 &mdash; real, durable, per-key data with a lifetime (until the watermark closes the window, plus allowed lateness). Batch had nothing like it living that long between stages.</li>
+    <li><strong>"Streaming shuffle" is the docs' own term</strong> &mdash; the shuffle-for-batch page: "Streaming jobs use a different shuffle mechanism, called streaming shuffle." Same regroup-by-key idea as batch, but continuous and per-event: there is no stage barrier to hide it behind. The routing picture is what makes "events are regrouped by key" meaningful &mdash; each worker owns a slice of the key space, and delivering an event <em>is</em> the shuffle.</li>
+    <li>Why one owner per key matters: the sum for "shoes" accrues in exactly one place, so it's correct without cross-worker coordination &mdash; and that's also why a <em>hot key</em> pins its worker (Module 5's hot-key discussion connects here).</li>
+    <li>Leave the cliffhanger explicit: everything on this slide must survive a worker dying at 2:59. Where this state physically lives is the next slide &mdash; and it's the whole difference between streaming with and without Streaming Engine.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataflow/docs/shuffle-for-batch">Dataflow shuffle for batch jobs</a> (streaming shuffle naming), <a href="https://docs.cloud.google.com/dataflow/docs/streaming-engine">Use Streaming Engine</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19b. WHERE DOES STREAMING STATE LIVE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Where does that state live?</h1>
+  <div class="cols">
+    <div style="flex:0 0 42%">
+      <ul class="body" style="font-size:13.5px">
+        <li>Without Streaming Engine: window state and streaming shuffle live on worker <strong>Persistent Disks</strong>, allocated at job start (400&nbsp;GB per default worker)</li>
+        <li>Consequences: workers sized for the peak, always; scaling means <em>moving state between VMs</em> — slow and disruptive; the disk allocation caps how far the job can scale</li>
+        <li><strong>Streaming Engine</strong> moves window state storage and the streaming shuffle into the Dataflow backend</li>
+        <li>Workers keep running <em>your code</em>, talking to the engine for state — <strong>no pipeline changes</strong></li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="420" height="280" viewBox="0 0 420 280">
+        <defs>
+          <marker id="arrSe" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/>
+          </marker>
+        </defs>
+        <!-- workers row -->
+        <g>
+          <rect x="20" y="26" width="86" height="64" rx="6" fill="#fff" stroke="#9aa0a6"/>
+          <rect x="20" y="26" width="86" height="20" rx="6" fill="#4285F4"/>
+          <text x="63" y="40" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">user code</text>
+          <text x="63" y="72" text-anchor="middle" font-size="9.5" fill="#5f6368">worker</text>
+        </g>
+        <g>
+          <rect x="118" y="26" width="86" height="64" rx="6" fill="#fff" stroke="#9aa0a6"/>
+          <rect x="118" y="26" width="86" height="20" rx="6" fill="#4285F4"/>
+          <text x="161" y="40" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">user code</text>
+          <text x="161" y="72" text-anchor="middle" font-size="9.5" fill="#5f6368">worker</text>
+        </g>
+        <g>
+          <rect x="216" y="26" width="86" height="64" rx="6" fill="#fff" stroke="#9aa0a6"/>
+          <rect x="216" y="26" width="86" height="20" rx="6" fill="#4285F4"/>
+          <text x="259" y="40" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">user code</text>
+          <text x="259" y="72" text-anchor="middle" font-size="9.5" fill="#5f6368">worker</text>
+        </g>
+        <g>
+          <rect x="314" y="26" width="86" height="64" rx="6" fill="#fff" stroke="#9aa0a6"/>
+          <rect x="314" y="26" width="86" height="20" rx="6" fill="#4285F4"/>
+          <text x="357" y="40" text-anchor="middle" font-size="9.5" font-weight="600" fill="#fff">user code</text>
+          <text x="357" y="72" text-anchor="middle" font-size="9.5" fill="#5f6368">worker</text>
+        </g>
+        <!-- arrows both ways -->
+        <line x1="63" y1="94" x2="63" y2="140" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="73" y1="140" x2="73" y2="94" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="161" y1="94" x2="161" y2="140" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="171" y1="140" x2="171" y2="94" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="259" y1="94" x2="259" y2="140" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="269" y1="140" x2="269" y2="94" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="357" y1="94" x2="357" y2="140" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <line x1="367" y1="140" x2="367" y2="94" stroke="#5f6368" stroke-width="1.4" marker-end="url(#arrSe)"/>
+        <!-- engine bar -->
+        <rect x="20" y="144" width="380" height="66" rx="8" fill="#FBBC04" opacity=".92"/>
+        <text x="210" y="170" text-anchor="middle" font-size="12" font-weight="600" fill="#3c2f00">Streaming Engine</text>
+        <rect x="60" y="180" width="140" height="20" rx="10" fill="#fff" opacity=".85"/>
+        <text x="130" y="194" text-anchor="middle" font-size="9.5" fill="#3c2f00">window state storage</text>
+        <rect x="220" y="180" width="140" height="20" rx="10" fill="#fff" opacity=".85"/>
+        <text x="290" y="194" text-anchor="middle" font-size="9.5" fill="#3c2f00">streaming shuffle</text>
+        <text x="210" y="238" text-anchor="middle" font-size="10.5" fill="#5f6368">workers execute transforms; the engine holds the state —</text>
+        <text x="210" y="254" text-anchor="middle" font-size="10.5" fill="#5f6368">transparent to your pipeline code</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Where does that state live?">
+  <summary>Speaker notes &mdash; Where does that state live?</summary>
+  <div class="n-body"><ul>
+    <li>Open by pointing back at the previous slide's state tables: a worker dies at 2:59 &mdash; what happens to its running sums? Without Streaming Engine, they're on that VM's Persistent Disk; with it, they're in the service backend and the replacement worker just picks up where the dead one left off.</li>
+    <li>The docs' framing of the alternative: without Streaming Engine, "the Dataflow runner executes the steps of your streaming pipeline entirely on worker VMs, consuming worker CPU, memory, and Persistent Disk storage." The 400 GB per-worker PD figure is the pricing-page default for non-Streaming-Engine streaming workers; there's also a 15-disks-per-worker service limit with a 1:1 minimum &mdash; disk topology is fixed at job creation, which is precisely why scaling stateful workers is painful. (And per the pricing page, that disk pool is billed on the exact value of <code>--maxNumWorkers</code> &mdash; the slide-1.6 gotcha.)</li>
+    <li>"No pipeline changes" is the docs' promise: worker nodes keep running user transform code and "transparently communicate with the Streaming Engine to store state."</li>
+    <li>If students ask <em>how</em> the previous slide's key-ownership picture scales: with Streaming Engine, state is sharded by key range and scaling is a reassignment of key ranges to workers &mdash; no disks to drag between VMs. Source that carefully: it comes from Google's engineering article "Streaming Engine: Execution Model for Highly-Scalable, Low-Latency Data Processing" (linked from the Streaming Engine doc page), not from the doc page itself.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataflow/docs/streaming-engine">Use Streaming Engine for streaming jobs</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. SE BENEFITS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What Streaming Engine buys you</h1>
+  <div class="cols c-55-45">
+    <div>
+      <ul class="body" style="font-size:14.5px">
+        <li><span class="blue">Smaller, cheaper workers</span> — docs recommend a 2-vCPU machine (<code>n4-standard-2</code>) with a <strong>30&nbsp;GB</strong> boot disk, instead of 4&nbsp;vCPU / 15&nbsp;GB with a <strong>400&nbsp;GB</strong> Persistent Disk</li>
+        <li><span class="blue">Responsive autoscaling</span> — scaling no longer moves state between VMs: "smoother, more granular scaling" as traffic swings</li>
+        <li><span class="blue">Service improvements without redeploys</span> — the engine is Google-run; streaming internals improve under your running job</li>
+        <li><span class="blue">Lower quota footprint</span> — smaller VMs, tiny disks against your Compute Engine quotas (Module 3)</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="330" height="260" viewBox="0 0 330 260">
+        <text x="14" y="18" font-size="11" font-weight="600" fill="#5f6368">Per streaming worker</text>
+        <!-- without -->
+        <rect x="24" y="34" width="100" height="80" rx="8" fill="#4285F4"/>
+        <text x="74" y="66" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">4 vCPU</text>
+        <text x="74" y="84" text-anchor="middle" font-size="10" fill="#dbe6fd">15 GB RAM</text>
+        <rect x="24" y="122" width="100" height="80" rx="6" fill="#dadce0"/>
+        <text x="74" y="158" text-anchor="middle" font-size="11" font-weight="700" fill="#3c4043">400 GB</text>
+        <text x="74" y="176" text-anchor="middle" font-size="9.5" fill="#5f6368">PD for state</text>
+        <text x="74" y="226" text-anchor="middle" font-size="10" fill="#5f6368">without</text>
+        <text x="74" y="240" text-anchor="middle" font-size="10" fill="#5f6368">Streaming Engine</text>
+        <!-- with -->
+        <rect x="206" y="74" width="76" height="40" rx="8" fill="#34A853"/>
+        <text x="244" y="92" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">2 vCPU</text>
+        <text x="244" y="106" text-anchor="middle" font-size="9" fill="#e6f4ea">n4-standard-2</text>
+        <rect x="206" y="186" width="76" height="16" rx="4" fill="#34A853" opacity=".7"/>
+        <text x="244" y="178" text-anchor="middle" font-size="10.5" font-weight="700" fill="#188038">30 GB</text>
+        <text x="244" y="226" text-anchor="middle" font-size="10" fill="#5f6368">with</text>
+        <text x="244" y="240" text-anchor="middle" font-size="10" fill="#5f6368">Streaming Engine</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What Streaming Engine buys you">
+  <summary>Speaker notes &mdash; What Streaming Engine buys you</summary>
+  <div class="n-body"><ul>
+    <li>All four bullets are the docs' benefit list, lightly compressed; "smoother, more granular scaling" is their phrasing. The machine-type guidance changed over the years &mdash; older decks say <code>n1-standard-2</code>; the current page's example flags are <code>n4-standard-2</code> / <code>n4-highmem-2</code> with a 30 GB disk, and it notes those are the defaults when Streaming Engine is on.</li>
+    <li>The supportability bullet is underrated in practice: streaming pipelines run for months; with state in the engine, Google ships performance and correctness improvements under running jobs, no drain-and-redeploy.</li>
+    <li>The quota bullet pays off in Module 3: fewer vCPUs, no 400 GB PD fleet, fewer in-use IPs per unit of throughput.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. SE: ON? COST? ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Streaming Engine: is it on? What does it cost?</h1>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Default depends on SDK:</strong>
+          <ul>
+            <li><strong>Python</strong> (2.21.0+, Python&nbsp;3): on by default — and from SDK <strong>2.45.0 it cannot be disabled</strong></li>
+            <li><strong>Go</strong> (2.33.0+): on by default</li>
+            <li><strong>Java</strong>: opt-in via flag</li>
+          </ul>
+        </li>
+        <li>Two billing models:
+          <ul>
+            <li><strong>Resource-based</strong> (newer): metered in Streaming Engine <strong>Compute Units</strong></li>
+            <li><strong>Data-processed</strong> (docs label it <em>legacy</em>): per GiB the engine processes; still the default unless you opt in</li>
+          </ul>
+        </li>
+        <li>Net effect: smaller VM bill + an engine line item — typically comparable or lower total, with much better scaling</li>
+      </ul>
+    </div>
+    <div>
+      <pre class="term" style="font-size:12px;padding:10px 14px"><span class="lbl">Java — enable:</span>mvn compile exec:java &#8230; \
+  <span class="flag">--enableStreamingEngine</span></pre>
+      <div style="height:8px"></div>
+      <pre class="term" style="font-size:12px;padding:10px 14px"><span class="lbl">gcloud (templates) — enable:</span>gcloud dataflow jobs run &#8230; \
+  <span class="flag">--enable-streaming-engine</span></pre>
+      <div style="height:8px"></div>
+      <pre class="term" style="font-size:12px;padding:10px 14px"><span class="lbl">Opt into resource-based billing (any SDK):</span>--dataflow_service_options=\
+  enable_streaming_engine_resource_based_billing</pre>
+      <div style="height:8px"></div>
+      <div class="callout" style="font-size:12.5px;padding:9px 13px">Tie-back to slide 1.7: the cheaper <strong>at-least-once</strong> mode requires Streaming Engine — and turning it on auto-enables resource-based billing.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Streaming Engine: is it on? What does it cost?">
+  <summary>Speaker notes &mdash; Streaming Engine: on? cost?</summary>
+  <div class="n-body"><ul>
+    <li>The honest cost framing: you're trading a VM bill for a service bill, and gaining elasticity. us-central1 anchors: Compute Unit $0.089 (with 1-yr/3-yr CUDs at $0.0712/$0.0534); legacy data-processed $0.018/GiB. The batch shuffle volume tiers do <em>not</em> apply to streaming.</li>
+    <li>Python detail worth precision: enabled by default since SDK 2.21.0 on Python 3 (CMEK jobs excepted historically); <code>--experiments=disable_streaming_engine</code> worked only through 2.44.0. From 2.45.0 the docs say you cannot disable it. So for Python students the right mental model is "Streaming Engine <em>is</em> streaming Dataflow."</li>
+    <li>Two operational constraints to name: a running pipeline can't be switched onto Streaming Engine in place (drain, add the option, resubmit), and there's a 60 GB-per-key limit on buffered input for open windows (buffered elements plus custom state).</li>
+    <li>At-least-once mode (<code>--dataflow_service_options=streaming_mode_at_least_once</code>): duplicates possible, significantly cheaper and lower latency; docs call out map-only ETL, log ingestion, and CDC-with-downstream-dedup as the fits. Enabling it auto-enables Streaming Engine with resource-based billing.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/streaming-engine">Streaming Engine</a>, <a href="https://docs.cloud.google.com/dataflow/docs/guides/streaming-modes">Streaming modes</a>, <a href="https://cloud.google.com/dataflow/pricing">Pricing</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. DIVIDER: SECTION 5 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 5 of 6</div>
+    <h1>Flexible Resource Scheduling <span class="muted" style="font-weight:400">(FlexRS)</span></h1>
+    <div class="sub">The payoff of stateless workers: give Dataflow scheduling flexibility, get a ~40% discount on batch compute.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The service</span><span>The theme</span><span>Shuffle service</span><span>Streaming Engine</span><span class="current">FlexRS</span><span>Wrap-up</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 5: FlexRS">
+  <summary>Speaker notes &mdash; Section 5: FlexRS</summary>
+  <div class="n-body"><ul>
+    <li>FlexRS closes the module because it only makes sense on top of Sections 2&ndash;3: preemptible workers are only safe because shuffle state lives off-worker.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 23. FLEXRS SCENARIO ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The nightly job doesn't care <em>when</em> it runs</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:14px">The daily batch job must finish by 8&nbsp;AM. It's submitted at midnight and takes about an hour. Nobody cares whether it runs at 12:05 or at 3:00 — and that slack is worth money.</p>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>FlexRS</strong>: you give Dataflow scheduling flexibility; Dataflow gives you <strong>~40% off</strong> worker vCPU and memory</li>
+        <li>The job is queued (state: <strong>Queued</strong>) and launched at a favorable time <strong>within 6 hours</strong> of submission</li>
+        <li>It runs on a mix of <strong>preemptible and regular VMs</strong> — 90% preemptible by default</li>
+        <li>Safe because of Section 3: FlexRS uses the Shuffle service, so a reclaimed VM is just replaced — no state lost, no work redistributed; the regular VMs keep the job progressing</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="420" height="290" viewBox="0 0 420 290">
+        <defs>
+          <marker id="arrFx" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0 L7,3.5 L0,7 Z" fill="#5f6368"/>
+          </marker>
+        </defs>
+        <text x="14" y="16" font-size="11" font-weight="600" fill="#5f6368">The night, on a timeline</text>
+        <line x1="20" y1="70" x2="404" y2="70" stroke="#9aa0a6" stroke-width="1.4" marker-end="url(#arrFx)"/>
+        <text x="28" y="92" text-anchor="middle" font-size="9.5" fill="#5f6368">00:00</text>
+        <text x="212" y="92" text-anchor="middle" font-size="9.5" fill="#5f6368">03:00</text>
+        <text x="332" y="92" text-anchor="middle" font-size="9.5" fill="#5f6368">06:00</text>
+        <text x="394" y="92" text-anchor="middle" font-size="9.5" fill="#c5221f" font-weight="600">08:00 ⚑</text>
+        <!-- submit marker -->
+        <line x1="28" y1="40" x2="28" y2="70" stroke="#1a73e8" stroke-width="2"/>
+        <text x="28" y="32" text-anchor="middle" font-size="9.5" fill="#1a73e8" font-weight="600">submit</text>
+        <!-- 6h band -->
+        <rect x="28" y="52" width="304" height="18" rx="4" fill="#e8f0fe"/>
+        <text x="180" y="46" text-anchor="middle" font-size="9.5" fill="#1a73e8">may start anywhere in this 6-hour band</text>
+        <!-- actual run -->
+        <rect x="150" y="56" width="70" height="10" rx="5" fill="#1a73e8"/>
+        <text x="185" y="110" text-anchor="middle" font-size="9.5" fill="#5f6368">actual run: ~1 h, service picks the moment</text>
+        <!-- worker pool -->
+        <text x="14" y="146" font-size="11" font-weight="600" fill="#5f6368">The worker pool during the run</text>
+        <g font-size="8.5">
+          <rect x="14" y="158" width="66" height="30" rx="4" fill="#4285F4"/><text x="47" y="176" text-anchor="middle" fill="#fff">regular</text>
+          <rect x="88" y="158" width="66" height="30" rx="4" fill="#A8C7FA"/><text x="121" y="176" text-anchor="middle" fill="#174ea6">preemptible</text>
+          <rect x="162" y="158" width="66" height="30" rx="4" fill="#A8C7FA"/><text x="195" y="176" text-anchor="middle" fill="#174ea6">preemptible</text>
+          <rect x="236" y="158" width="66" height="30" rx="4" fill="#A8C7FA"/><text x="269" y="176" text-anchor="middle" fill="#174ea6">preemptible</text>
+          <rect x="310" y="158" width="66" height="30" rx="4" fill="#A8C7FA"/><text x="343" y="176" text-anchor="middle" fill="#174ea6">preemptible</text>
+        </g>
+        <line x1="195" y1="192" x2="195" y2="206" stroke="#c5221f" stroke-width="2"/>
+        <text x="195" y="220" text-anchor="middle" font-size="9" fill="#c5221f">reclaimed by GCE</text>
+        <line x1="212" y1="224" x2="248" y2="224" stroke="#5f6368" stroke-width="1.2" marker-end="url(#arrFx)"/>
+        <rect x="252" y="212" width="66" height="24" rx="4" fill="#34A853"/>
+        <text x="285" y="228" text-anchor="middle" font-size="8.5" fill="#fff">replacement</text>
+        <text x="210" y="262" text-anchor="middle" font-size="10" fill="#188038">shuffle state is in the service — nothing lost, job keeps moving</text>
+        <text x="210" y="282" text-anchor="middle" font-size="10" fill="#5f6368">90% preemptible + 10% regular, uniform discounted rate either way</text>
+      </svg>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="The nightly job doesn't care when it runs">
+  <summary>Speaker notes &mdash; FlexRS scenario</summary>
+  <div class="n-body"><ul>
+    <li>Preemptible VMs are spare Compute Engine capacity, deeply discounted, reclaimable by GCE at any time &mdash; normally disqualifying for a job whose workers hold shuffle data. The docs' logic, verbatim in spirit: because FlexRS uses service-based Shuffle, "the Dataflow service doesn't have to redistribute data to the remaining workers" when a VM is preempted, and running regular VMs in parallel means the pipeline keeps progressing and prior work isn't lost.</li>
+    <li>The 6-hour window is the service <em>finding capacity</em>: "Dataflow finds the best time to start the job within that time window, based on the available capacity and other factors."</li>
+    <li>Quota fine print for Module 3: FlexRS needs <em>preemptible</em> CPU quota (separate from regular CPU quota), and a queued job occupies a concurrent-job slot while it waits.</li>
+    <li>The decision rule to leave with: <strong>"would anyone notice if this started five hours late?" If no — FlexRS.</strong></li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataflow/docs/guides/flexrs">Use Flexible Resource Scheduling</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 24. FLEXRS: USING IT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>FlexRS: using it, and what it costs</h1>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <pre class="term" style="font-size:12.5px"><span class="lbl">One flag turns it on:</span>python sales_pipeline.py \
+  <span class="flag">--runner</span>=DataflowRunner \
+  <span class="flag">--region</span>=us-central1 \
+  <span class="flag">--flexrs_goal</span>=COST_OPTIMIZED \
+  ...</pre>
+      <div style="height:8px"></div>
+      <ul class="body" style="font-size:13px">
+        <li>Java spells it <code>--flexRSGoal=COST_OPTIMIZED</code></li>
+        <li>Two goals exist; only one matters: <code>SPEED_OPTIMIZED</code> is the default — same as omitting the flag. <code>COST_OPTIMIZED</code> is what engages the queued, discounted behavior</li>
+        <li><strong>Early validation</strong>, immediately and free: execution parameters, IAM roles, network config — a typo fails at submission, not at 3&nbsp;AM</li>
+      </ul>
+    </div>
+    <div>
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>us-central1</th><th>Batch</th><th>FlexRS</th></tr>
+        <tr><td>vCPU / hr</td><td>$0.056</td><td class="yes">$0.0336</td></tr>
+        <tr><td>Memory / GiB-hr</td><td>$0.003557</td><td class="yes">$0.0021342</td></tr>
+        <tr><td>Shuffle / GiB</td><td>$0.011</td><td>$0.011 — not discounted</td></tr>
+      </table>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:12.5px;padding:10px 13px"><strong>Constraints:</strong> batch only · no GPUs/TPUs · no zone pinning · no custom autoscaling algorithm · <code>--num_workers</code> sets only the initial count · not for anything SLA-bound tighter than the 6-hour window.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="FlexRS: using it, and what it costs">
+  <summary>Speaker notes &mdash; FlexRS: using it</summary>
+  <div class="n-body"><ul>
+    <li>The goal-flag subtlety is a favorite trick question: setting <code>--flexrs_goal=SPEED_OPTIMIZED</code> changes nothing &mdash; the docs say it "defaults to SPEED_OPTIMIZED, which is the same as omitting this flag." The discount requires <code>COST_OPTIMIZED</code>.</li>
+    <li>The discount is "a uniform discounted rate of about 40% on vCPU and memory cost" regardless of which workers were preemptible &mdash; you don't get a different rate for the regular 10%. Shuffle and the (25 GB) PD are explicitly not discounted. The published rates are exactly 60% of batch: $0.0336 = 0.6 &times; $0.056.</li>
+    <li>Early validation checks environment settings ("such as IAM roles and network configurations"), is unbilled, and runs no user code. Caveat from the docs: the environment can change between validation and delayed launch &mdash; a job that validated can still fail at start if someone deletes the bucket at 2 AM.</li>
+    <li>Also unsupported: Compute Engine reservations, and M2/M3/H3 machine series. Requires SDK &ge; 2.12.0 (Java/Python).</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataflow/docs/guides/flexrs">FlexRS guide</a>, <a href="https://cloud.google.com/dataflow/pricing">Pricing</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 25. DIVIDER: SECTION 6 ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 6 of 6</div>
+    <h1>Wrap-up</h1>
+    <div class="sub">The whole module in one picture, a decision table, and a knowledge check.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The service</span><span>The theme</span><span>Shuffle service</span><span>Streaming Engine</span><span>FlexRS</span><span class="current">Wrap-up</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 6: Wrap-up">
+  <summary>Speaker notes &mdash; Section 6: Wrap-up</summary>
+  <div class="n-body"><ul>
+    <li>Three slides: the annotated anchor diagram (retrieval practice &mdash; let students narrate it), the decision table, and a knowledge check whose answers are in these notes.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 26. ONE PICTURE ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>One picture of the whole module</h1>
+  <div class="figure">
+    <svg width="832" height="330" viewBox="0 0 832 330">
+      <defs>
+        <marker id="arrWr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#5f6368"/>
+        </marker>
+      </defs>
+      <!-- flexrs queue -->
+      <rect x="8" y="120" width="104" height="82" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.3"/>
+      <text x="60" y="144" text-anchor="middle" font-size="11" font-weight="600" fill="#188038">FlexRS queue</text>
+      <text x="60" y="160" text-anchor="middle" font-size="9.5" fill="#5f6368">optional: launch</text>
+      <text x="60" y="173" text-anchor="middle" font-size="9.5" fill="#5f6368">within 6 h,</text>
+      <text x="60" y="186" text-anchor="middle" font-size="9.5" fill="#188038">~40% off compute</text>
+      <line x1="112" y1="161" x2="158" y2="161" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrWr)"/>
+      <!-- dataflow service -->
+      <rect x="162" y="106" width="196" height="110" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="260" y="130" text-anchor="middle" font-size="12" font-weight="600" fill="#1a73e8">Dataflow service</text>
+      <text x="260" y="150" text-anchor="middle" font-size="10.5" fill="#3c4043">validates · <tspan font-weight="600">fuses the graph</tspan></text>
+      <text x="260" y="167" text-anchor="middle" font-size="10.5" fill="#3c4043">distributes bundles · rebalances</text>
+      <text x="260" y="184" text-anchor="middle" font-size="10.5" fill="#3c4043"><tspan font-weight="600">autoscales</tspan> (per-second billing)</text>
+      <text x="260" y="201" text-anchor="middle" font-size="10.5" fill="#3c4043">watermarks · exactly-once</text>
+      <line x1="358" y1="161" x2="404" y2="161" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrWr)"/>
+      <!-- your project -->
+      <rect x="408" y="66" width="272" height="190" rx="10" fill="none" stroke="#9aa0a6" stroke-width="1.2" stroke-dasharray="5 4"/>
+      <text x="422" y="86" font-size="11" font-weight="600" fill="#5f6368">Your project — per-job worker pool</text>
+      <rect x="426" y="100" width="70" height="48" rx="6" fill="#4285F4"/>
+      <rect x="506" y="100" width="70" height="48" rx="6" fill="#4285F4"/>
+      <rect x="586" y="100" width="70" height="48" rx="6" fill="#4285F4"/>
+      <rect x="426" y="158" width="70" height="48" rx="6" fill="#A8C7FA"/>
+      <text x="461" y="186" text-anchor="middle" font-size="8.5" fill="#174ea6">preemptible</text>
+      <text x="622" y="182" font-size="9.5" fill="#5f6368">created at start,</text>
+      <text x="622" y="195" font-size="9.5" fill="#5f6368">deleted at end</text>
+      <text x="544" y="236" text-anchor="middle" font-size="10" fill="#5f6368">slim workers: 25 GB (batch) / 30 GB (streaming) disks</text>
+      <!-- state services -->
+      <rect x="408" y="276" width="130" height="44" rx="8" fill="#FBBC04" opacity=".92"/>
+      <text x="473" y="295" text-anchor="middle" font-size="10.5" font-weight="600" fill="#3c2f00">Shuffle service</text>
+      <text x="473" y="310" text-anchor="middle" font-size="9" fill="#3c2f00">batch · $/GiB shuffled</text>
+      <rect x="550" y="276" width="130" height="44" rx="8" fill="#FBBC04" opacity=".92"/>
+      <text x="615" y="295" text-anchor="middle" font-size="10.5" font-weight="600" fill="#3c2f00">Streaming Engine</text>
+      <text x="615" y="310" text-anchor="middle" font-size="9" fill="#3c2f00">streaming · compute units</text>
+      <line x1="500" y1="256" x2="480" y2="272" stroke="#5f6368" stroke-width="1.3" marker-end="url(#arrWr)"/>
+      <line x1="590" y1="256" x2="610" y2="272" stroke="#5f6368" stroke-width="1.3" marker-end="url(#arrWr)"/>
+      <text x="544" y="268" text-anchor="middle" font-size="9" fill="#5f6368">state off the workers</text>
+      <!-- gcs / api on the left top -->
+      <rect x="162" y="16" width="196" height="52" rx="8" fill="#fff" stroke="#FBBC04" stroke-width="1.6"/>
+      <text x="260" y="38" text-anchor="middle" font-size="10.5" font-weight="600" fill="#202124">Cloud Storage staging</text>
+      <text x="260" y="54" text-anchor="middle" font-size="9.5" fill="#5f6368">code → workers fetch at startup</text>
+      <line x1="330" y1="68" x2="440" y2="98" stroke="#5f6368" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrWr)"/>
+      <!-- price tags -->
+      <text x="8" y="262" font-size="10.5" fill="#3c4043">Meters: <tspan font-weight="600">vCPU-hr</tspan> · <tspan font-weight="600">GiB-hr memory</tspan> · <tspan font-weight="600">PD GiB-hr</tspan> ·</text>
+      <text x="8" y="278" font-size="10.5" fill="#3c4043"><tspan font-weight="600">shuffle GiB</tspan> / <tspan font-weight="600">SE compute units</tspan>, per second, per job</text>
+      <text x="8" y="302" font-size="10.5" fill="#5f6368">Sources, sinks (GCS, Pub/Sub, BigQuery)</text>
+      <text x="8" y="316" font-size="10.5" fill="#5f6368">billed by their own services</text>
+    </svg>
+  </div>
+</section>
+<details class="notes" data-title="One picture of the whole module">
+  <summary>Speaker notes &mdash; One picture</summary>
+  <div class="n-body"><ul>
+    <li><strong>Run this as retrieval practice, not a lecture:</strong> ask the room to narrate the diagram left to right before you do. Every label was a slide: FlexRS queue (5), service responsibilities (1.2, 1.5&ndash;1.7), per-job pool and teardown (1.3), slim disks (3&ndash;4), the two yellow state services (2&ndash;4), the meters (1.8).</li>
+    <li>The one-sentence summary of the module: <em>Dataflow runs your Beam graph on a per-job, self-managing cluster in your project; it rewrites the graph and resizes the cluster; it keeps job state off the workers &mdash; which makes the workers cheap, elastic, and expendable, and that is what you're billed for.</em></li>
+  </ul></div>
+</details>
+
+<!-- ============ 27. CHOOSING ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Choosing, at a glance</h1>
+  <table class="tbl" style="font-size:14.5px">
+    <tr><th>You have&hellip;</th><th>Use</th><th>Why</th></tr>
+    <tr><td>Any batch job</td><td><strong>Shuffle service</strong> — already the default</td><td>faster jobs, leaner workers</td></tr>
+    <tr><td>Any production streaming job</td><td><strong>Streaming Engine</strong> — default for Python/Go, <code>--enableStreamingEngine</code> for Java</td><td>elastic scaling, small workers</td></tr>
+    <tr><td>Streaming ETL that tolerates duplicates</td><td><strong>at-least-once mode</strong></td><td>significant cost and latency cut</td></tr>
+    <tr class="hl"><td>Batch job with &ge;6&nbsp;h of scheduling slack</td><td><strong>FlexRS</strong> — <code>--flexrs_goal=COST_OPTIMIZED</code></td><td>~40% off vCPU + memory</td></tr>
+    <tr><td>Latency-sensitive or fixed-start batch</td><td>regular batch</td><td>FlexRS delay unacceptable</td></tr>
+  </table>
+  <div class="vgap"></div>
+  <div class="callout" style="font-size:13.5px">Defaults do most of the work: a modern pipeline gets the Shuffle service and (in Python/Go) Streaming Engine without a single flag. The decisions you actually make are <strong>FlexRS or not</strong>, and <strong>exactly-once or at-least-once</strong>.</div>
+</section>
+<details class="notes" data-title="Choosing, at a glance">
+  <summary>Speaker notes &mdash; Choosing, at a glance</summary>
+  <div class="n-body"><ul>
+    <li>The callout is the real summary: in 2026 these are mostly <em>defaults</em>, not choices. The table matters for the two rows where the student must act (FlexRS, at-least-once) and the one where Java lags (the flag).</li>
+    <li>Anticipate "why would anyone NOT use FlexRS?" &mdash; the last row: any pipeline feeding something time-sensitive (an 8 AM dashboard is fine with a 6-hour window; a hourly SLA is not), plus the unsupported list (GPUs, reservations).</li>
+  </ul></div>
+</details>
+
+<!-- ============ 28. KNOWLEDGE CHECK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Knowledge check</h1>
+  <ol class="steps" style="font-size:15px">
+    <li>A worker VM dies mid-shuffle on a batch job. What happens to the job — and why is the answer different than it would have been on worker-based shuffle?</li>
+    <li>You turn on Streaming Engine for a Java streaming pipeline. Which line items on the bill go <em>down</em>, and which new one appears?</li>
+    <li>Why does FlexRS <em>require</em> the Shuffle service?</li>
+    <li>Your teammate sets <code>--flexrs_goal=SPEED_OPTIMIZED</code> to "make FlexRS faster." What did that flag actually do?</li>
+    <li>The console's job graph shows two stages, but your pipeline has six steps. What happened, and where did the boundary come from?</li>
+  </ol>
+</section>
+<details class="notes" data-title="Knowledge check">
+  <summary>Speaker notes &mdash; Knowledge check (answers)</summary>
+  <div class="n-body"><ul>
+    <li><strong>1.</strong> The job continues: shuffle data lives in the service backend, so the VM is replaced and its bundles retried (up to 4 attempts per bundle in batch). With worker-based shuffle, the dead VM's shuffle data would be gone &mdash; the docs list "an unhealthy VM holding Dataflow shuffle data doesn't cause the entire job to fail" as a headline benefit of the service.</li>
+    <li><strong>2.</strong> Down: worker vCPU-hours and memory (smaller machine type, e.g. n4-standard-2), and Persistent Disk (400 GB &rarr; 30 GB). New: the Streaming Engine meter &mdash; Compute Units under resource-based billing, or per-GiB data processed under the legacy model.</li>
+    <li><strong>3.</strong> Because 90% of the workers are preemptible and can vanish at any moment. That's only survivable if the shuffle state isn't on them &mdash; the service holds it, so a preempted VM is replaced without losing or redistributing work.</li>
+    <li><strong>4.</strong> Nothing. SPEED_OPTIMIZED is the documented default, "the same as omitting this flag." The queued, discounted FlexRS behavior requires COST_OPTIMIZED.</li>
+    <li><strong>5.</strong> Fusion: the service fused consecutive element-wise steps into single stages; the boundary is the shuffle (the aggregation). The Execution details tab shows the optimized stages, and the component steps of each fused stage are listed in the Stage info pane.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 29. ADDITIONAL MATERIAL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <div class="cols">
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">The service</p>
+      <ul class="body" style="font-size:14px">
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/pipeline-lifecycle" style="color:#1a73e8">Pipeline lifecycle</a> — graph construction, fusion, combine optimization</li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/horizontal-autoscaling" style="color:#1a73e8">Horizontal Autoscaling</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/dynamic-work-rebalancing" style="color:#1a73e8">Dynamic work rebalancing</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/concepts/exactly-once" style="color:#1a73e8">Exactly-once processing</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/concepts/streaming-with-cloud-pubsub" style="color:#1a73e8">Streaming with Pub/Sub</a> — watermark tracking</li>
+      </ul>
+    </div>
+    <div>
+      <p style="font-weight:600;font-size:16px;margin-bottom:10px">The features &amp; the bill</p>
+      <ul class="body" style="font-size:14px">
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/shuffle-for-batch" style="color:#1a73e8">Dataflow shuffle for batch jobs</a></li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/streaming-engine" style="color:#1a73e8">Use Streaming Engine</a> — plus the linked "Execution Model" engineering article for internals</li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/guides/streaming-modes" style="color:#1a73e8">Streaming modes</a> — exactly-once vs at-least-once</li>
+        <li><a href="https://docs.cloud.google.com/dataflow/docs/guides/flexrs" style="color:#1a73e8">Flexible Resource Scheduling</a></li>
+        <li><a href="https://cloud.google.com/dataflow/pricing" style="color:#1a73e8">Dataflow pricing</a> — the source of truth for every number in this deck</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li>Every factual claim in this deck traces to one of these pages, verified July 2026. The two most drift-prone are the pricing page (rates) and the Streaming Engine page (SDK defaults and recommended machine types) &mdash; re-check both before each delivery.</li>
+    <li>For students who want the deeper architecture story (the FlumeJava lineage, producer-consumer vs sibling fusion), Google's Beam Summit talk "GCP Dataflow Architecture" is the best public source &mdash; those exact fusion terms are no longer in the product docs.</li>
+  </ul></div>
+</details>
+</div></div>
+
+<details id="notes-panel">
+  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+  <div id="notes-body"></div>
+</details>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Reserve room below the slide: just the collapsed bar normally,
+       the full open panel (notes body is capped at 32vh) when expanded. */
+    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
+    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
+    s = Math.min(s, 1.5);
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (540 * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  window.addEventListener('resize', fit);
+  panel.addEventListener('toggle', fit);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  show(isNaN(start) ? 0 : start - 1);
+  fit();
+})();
+</script>
+
+</body>
+</html>
