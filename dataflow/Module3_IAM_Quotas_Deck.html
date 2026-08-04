@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -129,23 +126,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -157,7 +157,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -174,13 +174,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -261,13 +261,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -319,16 +319,18 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
   .callout.good { background: #e6f4ea; border-color: var(--g-green); }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -337,7 +339,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -362,17 +364,52 @@
   }
 
   /* ---------- speaker notes ---------- */
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -386,31 +423,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -420,21 +442,26 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
 
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -445,14 +472,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -467,16 +512,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -536,7 +588,7 @@
   <h1>Agenda</h1>
   <div class="cols">
     <div>
-      <ul class="body" style="font-size:16px">
+      <ul class="body" style="font-size:17px">
         <li>Anatomy of a job launch — what actually gets sent where</li>
         <li>Credential 1: <span class="blue">your user roles</span> — Viewer, Developer, Admin (and the <code>actAs</code> gotcha)</li>
         <li>Credential 2: the <span class="blue">Dataflow service agent</span> — Google's identity in your project</li>
@@ -602,7 +654,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Launching a job: two payloads, two destinations</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: you run <code>python3 pipeline.py --runner=DataflowRunner …</code>. Before anything executes in the cloud, the SDK does exactly two things.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Scenario: you run <code>python3 pipeline.py --runner=DataflowRunner …</code>. Before anything executes in the cloud, the SDK does exactly two things.</p>
   <div class="figure">
     <svg width="820" height="268" viewBox="0 0 820 268">
       <defs>
@@ -653,7 +705,7 @@
     </svg>
   </div>
   <div style="height:4px"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">The service receives the <strong>graph</strong>; the workers fetch the <strong>code</strong>. The Dataflow service never touches your staged artifacts — and the worker VMs are deleted when the job completes, whether it succeeds or fails.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">The service receives the <strong>graph</strong>; the workers fetch the <strong>code</strong>. The Dataflow service never touches your staged artifacts — and the worker VMs are deleted when the job completes, whether it succeeds or fails.</div>
 </section>
 <details class="notes" data-title="Two payloads, two destinations">
   <summary>Speaker notes &mdash; Two payloads, two destinations</summary>
@@ -674,7 +726,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">One launch, three identities</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Every stage of the launch runs as a <strong>different credential</strong> — and each is checked independently, so a launch can fail at any of the three.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Every stage of the launch runs as a <strong>different credential</strong> — and each is checked independently, so a launch can fail at any of the three.</p>
   <div class="figure">
     <svg width="830" height="216" viewBox="0 0 830 216">
       <defs>
@@ -722,7 +774,7 @@
     </svg>
   </div>
   <div style="height:2px"></div>
-  <div class="callout" style="font-size:13.5px;padding:9px 14px">This is the map for the next three sections — one credential at a time, in launch order.</div>
+  <div class="callout" style="font-size:14.5px;padding:9px 14px">This is the map for the next three sections — one credential at a time, in launch order.</div>
 </section>
 <details class="notes" data-title="One launch, three identities">
   <summary>Speaker notes &mdash; One launch, three identities</summary>
@@ -765,30 +817,30 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Scenario: three people, three roles</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">A data engineering team runs pipelines in one project. Each person gets the role that matches their <strong>job function</strong>.</p>
-  <table class="tbl" style="font-size:14px">
+  <p class="lede" style="margin-bottom:10px;font-size:16px">A data engineering team runs pipelines in one project. Each person gets the role that matches their <strong>job function</strong>.</p>
+  <table class="tbl" style="font-size:15px">
     <tr><th>Person</th><th>Role</th><th>Can</th><th>Cannot</th></tr>
     <tr>
-      <td><strong>Sam</strong><br><span class="muted" style="font-size:12px">auditor</span></td>
+      <td><strong>Sam</strong><br><span class="muted" style="font-size:13px">auditor</span></td>
       <td><code>roles/dataflow.viewer</code></td>
       <td>See jobs, job messages, and metrics — read-only on all Dataflow resources</td>
       <td>Submit, update, or cancel anything</td>
     </tr>
     <tr>
-      <td><strong>Dana</strong><br><span class="muted" style="font-size:12px">on-call operator</span></td>
+      <td><strong>Dana</strong><br><span class="muted" style="font-size:13px">on-call operator</span></td>
       <td><code>roles/dataflow.developer</code></td>
       <td>Everything Sam can, plus <strong>cancel, drain, and update</strong> running jobs</td>
       <td>Launch new jobs (next slide shows why)</td>
     </tr>
     <tr class="hl">
-      <td><strong>Priya</strong><br><span class="muted" style="font-size:12px">pipeline author</span></td>
+      <td><strong>Priya</strong><br><span class="muted" style="font-size:13px">pipeline author</span></td>
       <td><code>roles/dataflow.admin</code></td>
       <td>The minimum set to <strong>create and manage</strong> jobs: Dataflow API + staging bucket access</td>
       <td>Impersonate a worker service account — that's a separate grant</td>
     </tr>
   </table>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px">Map roles to <strong>job functions</strong>, not seniority. The on-call person who answers the pager needs job control (Developer) — not read access to the data (which none of these roles grant).</div>
+  <div class="callout" style="font-size:14.5px">Map roles to <strong>job functions</strong>, not seniority. The on-call person who answers the pager needs job control (Developer) — not read access to the data (which none of these roles grant).</div>
 </section>
 <details class="notes" data-title="Three people, three roles">
   <summary>Speaker notes &mdash; Three people, three roles</summary>
@@ -805,27 +857,27 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">What a launch actually needs: three gates</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Section 1 showed the launch touching three surfaces. Each is a separate permission check on <strong>you</strong>, the submitter.</p>
-  <table class="tbl" style="font-size:13.5px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Section 1 showed the launch touching three surfaces. Each is a separate permission check on <strong>you</strong>, the submitter.</p>
+  <table class="tbl" style="font-size:14.5px">
     <tr><th style="width:34%">Gate</th><th style="width:34%">Permission(s)</th><th>Developer</th><th>Admin</th></tr>
     <tr>
-      <td><strong>1 &middot; Call the Dataflow API</strong><br><span class="muted" style="font-size:12px">jobs.create request</span></td>
+      <td><strong>1 &middot; Call the Dataflow API</strong><br><span class="muted" style="font-size:13px">jobs.create request</span></td>
       <td><code>dataflow.jobs.create</code></td>
       <td class="yes">✓</td><td class="yes">✓</td>
     </tr>
     <tr>
-      <td><strong>2 &middot; Stage the artifacts</strong><br><span class="muted" style="font-size:12px">upload code to the staging bucket</span></td>
+      <td><strong>2 &middot; Stage the artifacts</strong><br><span class="muted" style="font-size:13px">upload code to the staging bucket</span></td>
       <td><code>storage.objects.create / get / list</code>,<br><code>storage.buckets.get</code></td>
       <td class="no">✗</td><td class="yes">✓</td>
     </tr>
     <tr>
-      <td><strong>3 &middot; Act as the worker SA</strong><br><span class="muted" style="font-size:12px">when the job names a user-managed SA</span></td>
+      <td><strong>3 &middot; Act as the worker SA</strong><br><span class="muted" style="font-size:13px">when the job names a user-managed SA</span></td>
       <td><code>iam.serviceAccounts.actAs</code></td>
       <td class="no">✗</td><td class="no">✗</td>
     </tr>
   </table>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:13.5px"><strong>Failure signature:</strong> a Developer-only launch passes gate 1 and dies at gate 2 — a <em>storage</em> permission error, not a Dataflow one. Gate 3 is in <strong>no Dataflow role at all</strong>; it comes from <code>roles/iam.serviceAccountUser</code> on the worker SA.</div>
+  <div class="callout warn" style="font-size:14.5px"><strong>Failure signature:</strong> a Developer-only launch passes gate 1 and dies at gate 2 — a <em>storage</em> permission error, not a Dataflow one. Gate 3 is in <strong>no Dataflow role at all</strong>; it comes from <code>roles/iam.serviceAccountUser</code> on the worker SA.</div>
 </section>
 <details class="notes" data-title="Three gates">
   <summary>Speaker notes &mdash; Three gates</summary>
@@ -841,12 +893,12 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Quick check: the on-call page</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: 3 a.m. — a streaming job is misbehaving and burning money. Dana holds only <code>roles/dataflow.developer</code>. Does this work?</p>
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: 3 a.m. — a streaming job is misbehaving and burning money. Dana holds only <code>roles/dataflow.developer</code>. Does this work?</p>
   <pre class="term">gcloud dataflow jobs cancel $JOB_ID <span class="flag">--region</span>=$REGION</pre>
   <div class="vgap"></div>
-  <div class="callout good" style="font-size:14.5px"><strong>Yes.</strong> Developer holds <code>dataflow.jobs.cancel</code> (and <code>.updateContents</code> for drain and in-place update). Job control is exactly what the role is for.</div>
+  <div class="callout good" style="font-size:15.5px"><strong>Yes.</strong> Developer holds <code>dataflow.jobs.cancel</code> (and <code>.updateContents</code> for drain and in-place update). Job control is exactly what the role is for.</div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14.5px">
+  <ul class="body" style="font-size:15.5px">
     <li>Dana can also <strong>drain</strong> the job (finish in-flight data, stop reading new data) — the gentler stop for streaming pipelines</li>
     <li>What Dana still cannot do: launch a replacement job, or read the pipeline's data — cancel-and-fix-at-3-a.m. stays within job control</li>
   </ul>
@@ -864,8 +916,8 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Launching as someone else: role <span class="accent">+ actAs</span></h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: the production job must run as a dedicated worker SA, <code>etl-worker@…</code>. Priya names it at launch — which makes her <strong>impersonate</strong> it.</p>
-  <pre class="term" style="font-size:12px">python3 pipeline.py <span class="flag">--runner</span>=DataflowRunner \
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Scenario: the production job must run as a dedicated worker SA, <code>etl-worker@…</code>. Priya names it at launch — which makes her <strong>impersonate</strong> it.</p>
+  <pre class="term" style="font-size:13px">python3 pipeline.py <span class="flag">--runner</span>=DataflowRunner \
   <span class="flag">--project</span>=$PROJECT_ID <span class="flag">--region</span>=$REGION \
   <span class="flag">--service_account_email</span>=etl-worker@$PROJECT_ID.iam.gserviceaccount.com</pre>
   <div class="vgap-s"></div>
@@ -877,7 +929,7 @@
     <span class="flag">--role</span>="roles/iam.serviceAccountUser"</pre>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>Naming a worker SA requires <code>iam.serviceAccounts.actAs</code> on it — in <strong>no</strong> Dataflow role</li>
         <li>So the production launcher formula is <strong>role + actAs</strong>: <code>roles/dataflow.admin</code> <em>plus</em> Service Account User on that SA</li>
         <li>Omit the flag and the job runs as the <strong>Compute Engine default SA</strong> — no actAs needed, but broad access</li>
@@ -885,7 +937,7 @@
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:13px">Demo projects hide this: Owner and Editor carry impersonation permissions. The missing <code>actAs</code> surfaces exactly where least-privilege roles are used — production.</div>
+  <div class="callout warn" style="font-size:14px">Demo projects hide this: Owner and Editor carry impersonation permissions. The missing <code>actAs</code> surfaces exactly where least-privilege roles are used — production.</div>
 </section>
 <details class="notes" data-title="Role + actAs">
   <summary>Speaker notes &mdash; Role + actAs</summary>
@@ -932,7 +984,7 @@
   <h1 style="margin-bottom:10px">The Dataflow service agent</h1>
   <div class="cols">
     <div style="flex:0 0 55%">
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>Created and managed by Google; assigned to your project automatically the first time you run a Dataflow job. Holds <code>roles/dataflow.serviceAgent</code></li>
         <li>It is the credential behind stage <strong>2</strong> of the launch:
           <ul>
@@ -948,9 +1000,9 @@
     .iam.gserviceaccount.com</pre>
     </div>
     <div>
-      <div class="callout warn" style="font-size:13.5px"><strong>Hands off — twice over.</strong><br>Don't modify its default grants: revoke its role and jobs stop launching (VM creation and quota checks fail).<br><br>And never grant <code>roles/dataflow.serviceAgent</code> to users or your own service accounts — it exists only for the agent.</div>
+      <div class="callout warn" style="font-size:14.5px"><strong>Hands off — twice over.</strong><br>Don't modify its default grants: revoke its role and jobs stop launching (VM creation and quota checks fail).<br><br>And never grant <code>roles/dataflow.serviceAgent</code> to users or your own service accounts — it exists only for the agent.</div>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:13px"><strong>Diagnostic value:</strong> if a launch fails while <em>creating workers</em> or <em>checking quota</em> — and user roles check out — the service agent's role is the next thing to inspect.</div>
+      <div class="callout" style="font-size:14px"><strong>Diagnostic value:</strong> if a launch fails while <em>creating workers</em> or <em>checking quota</em> — and user roles check out — the service agent's role is the next thing to inspect.</div>
     </div>
   </div>
 </section>
@@ -994,7 +1046,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The identity your data sees</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Every worker VM runs as the worker service account. All reads and writes your pipeline performs are authorized against <strong>its</strong> roles — not yours.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Every worker VM runs as the worker service account. All reads and writes your pipeline performs are authorized against <strong>its</strong> roles — not yours.</p>
   <div class="figure">
     <svg width="780" height="212" viewBox="0 0 780 212">
       <defs>
@@ -1031,7 +1083,7 @@
     </svg>
   </div>
   <div style="height:2px"></div>
-  <div class="callout warn" style="font-size:13px;padding:9px 14px"><strong>The default:</strong> the Compute Engine default SA, <code>PROJECT_NUMBER-compute@developer.gserviceaccount.com</code> — broad project access. Easy for demos; not what you want running production data.</div>
+  <div class="callout warn" style="font-size:14px;padding:9px 14px"><strong>The default:</strong> the Compute Engine default SA, <code>PROJECT_NUMBER-compute@developer.gserviceaccount.com</code> — broad project access. Easy for demos; not what you want running production data.</div>
 </section>
 <details class="notes" data-title="The identity your data sees">
   <summary>Speaker notes &mdash; The identity your data sees</summary>
@@ -1047,10 +1099,10 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Production posture: a dedicated worker SA</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: the pipeline reads a Pub/Sub subscription and writes one BigQuery dataset. Give it an identity that can do exactly that.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Scenario: the pipeline reads a Pub/Sub subscription and writes one BigQuery dataset. Give it an identity that can do exactly that.</p>
   <div class="cols">
     <div style="flex:0 0 55%">
-      <table class="tbl" style="font-size:13px">
+      <table class="tbl" style="font-size:14px">
         <tr><th>Role</th><th>Scope</th><th>Why</th></tr>
         <tr class="hl"><td><code>roles/dataflow.worker</code></td><td>project</td><td>the minimum to execute Dataflow work units — always required</td></tr>
         <tr><td><code>roles/pubsub.subscriber</code></td><td>the subscription</td><td>read the source</td></tr>
@@ -1066,11 +1118,11 @@ python3 pipeline.py \
   <span class="flag">--service_account_email</span>=etl-worker@\
 $PROJECT_ID.iam.gserviceaccount.com …</pre>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12.5px;padding:9px 14px"><strong>Bonus control:</strong> once the job runs as <code>etl-worker</code>, only people holding <code>actAs</code> on <code>etl-worker</code> can launch it. The SA choice also narrows the launcher list.</div>
+      <div class="callout good" style="font-size:13.5px;padding:9px 14px"><strong>Bonus control:</strong> once the job runs as <code>etl-worker</code>, only people holding <code>actAs</code> on <code>etl-worker</code> can launch it. The SA choice also narrows the launcher list.</div>
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">Scope resource roles to the <strong>specific</strong> subscription, dataset, and bucket where possible — not the project.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">Scope resource roles to the <strong>specific</strong> subscription, dataset, and bucket where possible — not the project.</div>
 </section>
 <details class="notes" data-title="A dedicated worker SA">
   <summary>Speaker notes &mdash; A dedicated worker SA</summary>
@@ -1086,27 +1138,27 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Debugging "permission denied": the map</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px"><strong>When</strong> the failure happens tells you <strong>whose</strong> permission is missing.</p>
-  <table class="tbl" style="font-size:14px">
+  <p class="lede" style="margin-bottom:10px;font-size:16px"><strong>When</strong> the failure happens tells you <strong>whose</strong> permission is missing.</p>
+  <table class="tbl" style="font-size:15px">
     <tr><th>Symptom</th><th>Credential to inspect</th><th>Typical fix</th></tr>
     <tr>
-      <td><strong>Rejected at submit</strong> — no job ever created<br><span class="muted" style="font-size:12px">Dataflow API or staging-upload error</span></td>
+      <td><strong>Rejected at submit</strong> — no job ever created<br><span class="muted" style="font-size:13px">Dataflow API or staging-upload error</span></td>
       <td><span style="color:#1a73e8;font-weight:600">1 · Your roles</span> (+ <code>actAs</code>)</td>
       <td>Grant <code>roles/dataflow.admin</code>; add Service Account User on the worker SA</td>
     </tr>
     <tr>
-      <td><strong>Job created, workers never start</strong><br><span class="muted" style="font-size:12px">fails creating VMs / checking quota</span></td>
+      <td><strong>Job created, workers never start</strong><br><span class="muted" style="font-size:13px">fails creating VMs / checking quota</span></td>
       <td><span style="color:#c5221f;font-weight:600">2 · Service agent</span></td>
       <td>Restore the agent's default <code>roles/dataflow.serviceAgent</code> grant</td>
     </tr>
     <tr>
-      <td><strong>Job runs, then a source or sink denies access</strong><br><span class="muted" style="font-size:12px">mid-pipeline read/write error</span></td>
+      <td><strong>Job runs, then a source or sink denies access</strong><br><span class="muted" style="font-size:13px">mid-pipeline read/write error</span></td>
       <td><span style="color:#188038;font-weight:600">3 · Worker SA</span></td>
       <td>Add the missing resource role (e.g. <code>bigquery.dataEditor</code>) to the worker SA</td>
     </tr>
   </table>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:14px">Same three identities, in launch order. If you remember one slide from the IAM half, make it this one.</div>
+  <div class="callout good" style="font-size:15px">Same three identities, in launch order. If you remember one slide from the IAM half, make it this one.</div>
 </section>
 <details class="notes" data-title="Troubleshooting map">
   <summary>Speaker notes &mdash; Troubleshooting map</summary>
@@ -1150,7 +1202,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   <h1 style="margin-bottom:10px">Where Dataflow's capacity comes from</h1>
   <div class="cols">
     <div style="flex:0 0 46%">
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>Workers are ordinary Compute Engine VMs — so a job consumes <strong>Compute Engine regional quota</strong></li>
         <li>The pool is <strong>shared</strong>: Dataproc clusters, GKE nodes, notebooks, and plain VMs all draw from the same regional limits</li>
         <li>Checked <strong>at launch</strong> by the service agent — and it caps how far autoscaling can grow</li>
@@ -1183,7 +1235,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">View and request increases on the console's <strong>Quotas</strong> page (CPU metric: <code>compute.googleapis.com/cpus</code>). Increases aren't instant — capacity planning belongs <em>before</em> launch day.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">View and request increases on the console's <strong>Quotas</strong> page (CPU metric: <code>compute.googleapis.com/cpus</code>). Increases aren't instant — capacity planning belongs <em>before</em> launch day.</div>
 </section>
 <details class="notes" data-title="Where capacity comes from">
   <summary>Speaker notes &mdash; Where capacity comes from</summary>
@@ -1199,19 +1251,19 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">CPUs</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">CPU quota: workers × machine size</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: your region has a <strong>600 CPU</strong> quota. The job requests 100 workers.</p>
-  <table class="tbl" style="font-size:14.5px">
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: your region has a <strong>600 CPU</strong> quota. The job requests 100 workers.</p>
+  <table class="tbl" style="font-size:15.5px">
     <tr><th>Machine type</th><th>Workers</th><th>vCPUs each</th><th>CPUs consumed</th><th>vs. 600 quota</th></tr>
     <tr><td><code>n1-standard-1</code></td><td>100</td><td>1</td><td>100</td><td class="yes">✓ launches</td></tr>
     <tr class="hl"><td><code>n1-standard-8</code></td><td>100</td><td>8</td><td><strong>800</strong></td><td class="no">✗ fails at launch</td></tr>
   </table>
   <div class="vgap"></div>
-  <ul class="body" style="font-size:15px">
+  <ul class="body" style="font-size:16px">
     <li>CPUs consumed = <strong>workers × vCPUs per machine type</strong> — the machine type multiplies quietly</li>
     <li>Autoscaling makes it worse: budget for <code>--max_num_workers</code> × machine size, <strong>not</strong> the starting worker count</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:13.5px">A job that launches fine at 10 workers can still starve at scale: quota is the ceiling <strong>autoscaling</strong> hits, months after the launch test passed.</div>
+  <div class="callout warn" style="font-size:14.5px">A job that launches fine at 10 workers can still starve at scale: quota is the ceiling <strong>autoscaling</strong> hits, months after the launch test passed.</div>
 </section>
 <details class="notes" data-title="CPU quota">
   <summary>Speaker notes &mdash; CPU quota</summary>
@@ -1229,7 +1281,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   <h1 style="margin-bottom:12px">In-use IP addresses: the quota you forgot</h1>
   <div class="cols">
     <div style="flex:0 0 52%">
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>Counts VMs with <strong>external</strong> IP addresses, per region, shared across products</li>
         <li>Independent of machine size: 150 one-vCPU workers and 150 eight-vCPU workers both consume <strong>150 IPs</strong></li>
         <li>Default: Dataflow workers get external IPs — and spend this quota</li>
@@ -1239,15 +1291,15 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
       </ul>
     </div>
     <div>
-      <table class="tbl" style="font-size:13.5px">
+      <table class="tbl" style="font-size:14.5px">
         <tr><th></th><th>Quota</th><th>Binds at</th></tr>
         <tr><td>CPUs (1-vCPU workers)</td><td>600</td><td>600 workers</td></tr>
         <tr class="hl"><td>In-use IPs</td><td>575</td><td><strong>575 workers</strong></td></tr>
       </table>
       <div class="vgap-s"></div>
-      <div class="callout warn" style="font-size:13.5px"><strong>The most restrictive quota wins.</strong> With 600 CPUs but 575 IPs, the job tops out at 575 external-IP workers — the CPU headroom is unreachable.</div>
+      <div class="callout warn" style="font-size:14.5px"><strong>The most restrictive quota wins.</strong> With 600 CPUs but 575 IPs, the job tops out at 575 external-IP workers — the CPU headroom is unreachable.</div>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:13px">Internal-only workers consume <strong>zero</strong> of this quota — the whole limit disappears from the equation.</div>
+      <div class="callout good" style="font-size:14px">Internal-only workers consume <strong>zero</strong> of this quota — the whole limit disappears from the equation.</div>
     </div>
   </div>
 </section>
@@ -1268,7 +1320,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   <h1 style="margin-bottom:12px">Persistent disks: batch jobs</h1>
   <div class="cols">
     <div style="flex:0 0 55%">
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>Batch: <strong>one disk per worker</strong> (1:1), drawn from regional HDD or SSD quota</li>
         <li>Today's default — <strong>Dataflow Shuffle</strong> runs shuffle in the service backend, in all supported regions:
           <ul>
@@ -1299,7 +1351,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Teach the service-based world as the default: <strong>25 GB is the batch number</strong>; 250 GB is the fallback story.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Teach the service-based world as the default: <strong>25 GB is the batch number</strong>; 250 GB is the fallback story.</div>
 </section>
 <details class="notes" data-title="Disks: batch">
   <summary>Speaker notes &mdash; Disks: batch</summary>
@@ -1318,7 +1370,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   <h1 style="margin-bottom:12px">Persistent disks: streaming jobs</h1>
   <div class="cols">
     <div style="flex:0 0 55%">
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>Streaming deploys a <strong>fixed pool of disks</strong> — one per <code>max_num_workers</code>, allocated up front
           <ul><li>launch with 3 workers, max 25 → <strong>25 disks</strong> count against quota from minute one</li></ul>
         </li>
@@ -1373,19 +1425,19 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Sizing a job against quota</h1>
-  <pre class="code" style="font-size:13px;line-height:1.6">effective max workers = min( <span class="kw">CPU quota</span> ÷ vCPUs per worker,
+  <pre class="code" style="font-size:14px;line-height:1.6">effective max workers = min( <span class="kw">CPU quota</span> ÷ vCPUs per worker,
                              <span class="kw">in-use IP quota</span>,          <span class="cm">— only if using external IPs</span>
                              <span class="kw">disk quota</span> ÷ disk GB per worker,
                              <span class="kw">per-job cap</span> )             <span class="cm">— 2,000 default · 4,000 with Shuffle/SE</span></pre>
   <div class="vgap-s"></div>
-  <ol class="steps" style="font-size:14.5px">
+  <ol class="steps" style="font-size:15.5px">
     <li>Compute the job's draw at <strong><code>max_num_workers</code></strong>, not the starting size — CPUs, IPs, disk GB</li>
     <li>Check each against the <strong>regional</strong> quota page, minus what other workloads already use</li>
     <li>The <strong>most restrictive quota wins</strong> — 575 IPs beats 600 CPUs every time</li>
     <li>Buy headroom early: quota increases are per-region requests and not instant</li>
   </ol>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13.5px"><strong>Cheap wins first:</strong> internal-only IPs remove one term from the formula entirely; Shuffle / Streaming Engine shrink the disk term to 25–30 GB per worker.</div>
+  <div class="callout good" style="font-size:14.5px"><strong>Cheap wins first:</strong> internal-only IPs remove one term from the formula entirely; Shuffle / Streaming Engine shrink the disk term to 25–30 GB per worker.</div>
 </section>
 <details class="notes" data-title="Sizing a job">
   <summary>Speaker notes &mdash; Sizing a job</summary>
@@ -1400,7 +1452,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Module summary: the whole launch on one slide</h1>
-  <table class="tbl" style="font-size:12px">
+  <table class="tbl" style="font-size:13px">
     <tr><th>Checkpoint</th><th>Identity / quota</th><th>Fails like</th><th>Fix</th></tr>
     <tr>
       <td><strong>Submitting</strong></td>
@@ -1440,7 +1492,7 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
     </tr>
   </table>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Three identities in launch order, three quotas cleared at once — that's the whole module.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Three identities in launch order, three quotas cleared at once — that's the whole module.</div>
 </section>
 <details class="notes" data-title="Module summary">
   <summary>Speaker notes &mdash; Module summary</summary>
@@ -1463,8 +1515,8 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   <h1>Additional material</h1>
   <div class="cols">
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">IAM</p>
-      <ul class="body" style="font-size:15px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">IAM</p>
+      <ul class="body" style="font-size:16px">
         <li><a href="https://cloud.google.com/dataflow/docs/concepts/security-and-permissions" style="color:#1a73e8">Dataflow security and permissions</a> — the three-credential story, canonically</li>
         <li><a href="https://cloud.google.com/dataflow/docs/concepts/access-control" style="color:#1a73e8">Dataflow access control with IAM</a></li>
         <li><a href="https://cloud.google.com/iam/docs/roles-permissions/dataflow" style="color:#1a73e8">Dataflow IAM role permission listings</a> — the ground truth per role</li>
@@ -1472,8 +1524,8 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
       </ul>
     </div>
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Quotas &amp; services</p>
-      <ul class="body" style="font-size:15px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Quotas &amp; services</p>
+      <ul class="body" style="font-size:16px">
         <li><a href="https://cloud.google.com/dataflow/quotas" style="color:#1a73e8">Dataflow quotas and limits</a> — current worker caps and defaults</li>
         <li><a href="https://cloud.google.com/dataflow/docs/shuffle-for-batch" style="color:#1a73e8">Dataflow Shuffle (batch)</a></li>
         <li><a href="https://cloud.google.com/dataflow/docs/streaming-engine" style="color:#1a73e8">Streaming Engine</a></li>
@@ -1493,17 +1545,21 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
 
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -1520,9 +1576,84 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -1541,13 +1672,34 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   }
 
   function fit() {
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -1555,14 +1707,23 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
 
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
     noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
   });
@@ -1571,8 +1732,8 @@ $PROJECT_ID.iam.gserviceaccount.com …</pre>
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 

@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -131,23 +128,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -159,7 +159,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -177,13 +177,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -264,13 +264,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -322,7 +322,7 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
@@ -331,9 +331,11 @@
   #checklist td { padding: 6px 14px; }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -341,7 +343,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -368,18 +370,49 @@
   /* ---------- speaker notes ---------- */
   /* Per-slide notes live in the deck as <details class="notes"> siblings of the
      slides. On screen they are hidden; the active slide's notes are mirrored
-     into the #notes-panel below the stage. In print, each appears under its slide. */
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -393,31 +426,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -427,21 +445,26 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
 
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -452,14 +475,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -474,16 +515,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -547,13 +595,13 @@
   <p class="lede" style="margin-bottom:14px">The ops-review dashboard is spinning. Finance wants to know why the BigQuery bill doubled. Both trails lead to the same queries.</p>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15.5px">
+      <ul class="body" style="font-size:16.5px">
         <li><strong>Slow</strong> and <strong>expensive</strong> are usually the same problem: the query does more work than the question needs</li>
         <li>The schema is already optimized &mdash; partitioned, clustered, nested where it should be. The remaining waste is in the <span class="blue">queries</span></li>
         <li>This module: find where a query spends, then spend less</li>
       </ul>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:13.5px;padding:10px 14px">You pay for work two ways &mdash; <strong>bytes scanned</strong> (on-demand) or <strong>slot time</strong> (capacity). Every technique here reduces one or both.</div>
+      <div class="callout" style="font-size:14.5px;padding:10px 14px">You pay for work two ways &mdash; <strong>bytes scanned</strong> (on-demand) or <strong>slot time</strong> (capacity). Every technique here reduces one or both.</div>
     </div>
     <div class="figure">
       <svg width="360" height="292" viewBox="0 0 360 292">
@@ -719,12 +767,13 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">stages &amp; slots</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">How BigQuery runs the Monday query</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Here is the query behind the dashboard tile &mdash; and what actually executes when you press Run.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Here is the query behind the dashboard tile &mdash; and what actually executes when you press Run.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11.4px;line-height:1.45"><span class="lang">SQL</span><span class="kw">SELECT</span> o.name,
-       <span class="fn">AVG</span>(c.packet_loss_pct)    <span class="kw">AS</span> avg_loss,
-       <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> c.user_id) <span class="kw">AS</span> affected_users
+       <span class="fn">AVG</span>(c.packet_loss_pct) <span class="kw">AS</span> avg_loss,
+       <span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> c.user_id)
+         <span class="kw">AS</span> affected_users
 <span class="kw">FROM</span> vc.call_quality <span class="kw">AS</span> c
 <span class="kw">JOIN</span> vc.orgs         <span class="kw">AS</span> o <span class="kw">USING</span> (org_id)
 <span class="kw">WHERE</span> c.event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>
@@ -732,7 +781,7 @@
 <span class="kw">GROUP BY</span> o.name
 <span class="kw">ORDER BY</span> avg_loss <span class="kw">DESC</span>;</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li>The query becomes a plan of <strong>stages</strong>; each stage runs in parallel across many <strong>slots</strong> (a slot &asymp; one virtual CPU's worth of compute)</li>
         <li>Stages hand results to each other through the in-memory <strong>shuffle</strong></li>
         <li>The plan is <span class="blue">dynamic</span> &mdash; BigQuery re-plans mid-query as it learns real data sizes</li>
@@ -815,7 +864,7 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">Execution details</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The five numbers that matter</h1>
-  <p class="lede" style="margin-bottom:12px;font-size:14.5px">Run the Monday query once, open <strong>Execution details</strong>, and read five numbers before changing anything.</p>
+  <p class="lede" style="margin-bottom:12px;font-size:15.5px">Run the Monday query once, open <strong>Execution details</strong>, and read five numbers before changing anything.</p>
   <div class="figure">
     <svg width="830" height="196" viewBox="0 0 830 196">
       <rect x="2" y="2" width="826" height="62" rx="8" fill="#f8f9fa" stroke="#dadce0"/>
@@ -859,7 +908,7 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13.5px;padding:10px 14px">Optimization in BigQuery means driving down <strong>bytes processed</strong>, <strong>slot time</strong>, or <strong>bytes shuffled</strong>. Elapsed time follows &mdash; it is a symptom, not a lever.</div>
+  <div class="callout good" style="font-size:14.5px;padding:10px 14px">Optimization in BigQuery means driving down <strong>bytes processed</strong>, <strong>slot time</strong>, or <strong>bytes shuffled</strong>. Elapsed time follows &mdash; it is a symptom, not a lever.</div>
 </section>
 <details class="notes" data-title="The five numbers that matter">
   <summary>Speaker notes &mdash; The five numbers that matter</summary>
@@ -877,7 +926,7 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">stage timing</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Anatomy of a stage: wait, read, compute, write</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Each stage's time splits four ways &mdash; and the split names your bottleneck for you.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Each stage's time splits four ways &mdash; and the split names your bottleneck for you.</p>
   <div class="cols c-55-45">
     <div>
       <div class="figure">
@@ -945,7 +994,7 @@
   <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">shuffle &amp; spill</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Shuffle on the meter: bytes shuffled, bytes spilled</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The Monday query shuffled 48 GB and spilled nothing. What kind of stage outgrows the memory tier?</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The Monday query shuffled 48 GB and spilled nothing. What kind of stage outgrows the memory tier?</p>
   <div class="cols c-40-60">
     <div>
       <ul class="body" style="font-size:13.4px">
@@ -1014,7 +1063,7 @@
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">insights</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The console diagnoses with you</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The <strong>Execution graph</strong> tab doesn't just draw the stages &mdash; it flags known pathologies by name.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The <strong>Execution graph</strong> tab doesn't just draw the stages &mdash; it flags known pathologies by name.</p>
   <div class="cols c-55-45">
     <div class="figure">
       <svg width="446" height="248" viewBox="0 0 446 248">
@@ -1097,7 +1146,7 @@
   <span class="brick b-gray" style="position:absolute;top:44px;right:64px">INFORMATION_SCHEMA</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Finding the query worth optimizing</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Finance's question isn't about one query. Which jobs cost the most last week, across the whole project?</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Finance's question isn't about one query. Which jobs cost the most last week, across the whole project?</p>
   <div class="cols c-55-45">
     <div>
       <pre class="code small" style="font-size:11.4px;line-height:1.45"><span class="lang">SQL</span><span class="kw">SELECT</span> job_id, user_email,
@@ -1105,7 +1154,8 @@
        <span class="fn">LEFT</span>(query, 80) <span class="kw">AS</span> query_start
 <span class="kw">FROM</span> `region-us`.INFORMATION_SCHEMA.JOBS
 <span class="kw">WHERE</span> creation_time &gt;
-        <span class="fn">TIMESTAMP_SUB</span>(<span class="fn">CURRENT_TIMESTAMP</span>(), <span class="kw">INTERVAL</span> 7 <span class="kw">DAY</span>)
+        <span class="fn">TIMESTAMP_SUB</span>(<span class="fn">CURRENT_TIMESTAMP</span>(),
+                      <span class="kw">INTERVAL</span> 7 <span class="kw">DAY</span>)
   <span class="kw">AND</span> job_type = <span class="st">'QUERY'</span>
 <span class="kw">ORDER BY</span> total_slot_ms <span class="kw">DESC</span>
 <span class="kw">LIMIT</span> 10;</pre>
@@ -1204,17 +1254,19 @@
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">columns</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">SELECT * reads everything, every time</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">An analyst's exploration query got pasted into the dashboard: <code>SELECT *</code> over <code>call_quality</code>, then two fields used.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">An analyst's exploration query got pasted into the dashboard: <code>SELECT *</code> over <code>call_quality</code>, then two fields used.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11.2px;line-height:1.45"><span class="lang">SQL</span><span class="cm">-- 2.8 TB: reads all 14 columns</span>
 <span class="kw">SELECT</span> * <span class="kw">FROM</span> vc.call_quality
-<span class="kw">WHERE</span> event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>;
+<span class="kw">WHERE</span> event_ts &gt;=
+      <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>;
 
 <span class="cm">-- 410 GB: reads 3 columns</span>
 <span class="kw">SELECT</span> org_id, packet_loss_pct
 <span class="kw">FROM</span> vc.call_quality
-<span class="kw">WHERE</span> event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>;</pre>
+<span class="kw">WHERE</span> event_ts &gt;=
+      <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>;</pre>
       <div class="vgap-s"></div>
       <ul class="body" style="font-size:13.2px">
         <li>Columnar storage means each column is its own set of files &mdash; you're billed for exactly the columns the query <em>touches</em></li>
@@ -1300,7 +1352,7 @@
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">pruning</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Filters that prune, filters that don't</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The table is partitioned by day and clustered by org &mdash; but only if the query's filter lets BigQuery <em>use</em> that.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The table is partitioned by day and clustered by org &mdash; but only if the query's filter lets BigQuery <em>use</em> that.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11.2px;line-height:1.45"><span class="lang">SQL</span><span class="cm">-- 60 TB: column wrapped in a function</span>
@@ -1311,7 +1363,7 @@
 <span class="kw">WHERE</span> event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>
   <span class="kw">AND</span> event_ts &lt;  <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-21'</span></pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li>Pruning happens <strong>before</strong> execution, from metadata &mdash; but only when the filter compares the <strong>bare partition column</strong> to constants</li>
         <li>Wrap the column in a function and BigQuery must read every row to evaluate it</li>
         <li>Same idea for cluster columns: a plain filter on <code>org_id</code> skips blocks</li>
@@ -1426,7 +1478,7 @@
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">guardrails</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Know the bytes before you run</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The 2.8 TB Monday scan should never have surprised anyone &mdash; the price tag is printed <em>before</em> you run.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The 2.8 TB Monday scan should never have surprised anyone &mdash; the price tag is printed <em>before</em> you run.</p>
   <pre class="term" style="font-size:12.4px"><span class="lbl">Cloud Shell</span>$ bq query <span class="flag">--dry_run</span> <span class="flag">--use_legacy_sql=false</span> \
     'SELECT org_id, packet_loss_pct FROM vc.call_quality
      WHERE event_ts >= TIMESTAMP "2026-07-20"'
@@ -1515,7 +1567,7 @@
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">broadcast join</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The join you get for free: broadcast</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Monday query, the join: 60 TB of telemetry against 14 MB of orgs. Why does the plan show <em>no shuffle</em> for it?</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Monday query, the join: 60 TB of telemetry against 14 MB of orgs. Why does the plan show <em>no shuffle</em> for it?</p>
   <div class="cols c-40-60">
     <div>
       <ul class="body" style="font-size:13.4px">
@@ -1601,14 +1653,16 @@
   <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">hash join</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">When both sides are big: the hash join</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">New ask: average packet loss <em>by device type</em>. Device lives in <code>participants</code> (2.4 TB). Now both sides are huge.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">New ask: average packet loss <em>by device type</em>. Device lives in <code>participants</code> (2.4 TB). Now both sides are huge.</p>
   <div class="cols c-40-60">
     <div>
-      <pre class="code small" style="font-size:11px;line-height:1.42"><span class="lang">SQL</span><span class="kw">SELECT</span> p.device, <span class="fn">AVG</span>(c.packet_loss_pct) <span class="kw">AS</span> avg_loss
+      <pre class="code small" style="font-size:11px;line-height:1.42"><span class="lang">SQL</span><span class="kw">SELECT</span> p.device,
+       <span class="fn">AVG</span>(c.packet_loss_pct) <span class="kw">AS</span> avg_loss
 <span class="kw">FROM</span> vc.call_quality <span class="kw">AS</span> c
 <span class="kw">JOIN</span> vc.participants <span class="kw">AS</span> p
      <span class="kw">USING</span> (meeting_id, user_id)
-<span class="kw">WHERE</span> c.event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>
+<span class="kw">WHERE</span> c.event_ts &gt;=
+      <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>
 <span class="kw">GROUP BY</span> p.device;</pre>
       <div class="vgap-s"></div>
       <ul class="body" style="font-size:12.8px">
@@ -1696,7 +1750,7 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">help the planner</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Help the planner: table order and declared keys</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Two cheap declarations that improve join plans for every query that follows.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Two cheap declarations that improve join plans for every query that follows.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11px;line-height:1.42"><span class="lang">SQL</span><span class="kw">ALTER TABLE</span> vc.meetings
@@ -1753,7 +1807,7 @@
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:13px;padding:9px 14px"><strong>You</strong> guarantee the constraint is true &mdash; BigQuery never checks it. Declare a false PK or FK and queries can silently return wrong results.</div>
+  <div class="callout warn" style="font-size:14px;padding:9px 14px"><strong>You</strong> guarantee the constraint is true &mdash; BigQuery never checks it. Declare a false PK or FK and queries can silently return wrong results.</div>
 </section>
 <details class="notes" data-title="Help the planner: table order and declared keys">
   <summary>Speaker notes &mdash; Help the planner: table order and declared keys</summary>
@@ -1771,7 +1825,7 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">predicate pushdown</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Reduce each side before it joins</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The device query joins 60 TB of telemetry to 2.4 TB of participants. The join never sees those numbers &mdash; and the first reduction happens without you.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The device query joins 60 TB of telemetry to 2.4 TB of participants. The join never sees those numbers &mdash; and the first reduction happens without you.</p>
   <div class="cols c-40-60">
     <div>
       <ul class="body" style="font-size:12.8px">
@@ -1844,7 +1898,7 @@
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">biggest win</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Shrink before you join: aggregate first</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">New ask: total call time by device type. Count per participant, join the small summary, add at the end.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">New ask: total call time by device type. Count per participant, join the small summary, add at the end.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:10.2px;line-height:1.42"><span class="lang">SQL</span><span class="kw">WITH</span> per_participant <span class="kw">AS</span> (
@@ -1944,7 +1998,7 @@
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">anti-pattern</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The self-join trap</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">"Show each org's packet loss this week vs. last week." The instinctive answer joins the table to itself &mdash; and doubles every cost.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">"Show each org's packet loss this week vs. last week." The instinctive answer joins the table to itself &mdash; and doubles every cost.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:10.6px;line-height:1.42"><span class="lang">SQL</span><span class="cm">-- instead of joining the weekly CTE to itself:</span>
@@ -2049,13 +2103,14 @@
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">skew</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Skew: when one key is a whale</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The per-org rollup crawls. The plan says compute avg 300 ms, max 9 s. One org &mdash; the free tier's shared <code>org_free</code> &mdash; is 18% of all telemetry.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The per-org rollup crawls. The plan says compute avg 300 ms, max 9 s. One org &mdash; the free tier's shared <code>org_free</code> &mdash; is 18% of all telemetry.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:10.8px;line-height:1.42"><span class="lang">SQL</span><span class="cm">-- who are the whales?</span>
 <span class="kw">SELECT</span> <span class="fn">APPROX_TOP_COUNT</span>(org_id, 5)
 <span class="kw">FROM</span> vc.call_quality
-<span class="kw">WHERE</span> event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>;
+<span class="kw">WHERE</span> event_ts &gt;=
+      <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>;
 
 <span class="cm">-- [{org_free: 378M}, {org_acme: 9M}, ...]</span>
 <span class="cm">--   one key is 40x the next</span></pre>
@@ -2169,7 +2224,7 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">per-row cost</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Cheap rows: functions and filters</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">A support tool scans meeting titles for a product name &mdash; with a regex, through a JavaScript helper someone wrote in 2024.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">A support tool scans meeting titles for a product name &mdash; with a regex, through a JavaScript helper someone wrote in 2024.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11px;line-height:1.45"><span class="lang">SQL</span><span class="cm">-- slower: full regex engine, per row</span>
@@ -2255,14 +2310,16 @@
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">approximate</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Close enough, far cheaper: approximate aggregation</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The Monday query's <code>COUNT(DISTINCT user_id)</code> forces every user ID through the shuffle. The dashboard renders it as "&asymp;12k users" anyway.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The Monday query's <code>COUNT(DISTINCT user_id)</code> forces every user ID through the shuffle. The dashboard renders it as "&asymp;12k users" anyway.</p>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:10.8px;line-height:1.42"><span class="lang">SQL</span><span class="cm">-- exact: every distinct ID must meet</span>
-<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> c.user_id)        <span class="kw">AS</span> affected_users
+<span class="fn">COUNT</span>(<span class="kw">DISTINCT</span> c.user_id)
+  <span class="kw">AS</span> affected_users
 
-<span class="cm">-- approximate: each worker sends a small sketch</span>
-<span class="fn">APPROX_COUNT_DISTINCT</span>(c.user_id) <span class="kw">AS</span> affected_users</pre>
+<span class="cm">-- approximate: workers send small sketches</span>
+<span class="fn">APPROX_COUNT_DISTINCT</span>(c.user_id)
+  <span class="kw">AS</span> affected_users</pre>
       <div class="vgap-s"></div>
       <ul class="body" style="font-size:12.6px">
         <li>Exact distinct-counting can't be pre-aggregated &mdash; every distinct value has to reach the same place. That's a shuffle of every ID</li>
@@ -2330,7 +2387,7 @@
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Ask the stakeholder: does this number drive a decision at &plusmn;1%? Dashboards, trends, capacity planning &mdash; yes. Billing and compliance &mdash; no. The family also includes <code>APPROX_QUANTILES</code> (that P95) and <code>APPROX_TOP_COUNT</code>.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Ask the stakeholder: does this number drive a decision at &plusmn;1%? Dashboards, trends, capacity planning &mdash; yes. Billing and compliance &mdash; no. The family also includes <code>APPROX_QUANTILES</code> (that P95) and <code>APPROX_TOP_COUNT</code>.</div>
 </section>
 <details class="notes" data-title="Close enough, far cheaper: approximate aggregation">
   <summary>Speaker notes &mdash; Close enough, far cheaper: approximate aggregation</summary>
@@ -2349,17 +2406,18 @@
   <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">repeated work</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Don't compute it twice: CTEs are not cached</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">A report defines <code>bad_calls</code> in a <code>WITH</code> clause and references it three times. The plan shows the scan&hellip; three times.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">A report defines <code>bad_calls</code> in a <code>WITH</code> clause and references it three times. The plan shows the scan&hellip; three times.</p>
   <div class="cols c-40-60">
     <div>
-      <pre class="code small" style="font-size:10.6px;line-height:1.42"><span class="lang">SQL</span><span class="cm">-- multi-statement query: compute once, reuse cheaply</span>
+      <pre class="code small" style="font-size:10.6px;line-height:1.42"><span class="lang">SQL</span><span class="cm">-- multi-statement: compute once, reuse cheaply</span>
 <span class="kw">CREATE TEMP TABLE</span> bad_calls <span class="kw">AS</span>
-<span class="kw">SELECT</span> org_id, meeting_id, user_id, packet_loss_pct
+<span class="kw">SELECT</span> org_id, meeting_id,
+       user_id, packet_loss_pct
 <span class="kw">FROM</span> vc.call_quality
 <span class="kw">WHERE</span> event_ts &gt;= <span class="kw">TIMESTAMP</span> <span class="st">'2026-07-20'</span>
   <span class="kw">AND</span> packet_loss_pct &gt; 5;
 
-<span class="kw">SELECT</span> &hellip; <span class="kw">FROM</span> bad_calls &hellip;;  <span class="cm">-- reads the temp table</span>
+<span class="kw">SELECT</span> &hellip; <span class="kw">FROM</span> bad_calls &hellip;; <span class="cm">-- reads temp table</span>
 <span class="kw">SELECT</span> &hellip; <span class="kw">FROM</span> bad_calls &hellip;;  <span class="cm">-- again, no rescan</span></pre>
       <div class="vgap-s"></div>
       <ul class="body" style="font-size:12.6px">
@@ -2489,7 +2547,7 @@
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">result cache</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The result cache: free, automatic, fussy</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Every dashboard refresh re-submits the Monday query verbatim. The second run costs $0 and returns in about a second &mdash; <em>when the cache is allowed to work</em>.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Every dashboard refresh re-submits the Monday query verbatim. The second run costs $0 and returns in about a second &mdash; <em>when the cache is allowed to work</em>.</p>
   <div class="cols c-40-60">
     <div>
       <ul class="body" style="font-size:12.8px">
@@ -2552,7 +2610,7 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">The cache rewards <strong>stable query text over stable tables</strong>. Dashboards on streaming tables need the next slide's tool instead.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">The cache rewards <strong>stable query text over stable tables</strong>. Dashboards on streaming tables need the next slide's tool instead.</div>
 </section>
 <details class="notes" data-title="The result cache: free, automatic, fussy">
   <summary>Speaker notes &mdash; The result cache: free, automatic, fussy</summary>
@@ -2580,14 +2638,16 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">materialized view</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Materialized views: the standing query</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The dashboard asks the same <em>shape</em> of question all day. Define the rollup once, and let BigQuery keep it fresh and use it automatically.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The dashboard asks the same <em>shape</em> of question all day. Define the rollup once, and let BigQuery keep it fresh and use it automatically.</p>
   <div class="cols c-40-60">
     <div>
-      <pre class="code small" style="font-size:10.6px;line-height:1.42"><span class="lang">SQL</span><span class="kw">CREATE MATERIALIZED VIEW</span> vc.daily_org_quality <span class="kw">AS</span>
+      <pre class="code small" style="font-size:10.6px;line-height:1.42"><span class="lang">SQL</span><span class="kw">CREATE MATERIALIZED VIEW</span>
+  vc.daily_org_quality <span class="kw">AS</span>
 <span class="kw">SELECT</span> org_id,
-       <span class="fn">DATE</span>(event_ts)                  <span class="kw">AS</span> day,
-       <span class="fn">AVG</span>(packet_loss_pct)           <span class="kw">AS</span> avg_loss,
-       <span class="fn">APPROX_COUNT_DISTINCT</span>(user_id) <span class="kw">AS</span> users
+       <span class="fn">DATE</span>(event_ts)  <span class="kw">AS</span> day,
+       <span class="fn">AVG</span>(packet_loss_pct)  <span class="kw">AS</span> avg_loss,
+       <span class="fn">APPROX_COUNT_DISTINCT</span>(user_id)
+         <span class="kw">AS</span> users
 <span class="kw">FROM</span> vc.call_quality
 <span class="kw">GROUP BY</span> org_id, day;</pre>
       <div class="vgap-s"></div>
@@ -2641,7 +2701,7 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">The cache answers <em>identical text</em>. A materialized view answers a <em>family</em> of queries &mdash; filters and coarser groupings over the same aggregation &mdash; and it works on streaming tables, where the cache can't.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">The cache answers <em>identical text</em>. A materialized view answers a <em>family</em> of queries &mdash; filters and coarser groupings over the same aggregation &mdash; and it works on streaming tables, where the cache can't.</div>
 </section>
 <details class="notes" data-title="Materialized views: the standing query">
   <summary>Speaker notes &mdash; Materialized views: the standing query</summary>
@@ -2667,7 +2727,7 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   <span class="brick b-gray" style="position:absolute;top:44px;right:64px">automatic</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Speed you don't have to ask for</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Some of the biggest recent wins need no rewrite at all &mdash; just knowing they exist and checking they're on.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Some of the biggest recent wins need no rewrite at all &mdash; just knowing they exist and checking they're on.</p>
   <div class="cols c-55-45">
     <div>
       <ul class="body" style="font-size:13.4px">
@@ -2744,7 +2804,7 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Recurring queries with stable shapes benefit most &mdash; one more reason the dashboard should run <em>one canonical query text</em>, which also fed the cache on slide 28.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Recurring queries with stable shapes benefit most &mdash; one more reason the dashboard should run <em>one canonical query text</em>, which also fed the cache on slide 28.</div>
 </section>
 <details class="notes" data-title="Speed you don't have to ask for">
   <summary>Speaker notes &mdash; Speed you don't have to ask for</summary>
@@ -2818,10 +2878,10 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">contention</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Wait time: starved, not slow</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Friday 6 p.m.: the month-end billing ETL kicks off. The Monday query &mdash; untouched &mdash; takes 4 minutes. Its plan shows wait avg 140 s.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Friday 6 p.m.: the month-end billing ETL kicks off. The Monday query &mdash; untouched &mdash; takes 4 minutes. Its plan shows wait avg 140 s.</p>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li>Slots are a shared pool: on-demand projects get a soft target of about 2,000 slots, divided <strong>fairly</strong> among whatever is running in that project</li>
         <li>Run two heavy queries at once and each gets roughly half. Queries beyond what the pool supports <strong>queue</strong> &mdash; they wait, they don't fail</li>
         <li>The signature: slot time and bytes are unchanged from good runs. Only <strong>wait</strong> and elapsed grew</li>
@@ -2916,7 +2976,7 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">reservations</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Buying and fencing capacity</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Fix the Friday fight structurally: give the ETL and the dashboards their own lanes.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Fix the Friday fight structurally: give the ETL and the dashboards their own lanes.</p>
   <div class="cols c-40-60">
     <div>
       <ul class="body" style="font-size:12.8px">
@@ -3043,7 +3103,7 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
     <div class="kicker"></div>
     <h1 style="font-size:30px">Lab</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:18px">Optimizing your BigQuery queries for performance &middot; ~75 min</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Minimize I/O: columns and filters that prune</li>
       <li>Cache results, and see when caching can't help</li>
       <li>Perform efficient joins; reduce data before joining</li>
@@ -3070,8 +3130,8 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   <h1>Additional material</h1>
   <div class="cols">
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Official docs</p>
-      <ul class="body" style="font-size:14px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Official docs</p>
+      <ul class="body" style="font-size:15px">
         <li><a href="https://cloud.google.com/bigquery/docs/best-practices-performance-overview" style="color:#1a73e8">Optimize query performance</a> — the five dimensions</li>
         <li><a href="https://cloud.google.com/bigquery/docs/best-practices-performance-compute" style="color:#1a73e8">Optimize query computation</a> · <a href="https://cloud.google.com/bigquery/docs/best-practices-performance-patterns" style="color:#1a73e8">SQL anti-patterns</a></li>
         <li><a href="https://cloud.google.com/bigquery/docs/query-plan-explanation" style="color:#1a73e8">Query plan and timeline</a> · <a href="https://cloud.google.com/bigquery/docs/query-insights" style="color:#1a73e8">Query performance insights</a></li>
@@ -3081,8 +3141,8 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
       </ul>
     </div>
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Deeper reading &amp; practice</p>
-      <ul class="body" style="font-size:14px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Deeper reading &amp; practice</p>
+      <ul class="body" style="font-size:15px">
         <li><em>BigQuery: The Definitive Guide</em> (Lakshmanan &amp; Tigani), chs. 6–7 — the execution model in depth. 2019, so treat its pricing and reservation chapters as superseded by editions</li>
         <li><a href="https://cloud.google.com/bigquery/docs/troubleshoot-queries" style="color:#1a73e8">Troubleshoot slow queries</a></li>
         <li><a href="https://cloud.google.com/bigquery/docs/history-based-optimizations" style="color:#1a73e8">History-based optimizations</a> · <a href="https://cloud.google.com/bigquery/docs/primary-foreign-keys" style="color:#1a73e8">Primary &amp; foreign keys</a></li>
@@ -3104,17 +3164,21 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
 
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -3131,9 +3195,84 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -3152,15 +3291,34 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   }
 
   function fit() {
-    /* Reserve room below the slide: just the collapsed bar normally,
-       the full open panel (notes body is capped at 32vh) when expanded. */
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -3168,13 +3326,21 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
 
   /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
@@ -3185,8 +3351,8 @@ $ bq query <span class="flag">--require_cache</span> <span class="out"># fail un
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 

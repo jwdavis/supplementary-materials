@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -129,23 +126,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -157,7 +157,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -174,13 +174,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -261,13 +261,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -320,16 +320,18 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
   .callout.good { background: #e6f4ea; border-color: var(--g-green); }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -338,7 +340,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -365,18 +367,49 @@
   /* ---------- speaker notes ---------- */
   /* Per-slide notes live in the deck as <details class="notes"> siblings of the
      slides. On screen they are hidden; the active slide's notes are mirrored
-     into the #notes-panel below the stage. In print, each appears under its slide. */
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -390,31 +423,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -424,21 +442,26 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
 
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -449,14 +472,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -471,16 +512,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -659,7 +707,7 @@
     <div class="kicker"></div>
     <h1 style="font-size:30px">Do It Now</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Wiki Query Example — query 1M, then 1B, then 100B rows</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Run the same query against tables of 1M &rarr; 100B rows</li>
       <li>Write down: elapsed time, and <strong>Bytes processed</strong></li>
       <li>roitraining.github.io/gcp-demos</li>
@@ -790,7 +838,7 @@
   <h1>BigQuery in one diagram</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15.5px">
+      <ul class="body" style="font-size:16.5px">
         <li>Storage and compute are <strong>separate services</strong> — they scale independently</li>
         <li>Between query stages: a <strong>distributed in-memory shuffle tier</strong></li>
         <li>Underneath: a datacenter-scale network (<span class="blue">Jupiter</span>)</li>
@@ -861,7 +909,7 @@
       <div class="callout">A lost Wi-Fi connection doesn&rsquo;t kill your query — the <strong>job ID</strong> is the durable handle, and anyone can reconnect to it.</div>
     </div>
     <div>
-      <pre class="term" style="font-size:12px"><span class="lbl">the entire product, one HTTP request</span>POST /bigquery/v2/projects/clearmeet/jobs
+      <pre class="term" style="font-size:13px"><span class="lbl">the entire product, one HTTP request</span>POST /bigquery/v2/projects/clearmeet/jobs
 Authorization: Bearer &lt;oauth2-token&gt;
 
 {"configuration":
@@ -887,7 +935,7 @@ Authorization: Bearer &lt;oauth2-token&gt;
   <h1>Slots: the unit of compute</h1>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>A <strong>slot</strong> &asymp; one virtual CPU with working memory, executing one unit of a query at a time</li>
         <li><strong>On-demand</strong>: ~2,000 concurrent slots per project, fair-shared; you pay per TiB scanned ($6.25/TiB, first TiB/month free)</li>
         <li><strong>Editions / reservations</strong>: buy slot capacity that autoscales; pay per slot-hour</li>
@@ -965,7 +1013,7 @@ Authorization: Bearer &lt;oauth2-token&gt;
   <h1>Columnar: you read only the columns you touch</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>The dashboard question touches <strong>3 of 12 columns</strong></li>
         <li>Row storage: read ~1.9 TB — every row, every column</li>
         <li>Columnar: read three column stripes — ~<strong>120 GB</strong></li>
@@ -1029,14 +1077,14 @@ FROM clearmeet_analytics.qos_events
   <h1>Capacitor I: how a column is actually encoded</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>Each column is stored in its own <strong>Capacitor</strong> files</li>
         <li>Two workhorse encodings: <strong>dictionary</strong> + <strong>run-length (RLE)</strong></li>
         <li><code>device_type</code>: 5 distinct values across billions of rows, so it compresses absurdly well. <code>session_uuid</code>: 5 billion, so it barely compresses</li>
         <li>Per-column statistics are collected at encode time and stored with the file — the pruning machinery, next module</li>
       </ul>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12.5px"><strong>Why you care:</strong> a few high-cardinality columns drive your storage bill, not the row count. Compare logical to physical bytes per table (next slide) to find them.</div>
+      <div class="callout good" style="font-size:13.5px"><strong>Why you care:</strong> a few high-cardinality columns drive your storage bill, not the row count. Compare logical to physical bytes per table (next slide) to find them.</div>
     </div>
     <div class="figure">
       <svg width="470" height="260" viewBox="0 0 470 260">
@@ -1090,7 +1138,7 @@ FROM clearmeet_analytics.qos_events
   <h1>Capacitor II: reorder the rows, filter on the dictionary</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Rows in a table have <strong>no order</strong> — so Capacitor <strong>permutes rows</strong> to make runs longer</li>
         <li>Optimal ordering is NP-hard; heuristics weigh column types and real query patterns</li>
         <li>Filters can be evaluated <strong>against the dictionary, not the data</strong></li>
@@ -1099,7 +1147,7 @@ FROM clearmeet_analytics.qos_events
       <pre class="code small" style="font-size:11.5px"><span class="cm">-- ~3 evaluations, not 5 billion:</span>
 <span class="kw">WHERE</span> device_type <span class="kw">LIKE</span> <span class="st">'%os%'</span></pre>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12.5px"><strong>Why you care:</strong> a predicate on a low-cardinality column is nearly free &mdash; filter early. And no row order is yours: <code>LIMIT 10</code> without <code>ORDER BY</code> returns arbitrary rows.</div>
+      <div class="callout good" style="font-size:13.5px"><strong>Why you care:</strong> a predicate on a low-cardinality column is nearly free &mdash; filter early. And no row order is yours: <code>LIMIT 10</code> without <code>ORDER BY</code> returns arbitrary rows.</div>
     </div>
     <div class="figure">
       <svg width="470" height="258" viewBox="0 0 470 258">
@@ -1154,7 +1202,7 @@ FROM clearmeet_analytics.qos_events
   <h1>Two sizes of the truth: logical vs physical bytes</h1>
   <div class="cols c-45-55">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li><strong>Logical bytes</strong>: uncompressed size — what the validator and on-demand query billing count</li>
         <li><strong>Physical bytes</strong>: compressed Capacitor bytes on disk</li>
         <li>Storage billing is a <strong>per-dataset choice</strong>: logical (default) or physical — roughly 2&times; the rate on often far fewer bytes</li>
@@ -1170,7 +1218,7 @@ FROM clearmeet_analytics.qos_events
 <span class="kw">FROM</span> `region-us`.INFORMATION_SCHEMA.TABLE_STORAGE
 <span class="kw">ORDER BY</span> total_logical_bytes <span class="kw">DESC</span>;</pre>
       <div class="vgap-s"></div>
-      <pre class="term" style="font-size:12px"><span class="lbl">qos_events, one day</span>logical_tib  1.90   <span class="flag">&#8592; what queries bill</span>
+      <pre class="term" style="font-size:13px"><span class="lbl">qos_events, one day</span>logical_tib  1.90   <span class="flag">&#8592; what queries bill</span>
 phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
     </div>
   </div>
@@ -1189,7 +1237,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>Colossus: durability is not your problem</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Capacitor files live on <strong>Colossus</strong>, Google&rsquo;s distributed file system — the same layer under Cloud Storage</li>
         <li>Data is <strong>erasure-encoded</strong> across many disks, plus replicated to a <strong>second zone</strong>; multi-regions keep an off-region copy</li>
         <li>No file is ever overwritten in place</li>
@@ -1269,9 +1317,10 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
       </ul>
       <div class="vgap-s"></div>
       <pre class="code small" style="font-size:11.5px">bq load --source_format=PARQUET \
-  qos_events <span class="st">gs://ingest/07-28/*.parquet</span></pre>
+  qos_events \
+  <span class="st">gs://ingest/07-28/*.parquet</span></pre>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12.5px"><strong>Why you care:</strong> a failed load leaves nothing behind, so <strong>retrying is always safe</strong> &mdash; no dedup pass, no cleanup script.</div>
+      <div class="callout good" style="font-size:13.5px"><strong>Why you care:</strong> a failed load leaves nothing behind, so <strong>retrying is always safe</strong> &mdash; no dedup pass, no cleanup script.</div>
     </div>
     <div class="figure">
       <svg width="470" height="256" viewBox="0 0 470 256">
@@ -1316,13 +1365,13 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>The metadata is itself a database</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Table &rarr; storage sets &rarr; files, tracked in <strong>Spanner</strong></li>
         <li>&ldquo;Which files might this query need?&rdquo; is answered <strong>before any data is touched</strong></li>
         <li>This is how the validator prices your query <strong>before it runs</strong></li>
       </ul>
       <div class="vgap"></div>
-      <div class="callout good" style="font-size:13.5px"><strong>Why you care:</strong> a dry run is free and its byte count is not a guess &mdash; it is the same number you will be billed. Price anything unfamiliar before you run it: <code>bq query --dry_run</code>, or just read the validator in the console as you type.</div>
+      <div class="callout good" style="font-size:14.5px"><strong>Why you care:</strong> a dry run is free and its byte count is not a guess &mdash; it is the same number you will be billed. Price anything unfamiliar before you run it: <code>bq query --dry_run</code>, or just read the validator in the console as you type.</div>
     </div>
     <div class="figure">
       <svg width="470" height="260" viewBox="0 0 470 260">
@@ -1370,13 +1419,13 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>Streaming is a different front door</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Streamed rows land in a <strong>write-optimized buffer</strong>, queryable within seconds — <em>before</em> they&rsquo;re Capacitor files</li>
         <li>A background process <strong>extracts</strong> buffered rows into committed, columnar storage sets</li>
         <li>Modern path: the <strong>Storage Write API</strong> (gRPC, exactly-once, batch + streaming unified)</li>
       </ul>
       <div class="vgap"></div>
-      <div class="callout warn" style="font-size:13.5px"><strong>Why you care:</strong> a table with a streaming buffer <strong>never serves a query from cache</strong>. A dashboard refreshing every 60 seconds against <code>qos_events</code> pays a full scan every single time. Roll the data up on a schedule and point dashboards at the rollup.</div>
+      <div class="callout warn" style="font-size:14.5px"><strong>Why you care:</strong> a table with a streaming buffer <strong>never serves a query from cache</strong>. A dashboard refreshing every 60 seconds against <code>qos_events</code> pays a full scan every single time. Roll the data up on a schedule and point dashboards at the rollup.</div>
     </div>
     <div class="figure">
       <svg width="470" height="240" viewBox="0 0 470 240">
@@ -1418,7 +1467,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>The storage optimizer: the vacuum you never run</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>ClearMeet streams all day &rarr; thousands of small commits: a <strong>fragmented</strong> table (query overhead = file opens + metadata reads)</li>
         <li>The <strong>storage optimizer</strong> continuously rewrites small storage sets into consolidated new <strong>generations</strong> — atomically, in the background, <strong>free</strong></li>
         <li>Superseded sets flip to GARBAGE&#8230; and stick around (next slide)</li>
@@ -1476,7 +1525,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
     <div class="kicker"></div>
     <h1 style="font-size:30px">Do It Now</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:18px">Views &mdash; a saved query, not a saved result</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Create a view over a large table, then query the view</li>
       <li>Compare <strong>bytes processed</strong> against the same query on the base table</li>
       <li>Re-run the view query: does it cache-hit?</li>
@@ -1511,7 +1560,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <span class="kw">FOR SYSTEM_TIME AS OF</span> <span class="fn">TIMESTAMP_SUB</span>(
     <span class="fn">CURRENT_TIMESTAMP</span>(), <span class="kw">INTERVAL</span> 24 <span class="kw">HOUR</span>);</pre>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12px;padding:10px 14px"><strong>Why you care:</strong> try this before anyone reaches for a backup &mdash; it is an ordinary query, priced like one, and it works on a dropped table.</div>
+      <div class="callout good" style="font-size:13px;padding:10px 14px"><strong>Why you care:</strong> try this before anyone reaches for a backup &mdash; it is an ordinary query, priced like one, and it works on a dropped table.</div>
     </div>
     <div class="figure">
       <svg width="470" height="250" viewBox="0 0 470 250">
@@ -1562,7 +1611,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
     <div class="kicker"></div>
     <h1 style="font-size:30px">Do It Now</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Time Travel — query the past, restore a table</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Query a table <code>FOR SYSTEM_TIME AS OF</code> an hour ago</li>
       <li>Restore a &ldquo;dropped&rdquo; table from the window</li>
       <li>roitraining.github.io/gcp-demos</li>
@@ -1582,7 +1631,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>DML on immutable files: what DELETE really does</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>A GDPR request: delete one participant&rsquo;s rows</li>
         <li>The engine can&rsquo;t edit files. It <strong>rewrites the affected files without those rows</strong>, then commits a new storage set referencing the rewritten files <em>plus all untouched originals</em></li>
         <li>One deleted row can rewrite a ~1 GB file. <code>UPDATE</code> = DELETE + INSERT. <code>MERGE</code> = the same, fused</li>
@@ -1599,7 +1648,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
         <rect x="30" y="42" width="64" height="34" rx="6" fill="#f1f3f4" stroke="#dadce0"/><text x="62" y="63" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">A</text>
         <rect x="106" y="42" width="64" height="34" rx="6" fill="#f1f3f4" stroke="#dadce0"/><text x="138" y="63" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">B</text>
         <rect x="182" y="42" width="64" height="34" rx="6" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/><text x="214" y="58" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#b3261e">C</text>
-        <text x="214" y="71" text-anchor="middle" font-size="7.5" fill="#b3261e">214 rows of p_8843c1</text>
+        <text x="214" y="87" text-anchor="middle" font-size="7.5" fill="#b3261e">214 rows of p_8843c1</text>
         <line x1="214" y1="96" x2="214" y2="126" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar24)"/>
         <text x="322" y="114" font-size="9.5" fill="#5f6368">rewrite C &#8594; C&prime; (minus 214 rows)</text>
         <text x="110" y="140" font-size="10.5" font-weight="600" fill="#188038">after &mdash; SS-4 (COMMITTED)</text>
@@ -1634,15 +1683,16 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>Consequences: how ClearMeet handles mutations</h1>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li><strong>Batch DML.</strong> One nightly DELETE covering all pending erasure requests — not one statement per request</li>
         <li>Concurrency is limited by design: <strong>2 concurrent mutating statements per table</strong> (they garbage-collect whole storage sets and must not overlap); INSERTs don&rsquo;t conflict</li>
         <li>Single-row UPDATE/DELETE loops are the canonical antipattern — that workload belongs in an OLTP store in front of BigQuery</li>
       </ul>
     </div>
     <div>
-      <pre class="code small" style="font-size:11.8px"><span class="cm">-- nightly, one statement, all requests:</span>
-<span class="kw">DELETE FROM</span> clearmeet_analytics.qos_events
+      <pre class="code small" style="font-size:11.8px"><span class="cm">-- nightly, all requests at once:</span>
+<span class="kw">DELETE FROM</span>
+  clearmeet_analytics.qos_events
 <span class="kw">WHERE</span> participant_id <span class="kw">IN</span> (
   <span class="kw">SELECT</span> participant_id
   <span class="kw">FROM</span> clearmeet_ops.pending_erasures);</pre>
@@ -1691,7 +1741,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>From SQL to a plan of stages</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>The <strong>query master</strong> parses your SQL and asks the metadata <strong>which files</strong> the query needs</li>
         <li>It builds a plan of <strong>stages</strong> and requests slots</li>
         <li>Plans are <strong>dynamic</strong>: BigQuery re-plans <em>while the query runs</em>, based on what the data looks like</li>
@@ -1743,7 +1793,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>Stage 1: files become work units</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>The files this query needs become <strong>work units</strong> &mdash; roughly <strong>one per file</strong>. Here: 8 files, 8 work units</li>
         <li>Work units are what gets scheduled; <strong>slots run them</strong>. With 3 slots free, 3 run and the other 5 <strong>queue</strong>. A slot that finishes takes the next one &mdash; slots are <strong>reused</strong>, not one-per-file</li>
         <li>Each unit reads <em>only</em> the <code>device_type</code> and <code>audio_mos</code> stripes of its file, then emits <strong>partial results</strong></li>
@@ -1843,7 +1893,7 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>Stage 2: five billion rows in, a few numbers move</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>Each stage-1 unit emitted, per device it saw, a pair: <strong>(poor, total)</strong> &mdash; rows under MOS 3.5, and rows seen</li>
         <li>Stage 2 has <strong>one slot per device</strong>, and all of them run at once. Each sums its own device&rsquo;s pairs, then divides &mdash; <code>42 / 3.9M</code> happens <em>inside</em> the macos slot</li>
         <li>So the division is <strong>not a third stage</strong>. Two stages did the work; a trivial output stage collects the four finished rows</li>
@@ -1958,13 +2008,13 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
   <h1>Why GROUP BY needs shuffle</h1>
   <div class="cols c-40-60">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Stage 1&rsquo;s partials for <code>macos</code> are scattered across <strong>every</strong> slot — someone must bring like keys together</li>
         <li><strong>Shuffle</strong>: each stage-1 slot writes its partials <strong>partitioned by hash(device_type)</strong></li>
         <li>Each stage-2 slot reads exactly one key range — and holds <em>all</em> the data for its keys</li>
       </ul>
       <div class="vgap"></div>
-      <div class="callout" style="font-size:14px">Same key &rArr; same <strong>shuffle partition</strong> &rArr; same slot. Any deterministic function of the key works &mdash; that&rsquo;s all a hash is.<br><span class="muted" style="font-size:13px">The docs call these <em>partitions within an intermediate shuffle</em>, or buckets. &ldquo;Sink&rdquo; is the book&rsquo;s word, not Google&rsquo;s.</span></div>
+      <div class="callout" style="font-size:15px">Same key &rArr; same <strong>shuffle partition</strong> &rArr; same slot. Any deterministic function of the key works &mdash; that&rsquo;s all a hash is.<br><span class="muted" style="font-size:14px">The docs call these <em>partitions within an intermediate shuffle</em>, or buckets. &ldquo;Sink&rdquo; is the book&rsquo;s word, not Google&rsquo;s.</span></div>
     </div>
     <div class="figure">
       <svg width="470" height="252" viewBox="0 0 470 252">
@@ -2033,14 +2083,14 @@ phys_tib     0.31   <span class="flag">&#8592; what disks hold</span></pre>
         <li>Overflow <strong>spills to Colossus</strong>: the query still succeeds, much slower — and you can see exactly how much</li>
       </ul>
       <div class="vgap-s"></div>
-      <div class="callout warn" style="font-size:12.5px"><strong>When you see spill:</strong> shrink what enters the shuffle first — drop unused columns, filter earlier, pre-aggregate. Only then buy capacity.</div>
+      <div class="callout warn" style="font-size:13.5px"><strong>When you see spill:</strong> shrink what enters the shuffle first — drop unused columns, filter earlier, pre-aggregate. Only then buy capacity.</div>
     </div>
     <div>
       <pre class="term"><span class="lbl">execution details &mdash; healthy</span>Bytes shuffled:        3.1 MB
 Bytes spilled to disk: <span class="flag">0 B        &#10003;</span></pre>
       <div class="vgap-s"></div>
       <pre class="term"><span class="lbl">execution details &mdash; in trouble</span>Bytes shuffled:        212 GB
-Bytes spilled to disk: <span style="color:#f28b82">48 GB      &#9888; slow</span></pre>
+Bytes spilled to disk: <span style="color:#f28b82">48 GB  &#9888; slow</span></pre>
       <div class="vgap-s"></div>
       <div class="figcap" style="text-align:left">JSON job stats: <code>shuffleOutputBytesSpilled</code></div>
     </div>
@@ -2063,7 +2113,7 @@ Bytes spilled to disk: <span style="color:#f28b82">48 GB      &#9888; slow</span
   <h1>Why more keys changes the plan</h1>
   <div class="cols c-45-55">
     <div>
-      <p class="body" style="font-size:14px;margin-bottom:8px">Same rows, same query shape, one word different. <code>device_type</code> has <strong>5</strong> distinct values; <code>meeting_id</code> has <strong>6M</strong>.</p>
+      <p class="body" style="font-size:15px;margin-bottom:8px">Same rows, same query shape, one word different. <code>device_type</code> has <strong>5</strong> distinct values; <code>meeting_id</code> has <strong>6M</strong>.</p>
       <pre class="code small"><span class="kw">SELECT</span> meeting_id, <span class="fn">AVG</span>(audio_mos)
 <span class="kw">FROM</span> qos_events
 <span class="kw">GROUP BY</span> meeting_id;</pre>
@@ -2164,11 +2214,12 @@ Bytes spilled to disk: <span style="color:#f28b82">48 GB      &#9888; slow</span
   <h1>Broadcast join: send the small table to every slot</h1>
   <div class="cols c-40-60">
     <div>
-      <p class="body" style="font-size:14px;margin-bottom:8px">A join needs matching rows in the same place. If one side is small enough to fit in a slot&rsquo;s memory, the cheapest way to guarantee that is to give <strong>every</strong> slot a complete copy of it.</p>
+      <p class="body" style="font-size:15px;margin-bottom:8px">A join needs matching rows in the same place. If one side is small enough to fit in a slot&rsquo;s memory, the cheapest way to guarantee that is to give <strong>every</strong> slot a complete copy of it.</p>
       <pre class="code small"><span class="kw">SELECT</span> o.org_name,
   <span class="fn">COUNTIF</span>(q.audio_mos&lt;3.5) <span class="kw">AS</span> poor
-<span class="kw">FROM</span> qos_events q          <span class="cm">-- 5B rows</span>
-<span class="kw">JOIN</span> orgs o <span class="kw">USING</span> (org_id)  <span class="cm">-- 40k rows</span>
+<span class="kw">FROM</span> qos_events q   <span class="cm">-- 5B rows</span>
+<span class="kw">JOIN</span> orgs o <span class="kw">USING</span> (org_id)
+  <span class="cm">-- 40k rows</span>
 <span class="kw">GROUP BY</span> o.org_name;</pre>
       <p class="body" style="font-size:13.6px;margin:8px 0 4px">Each slot then joins <strong>locally</strong>: load all 40k <code>orgs</code> rows into an in-memory hash table keyed on <code>org_id</code>, then for each <code>qos_events</code> row in its shard, look up that row&rsquo;s <code>org_id</code> and emit. No network, no waiting on other slots.</p>
       <div class="callout good" style="font-size:13.3px">40k rows &times; every slot is a rounding error. 5B rows across the network is not. <strong>Move the small thing.</strong></div>
@@ -2288,11 +2339,12 @@ Bytes spilled to disk: <span style="color:#f28b82">48 GB      &#9888; slow</span
   <h1>Hash join: when neither side can be copied</h1>
   <div class="cols c-40-60">
     <div>
-      <p class="body" style="font-size:14px;margin-bottom:8px">Now join <code>qos_events</code> (5B) to <code>meetings</code> (24M). Neither fits in a slot, so <strong>no copy is possible</strong>. The other option: redistribute <em>both</em> sides so matching keys land together.</p>
-      <pre class="code small"><span class="kw">SELECT</span> m.scheduled_by, <span class="fn">AVG</span>(q.audio_mos)
-<span class="kw">FROM</span> qos_events q         <span class="cm">-- 5B rows</span>
+      <p class="body" style="font-size:15px;margin-bottom:8px">Now join <code>qos_events</code> (5B) to <code>meetings</code> (24M). Neither fits in a slot, so <strong>no copy is possible</strong>. The other option: redistribute <em>both</em> sides so matching keys land together.</p>
+      <pre class="code small"><span class="kw">SELECT</span> m.scheduled_by,
+       <span class="fn">AVG</span>(q.audio_mos)
+<span class="kw">FROM</span> qos_events q  <span class="cm">-- 5B rows</span>
 <span class="kw">JOIN</span> meetings m
-  <span class="kw">USING</span> (meeting_id)      <span class="cm">-- 24M rows</span>
+  <span class="kw">USING</span> (meeting_id)  <span class="cm">-- 24M rows</span>
 <span class="kw">GROUP BY</span> m.scheduled_by;</pre>
       <p class="body" style="font-size:13.4px;margin:8px 0 5px">The problem the shuffle solves: <code>meeting_id</code> <strong>M-77</strong> sits in shard f2 of one table and an unrelated shard of the other. Nothing lines up by accident.</p>
       <p class="body" style="font-size:13.4px;margin-bottom:5px">So both sides apply the <strong>same</strong> <code>hash(meeting_id)</code>. Identical keys compute an identical destination from either table, and arrive at the same slot.</p>
@@ -2421,7 +2473,7 @@ Bytes spilled to disk: <span style="color:#f28b82">48 GB      &#9888; slow</span
   <h1>Where results go (and the free lunch)</h1>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Results land in a <strong>temporary table</strong>, kept ~24 h — that&rsquo;s what the console pages through</li>
         <li>Re-running the <em>same</em> query over <em>unchanged</em> tables &rarr; served from <strong>cache</strong>: 0 bytes billed</li>
         <li>Cache is per-user and skipped when: tables changed, non-deterministic functions (<code>CURRENT_TIMESTAMP()</code>&hellip;), a destination table is set — or the table has a <strong>streaming buffer</strong></li>
@@ -2456,7 +2508,7 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
     <div class="kicker"></div>
     <h1 style="font-size:30px">Do It Now</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Working with Cache — run, re-run, inspect both jobs</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Run a query; re-run it; watch bytes go to zero</li>
       <li><code>bq show -j</code> on the second job: find <code>cacheHit: true</code></li>
       <li>roitraining.github.io/gcp-demos</li>
@@ -2497,8 +2549,8 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
       </div>
     </div>
     <div>
-      <p style="font-weight:600;font-size:15.5px;margin-bottom:10px">The three diagnostic questions</p>
-      <ol class="steps" style="font-size:14px">
+      <p style="font-weight:600;font-size:16.5px;margin-bottom:10px">The three diagnostic questions</p>
+      <ol class="steps" style="font-size:15px">
         <li><strong>Wait high?</strong> Starving for slots — a capacity problem, not a SQL problem</li>
         <li><strong>max &Gt; avg in Compute?</strong> Skew: one slot got a giant key</li>
         <li><strong>Bytes spilled &gt; 0?</strong> Shuffle overflow — shrink the shuffle or add capacity</li>
@@ -2546,7 +2598,7 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1>Back to the opening question</h1>
-  <p class="body" style="font-size:12.5px;margin-bottom:5px">You queried <strong>100 billion rows</strong> in seconds, on a table with <strong>no index</strong>. Six mechanisms did that, and you now know all six.</p>
+  <p class="body" style="font-size:13.5px;margin-bottom:5px">You queried <strong>100 billion rows</strong> in seconds, on a table with <strong>no index</strong>. Six mechanisms did that, and you now know all six.</p>
   <table class="tbl" style="font-size:10.6px">
     <tr><th style="width:26px">#</th><th style="width:210px">Mechanism</th><th>What it removed from the problem</th></tr>
     <tr>
@@ -2644,17 +2696,21 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
 
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -2671,9 +2727,84 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -2692,15 +2823,34 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
   }
 
   function fit() {
-    /* Reserve room below the slide: just the collapsed bar normally,
-       the full open panel (notes body is capped at 32vh) when expanded. */
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -2708,13 +2858,21 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
 
   /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
@@ -2725,8 +2883,8 @@ bq query --nouse_cache <span class="st">'SELECT &#8230;'</span></pre>
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 

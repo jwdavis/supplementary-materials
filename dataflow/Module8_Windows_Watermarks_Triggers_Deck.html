@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -129,23 +126,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -157,7 +157,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -174,13 +174,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -261,13 +261,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -319,16 +319,18 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
   .callout.good { background: #e6f4ea; border-color: var(--g-green); }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -337,7 +339,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -364,18 +366,49 @@
   /* ---------- speaker notes ---------- */
   /* Per-slide notes live in the deck as <details class="notes"> siblings of the
      slides. On screen they are hidden; the active slide's notes are mirrored
-     into the #notes-panel below the stage. In print, each appears under its slide. */
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -389,31 +422,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -423,21 +441,26 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
 
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -448,14 +471,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -470,16 +511,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -538,7 +586,7 @@
   <h1>Agenda</h1>
   <div class="cols">
     <div>
-      <ul class="body" style="font-size:16px">
+      <ul class="body" style="font-size:17px">
         <li>Streams and time: <span class="blue">event time</span> vs. processing time</li>
         <li>Windows: fixed, sliding, and session — <span class="blue">where</span> in time data belongs</li>
         <li>Lab: Batch Analytics Pipelines with Dataflow</li>
@@ -578,8 +626,8 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">The goal: a live dashboard</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: the product team wants a dashboard of <strong>page views per minute</strong>, updated continuously, from the store's click stream.</p>
-  <ul class="body" style="font-size:15px">
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: the product team wants a dashboard of <strong>page views per minute</strong>, updated continuously, from the store's click stream.</p>
+  <ul class="body" style="font-size:16px">
     <li>Events arrive forever: the input has no end</li>
     <li>The dashboard wants an answer <em>per minute</em> — a time-based group</li>
     <li>It wants that answer <em>promptly</em> — and corrected if slow data trickles in</li>
@@ -611,7 +659,7 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px">Three questions hide in this one request: <strong>where</strong> in time does each event belong, <strong>when</strong> do we know a minute is complete, and <strong>when — and how often — </strong>do we show a result. Those are the three sections of this module.</div>
+  <div class="callout" style="font-size:14.5px">Three questions hide in this one request: <strong>where</strong> in time does each event belong, <strong>when</strong> do we know a minute is complete, and <strong>when — and how often — </strong>do we show a result. Those are the three sections of this module.</div>
 </section>
 <details class="notes" data-title="The goal: a live dashboard">
   <summary>Speaker notes &mdash; The goal: a live dashboard</summary>
@@ -652,7 +700,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">In batch, this problem is already solved</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: same question — views per minute — but over <em>yesterday's</em> logs in Cloud Storage.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Scenario: same question — views per minute — but over <em>yesterday's</em> logs in Cloud Storage.</p>
   <pre class="code small"><span class="lang">Python</span>views = (p
     | beam.io.ReadFromText(<span class="st">"gs://store-logs/2026-07-27/*.json"</span>)
     | beam.Map(parse_event)                      <span class="cm"># -&gt; ('08:00', 1)</span>
@@ -686,13 +734,13 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14px">
+  <ul class="body" style="font-size:15px">
     <li>Bounded input: read it all, group by a minute-string key, done</li>
     <li>The file boundary quietly answered "when is the data complete?" — <strong>end of file</strong></li>
     <li>Nothing here works when the input never ends</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Batch pipelines get <strong>completeness for free</strong>. Streaming is the art of living without end-of-file.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Batch pipelines get <strong>completeness for free</strong>. Streaming is the art of living without end-of-file.</div>
 </section>
 <details class="notes" data-title="In batch, solved">
   <summary>Speaker notes &mdash; In batch, solved</summary>
@@ -707,10 +755,10 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Two clocks: event time and processing time</h1>
-  <p class="lede" style="margin-bottom:12px;font-size:15px">Amy taps "checkout" at 08:00:45 on the subway. Her phone uploads it at 08:07:02. Which time is true?</p>
+  <p class="lede" style="margin-bottom:12px;font-size:16px">Amy taps "checkout" at 08:00:45 on the subway. Her phone uploads it at 08:07:02. Which time is true?</p>
   <div class="cols">
     <div style="flex:0 0 44%">
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li><strong>Event time</strong> — when it happened; travels <em>with</em> the element as its timestamp</li>
         <li><strong>Processing time</strong> — when the pipeline sees it; just the worker's clock</li>
         <li>The dashboard question ("views <em>during</em> 08:00") is an <strong>event-time</strong> question</li>
@@ -739,7 +787,7 @@
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13.5px">Grouping by processing time is just micro-batching — fine for "roughly current" stats. Grouping by event time reconstructs what actually happened. Beam lets you choose; this module defaults to event time.</div>
+  <div class="callout good" style="font-size:14.5px">Grouping by processing time is just micro-batching — fine for "roughly current" stats. Grouping by event time reconstructs what actually happened. Beam lets you choose; this module defaults to event time.</div>
 </section>
 <details class="notes" data-title="Two clocks">
   <summary>Speaker notes &mdash; Two clocks</summary>
@@ -754,8 +802,8 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Streams arrive out of order</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Three users tap at 08:00. Amy's event arrives at 08:01. Bo was in the subway: 08:09. Cy was in airplane mode over the Atlantic: 13:42.</p>
-  <ul class="body" style="font-size:14.5px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Three users tap at 08:00. Amy's event arrives at 08:01. Bo was in the subway: 08:09. Cy was in airplane mode over the Atlantic: 13:42.</p>
+  <ul class="body" style="font-size:15.5px">
     <li>Arrival order &ne; event order, and the gap has <strong>no upper bound</strong></li>
     <li>Any grouping scheme based on <em>arrival</em> puts these three 08:00 taps in three different groups</li>
     <li>We need grouping that follows the <em>event-time</em> stamp — and a policy for stragglers</li>
@@ -801,7 +849,7 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:13px;padding:9px 14px">Out-of-order data isn't a failure mode to handle — it's the <strong>normal condition</strong> of any stream that crosses phones, networks, or retries.</div>
+  <div class="callout warn" style="font-size:14px;padding:9px 14px">Out-of-order data isn't a failure mode to handle — it's the <strong>normal condition</strong> of any stream that crosses phones, networks, or retries.</div>
 </section>
 <details class="notes" data-title="Streams arrive out of order">
   <summary>Speaker notes &mdash; Streams arrive out of order</summary>
@@ -842,8 +890,8 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Windows: finite groups in an infinite stream</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">A window turns "views per minute" into finite groups — so the aggregation from the batch pipeline can finish, unchanged.</p>
-  <ul class="body" style="font-size:14px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">A window turns "views per minute" into finite groups — so the aggregation from the batch pipeline can finish, unchanged.</p>
+  <ul class="body" style="font-size:15px">
     <li>A window is a time interval in <strong>event time</strong>; every element is assigned to one or more windows by its timestamp</li>
     <li>Aggregations (GroupByKey, Combine) then run <em>per window</em> — each window is a self-contained little batch job</li>
     <li>Default: everything sits in one <strong>global window</strong> — which is why an aggregation on an unbounded source without windowing is rejected by Beam</li>
@@ -892,7 +940,7 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Windowing changes <strong>no data</strong> and doesn't split the PCollection — elements stay interleaved in one collection, each carrying its window as metadata. The window joins your key at the next grouping; the aggregation you already know does the rest.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Windowing changes <strong>no data</strong> and doesn't split the PCollection — elements stay interleaved in one collection, each carrying its window as metadata. The window joins your key at the next grouping; the aggregation you already know does the rest.</div>
 </section>
 <details class="notes" data-title="Windows: finite groups">
   <summary>Speaker notes &mdash; Windows: finite groups</summary>
@@ -911,18 +959,19 @@
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">FixedWindows</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Fixed windows</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: views per minute — every minute, one non-overlapping bucket.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: views per minute — every minute, one non-overlapping bucket.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
       <pre class="code small"><span class="lang">Python</span><span class="kw">from</span> apache_beam <span class="kw">import</span> window
 
 per_minute = (events
     | <span class="st">"PerMinute"</span> &gt;&gt; beam.WindowInto(
-          window.FixedWindows(<span class="kw">60</span>))   <span class="cm"># seconds</span>
-    | <span class="st">"One"</span>   &gt;&gt; beam.Map(<span class="kw">lambda</span> e: (e[<span class="st">"page"</span>], <span class="kw">1</span>))
+          window.FixedWindows(<span class="kw">60</span>))  <span class="cm"># seconds</span>
+    | <span class="st">"One"</span>   &gt;&gt; beam.Map(
+          <span class="kw">lambda</span> e: (e[<span class="st">"page"</span>], <span class="kw">1</span>))
     | <span class="st">"Count"</span> &gt;&gt; beam.CombinePerKey(<span class="fn">sum</span>))</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>Equal, consecutive, non-overlapping intervals; every element lands in <strong>exactly one</strong></li>
         <li>Durations are seconds in Python (<code>60</code>), a <code>Duration</code> in Java</li>
         <li>The workhorse: hourly rollups, per-minute dashboards, daily aggregates</li>
@@ -975,7 +1024,7 @@ per_minute = (events
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:12.5px;padding:8px 14px">One element, one window — results are easy to reason about and cheap to compute. Reach for fixed windows first.</div>
+  <div class="callout good" style="font-size:13.5px;padding:8px 14px">One element, one window — results are easy to reason about and cheap to compute. Reach for fixed windows first.</div>
 </section>
 <details class="notes" data-title="Fixed windows">
   <summary>Speaker notes &mdash; Fixed windows</summary>
@@ -992,17 +1041,18 @@ per_minute = (events
   <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">SlidingWindows</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Sliding windows</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: ops wants a 5-minute <em>moving average</em> of checkout latency, refreshed every minute.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: ops wants a 5-minute <em>moving average</em> of checkout latency, refreshed every minute.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
       <pre class="code small"><span class="lang">Python</span><span class="cm"># latencies: ('checkout', 3.2) pairs</span>
 avg_latency = (latencies
     | beam.WindowInto(
-          window.SlidingWindows(size=<span class="kw">300</span>, period=<span class="kw">60</span>))
+          window.SlidingWindows(
+              size=<span class="kw">300</span>, period=<span class="kw">60</span>))
     | beam.combiners.Mean.PerKey())
-          <span class="cm"># -&gt; ('checkout', 2.8) per window</span></pre>
+    <span class="cm"># -&gt; ('checkout', 2.8) per window</span></pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><code>size</code> = how much data each window covers; <code>period</code> = how often a new one starts</li>
         <li>Windows overlap, so <strong>one element belongs to <code>size / period</code> windows</strong> (here: 5)</li>
         <li>The mean runs once per key <em>per window</em> — the aggregation itself is nothing new</li>
@@ -1046,7 +1096,7 @@ avg_latency = (latencies
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:12.5px;padding:8px 14px">Overlap multiplies work: <code>SlidingWindows(3600, 60)</code> puts every element in <strong>60 windows</strong>. Keep <code>size / period</code> small, or rethink the question.</div>
+  <div class="callout warn" style="font-size:13.5px;padding:8px 14px">Overlap multiplies work: <code>SlidingWindows(3600, 60)</code> puts every element in <strong>60 windows</strong>. Keep <code>size / period</code> small, or rethink the question.</div>
 </section>
 <details class="notes" data-title="Sliding windows">
   <summary>Speaker notes &mdash; Sliding windows</summary>
@@ -1063,7 +1113,7 @@ avg_latency = (latencies
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">Sessions</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Session windows</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: marketing asks "how long is a shopping session?" A session ends when the user goes quiet for 30 minutes.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: marketing asks "how long is a shopping session?" A session ends when the user goes quiet for 30 minutes.</p>
   <div class="cols">
     <div style="flex:0 0 50%">
       <pre class="code small"><span class="lang">Python</span><span class="cm"># clicks: ('amy', click_event) pairs</span>
@@ -1073,7 +1123,7 @@ sessions = (clicks
     | beam.GroupByKey())  <span class="cm"># one group per user</span>
                           <span class="cm">#   per session</span></pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><strong>Data-driven</strong>: the window's edges come from the <em>data</em>, not the clock</li>
         <li>Defined by a <strong>gap</strong>: elements closer together than the gap merge into one window</li>
         <li>Computed <strong>per key</strong> — Amy's silence doesn't end Bo's session</li>
@@ -1111,7 +1161,7 @@ sessions = (clicks
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">Fixed and sliding windows are known before any data arrives. Session windows are discovered <em>from</em> the data — which is exactly why "when is it complete?" gets interesting in the next section.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">Fixed and sliding windows are known before any data arrives. Session windows are discovered <em>from</em> the data — which is exactly why "when is it complete?" gets interesting in the next section.</div>
 </section>
 <details class="notes" data-title="Session windows">
   <summary>Speaker notes &mdash; Session windows</summary>
@@ -1127,7 +1177,7 @@ sessions = (clicks
 <section class="slide">
   <div class="kicker"></div>
   <h1>Choosing a window type</h1>
-  <table class="tbl" style="font-size:15px">
+  <table class="tbl" style="font-size:16px">
     <tr><th style="width:40%">You're asking&#8230;</th><th style="width:28%">Use</th><th>Example</th></tr>
     <tr><td>"&#8230;per minute / hour / day"</td><td><code>FixedWindows</code></td><td>views per minute</td></tr>
     <tr><td>"&#8230;over the last N, updated every M"</td><td><code>SlidingWindows</code></td><td>5-min moving average</td></tr>
@@ -1150,19 +1200,19 @@ sessions = (clicks
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Where the timestamp comes from: streaming sources</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Windows group by the element's timestamp — so who sets it? For Pub/Sub: the <strong>publish time</strong>, unless you say otherwise.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Windows group by the element's timestamp — so who sets it? For Pub/Sub: the <strong>publish time</strong>, unless you say otherwise.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
-      <p style="font-size:12px;font-weight:600;color:#188038;margin:0 0 5px">The recommended override — <em>not</em> what you get by default:</p>
+      <p style="font-size:13px;font-weight:600;color:#188038;margin:0 0 5px">The recommended override — <em>not</em> what you get by default:</p>
       <pre class="code small"><span class="lang">Python</span>events = (p
     | beam.io.ReadFromPubSub(
           subscription=
-            <span class="st">"projects/store/subscriptions/page-views"</span>,
+        <span class="st">"projects/store/subscriptions/page-views"</span>,
           timestamp_attribute=<span class="st">"event_ts"</span>)
           <span class="cm"># RFC 3339 or epoch millis</span>
     | beam.Map(json.loads))</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li>Default (no <code>timestamp_attribute</code>): event time = <strong>publish time</strong> — when the message reached Pub/Sub, not when the tap happened on the phone</li>
         <li>The override: the publisher stamps the true time into a message <strong>attribute</strong>, and <code>timestamp_attribute</code> tells the source to use it instead</li>
         <li>With that one argument, Amy's buffered subway events carry 08:00, not 08:07</li>
@@ -1200,7 +1250,7 @@ sessions = (clicks
       </div>
     </div>
   </div>
-  <div class="callout warn" style="font-size:12.5px;padding:7px 14px">Publish time is a <em>processing-time</em> stamp wearing an event-time costume. If the true time matters, use <code>timestamp_attribute</code>.</div>
+  <div class="callout warn" style="font-size:13.5px;padding:7px 14px">Publish time is a <em>processing-time</em> stamp wearing an event-time costume. If the true time matters, use <code>timestamp_attribute</code>.</div>
 </section>
 <details class="notes" data-title="Timestamps: streaming sources">
   <summary>Speaker notes &mdash; Timestamps: streaming sources</summary>
@@ -1216,7 +1266,7 @@ sessions = (clicks
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Where the timestamp comes from: your own data</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Batch files have no publish time — the timestamp is a field in the record. Attach it yourself in a DoFn.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Batch files have no publish time — the timestamp is a field in the record. Attach it yourself in a DoFn.</p>
   <div class="cols">
     <div style="flex:0 0 54%">
       <pre class="code small"><span class="lang">Python</span><span class="kw">class</span> <span class="fn">AddTimestamp</span>(beam.DoFn):
@@ -1227,7 +1277,7 @@ sessions = (clicks
 
 stamped = raw | beam.ParDo(AddTimestamp())</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><code>TimestampedValue(element, ts)</code> re-emits the element with a new event timestamp</li>
         <li>This is how <em>batch</em> data gets windowed — which the next lab does</li>
         <li>Same trick fixes streams whose timestamp lives in the payload, not an attribute</li>
@@ -1259,7 +1309,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">Windows don't care whether data is bounded or streaming — only that elements carry meaningful event timestamps.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">Windows don't care whether data is bounded or streaming — only that elements carry meaningful event timestamps.</div>
 </section>
 <details class="notes" data-title="Timestamps: your own data">
   <summary>Speaker notes &mdash; Timestamps: your own data</summary>
@@ -1275,7 +1325,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The dashboard pipeline so far</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Windows + the transforms you already know = the whole "what" and "where" of the dashboard.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Windows + the transforms you already know = the whole "what" and "where" of the dashboard.</p>
   <pre class="code small"><span class="lang">Python</span>per_minute = (p
     | beam.io.ReadFromPubSub(subscription=SUB,
                              timestamp_attribute=<span class="st">"event_ts"</span>)
@@ -1306,11 +1356,11 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14px">
+  <ul class="body" style="font-size:15px">
     <li>Nothing new — source, window, count, sink</li>
     <li>But one question is still open: <strong>when</strong> does the 08:00 window actually emit?</li>
   </ul>
-  <div class="callout" style="font-size:13px;padding:8px 14px">With out-of-order data, "the minute is over" and "its data has all arrived" are <strong>different moments</strong>. Section 3 tells them apart.</div>
+  <div class="callout" style="font-size:14px;padding:8px 14px">With out-of-order data, "the minute is over" and "its data has all arrived" are <strong>different moments</strong>. Section 3 tells them apart.</div>
 </section>
 <details class="notes" data-title="The dashboard pipeline so far">
   <summary>Speaker notes &mdash; The dashboard pipeline so far</summary>
@@ -1337,7 +1387,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     <div class="kicker"></div>
     <h1 style="font-size:30px">Lab</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Batch Analytics Pipelines with Dataflow (Python/Java)</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Write a pipeline that aggregates site traffic by user</li>
       <li>Write a pipeline that aggregates site traffic by minute</li>
       <li>Implement windowing on time series data</li>
@@ -1384,8 +1434,8 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">When can we emit the result?</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">It's 08:01:00 on the wall clock. May we emit "views for 08:00"? Bo's 08:00 tap is still in the subway.</p>
-  <ul class="body" style="font-size:14px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">It's 08:01:00 on the wall clock. May we emit "views for 08:00"? Bo's 08:00 tap is still in the subway.</p>
+  <ul class="body" style="font-size:15px">
     <li>Emitting at the wall-clock minute boundary — and never looking back — drops every straggler: <strong>silently wrong</strong></li>
     <li>Waiting forever emits nothing — perfectly complete, perfectly useless</li>
     <li>We need an <em>estimate</em> of "all data up to time T has probably arrived"</li>
@@ -1419,7 +1469,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">This trade-off — latency vs. completeness — has no free lunch. The <strong>watermark</strong> is Beam's honest, moving estimate of where "complete" currently is.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">This trade-off — latency vs. completeness — has no free lunch. The <strong>watermark</strong> is Beam's honest, moving estimate of where "complete" currently is.</div>
 </section>
 <details class="notes" data-title="When can we emit the result?">
   <summary>Speaker notes &mdash; When can we emit the result?</summary>
@@ -1434,8 +1484,8 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The watermark</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">The watermark is the pipeline's running claim: <em>"I believe I have now seen (nearly) everything with event time earlier than T."</em></p>
-  <ul class="body" style="font-size:13px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">The watermark is the pipeline's running claim: <em>"I believe I have now seen (nearly) everything with event time earlier than T."</em></p>
+  <ul class="body" style="font-size:14px">
     <li>Picture a <strong>moving line on the event-time axis</strong>: the pipeline's current boundary between "probably all here" and "still arriving"</li>
     <li>A window whose end the watermark has passed is <em>complete as far as the pipeline can tell</em> — the default moment to emit its result</li>
     <li>It's a <strong>heuristic</strong>, continuously re-estimated from the data actually in flight — usually right, occasionally passed by a straggler</li>
@@ -1473,7 +1523,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">Nothing about your data changed — the watermark is <strong>metadata about progress</strong>, the streaming replacement for end-of-file.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">Nothing about your data changed — the watermark is <strong>metadata about progress</strong>, the streaming replacement for end-of-file.</div>
 </section>
 <details class="notes" data-title="The watermark">
   <summary>Speaker notes &mdash; The watermark</summary>
@@ -1489,10 +1539,10 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The same watermark, as a graph</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Chart the watermark's position against the wall clock and you get the classic picture: a curve chasing the diagonal.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Chart the watermark's position against the wall clock and you get the classic picture: a curve chasing the diagonal.</p>
   <div class="cols">
     <div style="flex:0 0 40%">
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>X is event time; Y is the wall clock, flowing upward. The dashed 45&deg; line is the fantasy of zero lag</li>
         <li>At any wall-clock moment, the curve marks how far event time is "probably complete" — the vertical gap to the ideal line is the current lag</li>
         <li>Lag breathes: it grows when publishers buffer or the pipeline falls behind, shrinks as it catches up — that wobble is exactly what Dataflow charts for you (metrics slides ahead)</li>
@@ -1526,7 +1576,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Same claim as the moving line, second picture. This is the plot the Streaming 101/102 papers use — and the shape Dataflow's <strong>data freshness</strong> chart is secretly graphing.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Same claim as the moving line, second picture. This is the plot the Streaming 101/102 papers use — and the shape Dataflow's <strong>data freshness</strong> chart is secretly graphing.</div>
 </section>
 <details class="notes" data-title="The watermark as a graph">
   <summary>Speaker notes &mdash; The watermark as a graph</summary>
@@ -1542,8 +1592,8 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Every stage has a watermark</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14px">It isn't one number for the whole job. The watermark starts at the source and flows through the pipeline — and every aggregation consults the watermark <em>at its own stage</em>.</p>
-  <ul class="body" style="font-size:12.5px">
+  <p class="lede" style="margin-bottom:8px;font-size:15px">It isn't one number for the whole job. The watermark starts at the source and flows through the pipeline — and every aggregation consults the watermark <em>at its own stage</em>.</p>
+  <ul class="body" style="font-size:13.5px">
     <li>The <strong>source</strong> estimates the first watermark from what it knows about data not yet read (next slide: how Pub/Sub does it)</li>
     <li>Each transform's <strong>output watermark</strong> = the older of its input watermark and its oldest buffered, not-yet-emitted work — downstream watermarks trail upstream ones</li>
     <li>Every <code>GroupByKey</code> / <code>Combine</code> emits a window when <em>its</em> input watermark passes the window's end — not just the one next to the source</li>
@@ -1580,7 +1630,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">Batch has all of this too — a file source's watermark simply jumps to +&infin; at end-of-file, so every stage's windows become emittable the moment reading finishes.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">Batch has all of this too — a file source's watermark simply jumps to +&infin; at end-of-file, so every stage's windows become emittable the moment reading finishes.</div>
 </section>
 <details class="notes" data-title="Every stage has a watermark">
   <summary>Speaker notes &mdash; Every stage has a watermark</summary>
@@ -1596,8 +1646,8 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Where the number comes from: Pub/Sub on Dataflow</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14px">Pub/Sub promises delivery — not order, not completeness. So Dataflow estimates the source watermark from the one thing it <em>can</em> see: the backlog.</p>
-  <ul class="body" style="font-size:12.5px">
+  <p class="lede" style="margin-bottom:8px;font-size:15px">Pub/Sub promises delivery — not order, not completeness. So Dataflow estimates the source watermark from the one thing it <em>can</em> see: the backlog.</p>
+  <ul class="body" style="font-size:13.5px">
     <li>Dataflow polls a Pub/Sub API that reports the <strong>age of the oldest unacknowledged message</strong> on the subscription — the watermark never claims completeness past work still sitting in the backlog</li>
     <li>By default that tracks <strong>publish time</strong>; with <code>timestamp_attribute</code>, Dataflow also creates a hidden <strong>tracking subscription</strong> to inspect the <em>event times</em> still in the backlog — so old buffered events hold the watermark back too</li>
     <li>What no estimate can see: an event <strong>not yet published</strong> (Cy's phone in airplane mode) is in no backlog anywhere — the watermark can pass it, and it arrives <em>late</em></li>
@@ -1632,7 +1682,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:12.5px;padding:8px 14px">Every source estimates differently (Kafka: per-partition progress; files: what's left to read), but the contract is identical: a best-effort completeness claim, honest enough to act on — never a guarantee.</div>
+  <div class="callout warn" style="font-size:13.5px;padding:8px 14px">Every source estimates differently (Kafka: per-partition progress; files: what's left to read), but the contract is identical: a best-effort completeness claim, honest enough to act on — never a guarantee.</div>
 </section>
 <details class="notes" data-title="Where the number comes from: Pub/Sub">
   <summary>Speaker notes &mdash; Where the number comes from: Pub/Sub</summary>
@@ -1648,16 +1698,16 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">On time — or late</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">One rule sorts every arriving element: compare its event time to the current watermark.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">One rule sorts every arriving element: compare its event time to the current watermark.</p>
   <div class="cols">
     <div style="flex:0 0 40%">
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>Arrives while the watermark is still <em>behind</em> its window's end &rarr; <strong>on time</strong></li>
         <li>Arrives after the watermark passed its window's end &rarr; <strong>late</strong></li>
         <li>Late is <em>defined by</em> the watermark — without a watermark, "late" is meaningless</li>
       </ul>
       <div class="vgap-s"></div>
-      <div style="font-size:12px;color:#5f6368;line-height:1.7">
+      <div style="font-size:13px;color:#5f6368;line-height:1.7">
         <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#34A853"></span> amy — arrives 08:01, on time<br>
         <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#FBBC04"></span> bo — arrives 08:09, on time (barely)<br>
         <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EA4335"></span> cy — arrives 13:42, late
@@ -1706,7 +1756,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Same three taps from Section 1 — now the pipeline can <strong>name</strong> which one is a problem, and by how much.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Same three taps from Section 1 — now the pipeline can <strong>name</strong> which one is a problem, and by how much.</div>
 </section>
 <details class="notes" data-title="On time — or late">
   <summary>Speaker notes &mdash; On time — or late</summary>
@@ -1721,7 +1771,7 @@ stamped = raw | beam.ParDo(AddTimestamp())</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">What happens to late data</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Default policy: late data is <strong>dropped</strong> — Cy's tap never reaches the 08:00 count — unless you allow lateness.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Default policy: late data is <strong>dropped</strong> — Cy's tap never reaches the 08:00 count — unless you allow lateness.</p>
   <div class="cols">
     <div style="flex:0 0 50%">
       <pre class="code small"><span class="lang">Python</span><span class="kw">from</span> apache_beam.utils.timestamp <span class="kw">import</span> (
@@ -1733,7 +1783,7 @@ per_minute = events | beam.WindowInto(
     <span class="cm"># accept data up to 10 min late; on-time</span>
     <span class="cm"># result still emits at the watermark</span></pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li>Default <code>allowed_lateness</code> is <strong>0</strong>: when the watermark passes the window's end, the result emits and the window's state is freed — late arrivals have nowhere to land</li>
         <li>With lateness: the on-time result still emits at the watermark, <em>nothing is delayed</em> — but the state is retained afterward, and each late arrival emits a correction</li>
         <li>Once the watermark passes end-of-window + allowed lateness, the window <strong>expires</strong>: state freed, further stragglers dropped. Lateness is a budget of retained state, not a free setting</li>
@@ -1779,7 +1829,7 @@ per_minute = events | beam.WindowInto(
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:12.5px;padding:8px 14px">Dropping is <strong>silent</strong> correctness loss. Decide a lateness budget on purpose, and watch Dataflow's <code>droppedDueToLateness</code> counter rather than assuming zero.</div>
+  <div class="callout warn" style="font-size:13.5px;padding:8px 14px">Dropping is <strong>silent</strong> correctness loss. Decide a lateness budget on purpose, and watch Dataflow's <code>droppedDueToLateness</code> counter rather than assuming zero.</div>
 </section>
 <details class="notes" data-title="What happens to late data">
   <summary>Speaker notes &mdash; What happens to late data</summary>
@@ -1797,8 +1847,8 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Watching the watermark: Dataflow's two metrics</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">You never see "the watermark" as a number — you see its shadow in two Job Metrics charts.</p>
-  <ul class="body" style="font-size:14px">
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">You never see "the watermark" as a number — you see its shadow in two Job Metrics charts.</p>
+  <ul class="body" style="font-size:15px">
     <li><strong>Data freshness</strong>: how far real time has pulled ahead of the watermark — "how stale is the newest complete result?"</li>
     <li><strong>System latency</strong>: how long an element currently takes to get through — "is the pipeline itself slow?"</li>
     <li>Dataflow's autoscaler reads the same signals you do</li>
@@ -1831,7 +1881,7 @@ per_minute = events | beam.WindowInto(
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Freshness answers "is my <strong>data</strong> behind?"; latency answers "is my <strong>pipeline</strong> behind?" You need both to diagnose which one is the problem.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Freshness answers "is my <strong>data</strong> behind?"; latency answers "is my <strong>pipeline</strong> behind?" You need both to diagnose which one is the problem.</div>
 </section>
 <details class="notes" data-title="Watching the watermark">
   <summary>Speaker notes &mdash; Watching the watermark</summary>
@@ -1848,7 +1898,7 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1>Reading the two metrics together</h1>
-  <table class="tbl" style="font-size:13.5px">
+  <table class="tbl" style="font-size:14.5px">
     <tr><th style="width:20%"></th><th style="width:37%">Data freshness <strong>stable</strong></th><th>Data freshness <strong>climbing</strong> (results growing staler)</th></tr>
     <tr>
       <td><strong>System latency stable</strong></td>
@@ -1862,7 +1912,7 @@ per_minute = events | beam.WindowInto(
     </tr>
   </table>
   <div class="vgap"></div>
-  <div class="callout warn" style="font-size:13.5px">Note the asymmetry: autoscaling rescues the top-right cell but not the bottom-left — workers waiting on a slow external call idle their CPUs, so no scale-up signal ever comes. Details in Monitoring &amp; Troubleshooting.</div>
+  <div class="callout warn" style="font-size:14.5px">Note the asymmetry: autoscaling rescues the top-right cell but not the bottom-left — workers waiting on a slow external call idle their CPUs, so no scale-up signal ever comes. Details in Monitoring &amp; Troubleshooting.</div>
 </section>
 <details class="notes" data-title="Reading the two metrics together">
   <summary>Speaker notes &mdash; Reading the two metrics together</summary>
@@ -1908,8 +1958,8 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The dashboard can't wait</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Product upgrades the ask: hourly totals — but "don't make me stare at a blank tile for an hour, and do fix the number if stragglers arrive."</p>
-  <ul class="body" style="font-size:14px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Product upgrades the ask: hourly totals — but "don't make me stare at a blank tile for an hour, and do fix the number if stragglers arrive."</p>
+  <ul class="body" style="font-size:15px">
     <li>One window now wants <strong>three kinds of output</strong>: early estimates while it's open, a best answer at the watermark, corrections for late data</li>
     <li>The watermark alone gives only the middle one</li>
     <li>A <strong>trigger</strong> is the policy for when a window emits a result pane</li>
@@ -1947,7 +1997,7 @@ per_minute = events | beam.WindowInto(
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Four words carry this section — the <strong>window</strong> is the group; a trigger <strong>fires</strong> (the moment); each firing emits a <strong>pane</strong>, one result element for that window; the window <strong>expires</strong> when its allowed lateness runs out. One window, many panes.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Four words carry this section — the <strong>window</strong> is the group; a trigger <strong>fires</strong> (the moment); each firing emits a <strong>pane</strong>, one result element for that window; the window <strong>expires</strong> when its allowed lateness runs out. One window, many panes.</div>
 </section>
 <details class="notes" data-title="The dashboard can't wait">
   <summary>Speaker notes &mdash; The dashboard can't wait</summary>
@@ -1962,7 +2012,7 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The default trigger: fire once at the watermark</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">What you've been running all along, written out explicitly:</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">What you've been running all along, written out explicitly:</p>
   <div class="cols">
     <div style="flex:0 0 54%">
       <pre class="code small"><span class="lang">Python</span><span class="kw">from</span> apache_beam.transforms.trigger <span class="kw">import</span> (
@@ -1973,7 +2023,7 @@ per_minute = events | beam.WindowInto(
     trigger=AfterWatermark(),
     accumulation_mode=AccumulationMode.DISCARDING)</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li>No trigger specified = <code>AfterWatermark()</code>: each window fires once, when the watermark passes its end — one pane, its only result</li>
         <li>With the defaults (<code>allowed_lateness=0</code>), that pane is also the <em>only</em> pane, and late data is dropped</li>
         <li>In Python, naming a trigger explicitly also requires naming <code>accumulation_mode</code> — Beam refuses to guess how panes relate</li>
@@ -1997,7 +2047,7 @@ per_minute = events | beam.WindowInto(
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">Defaults are a real policy: <em>complete-ish, once, drop the rest.</em> Perfect for many pipelines — now you can change it deliberately.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">Defaults are a real policy: <em>complete-ish, once, drop the rest.</em> Perfect for many pipelines — now you can change it deliberately.</div>
 </section>
 <details class="notes" data-title="The default trigger">
   <summary>Speaker notes &mdash; The default trigger</summary>
@@ -2013,7 +2063,7 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Early firings: estimates before the watermark</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Hourly window, but show a number every 30 seconds of wall-clock time while it fills.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Hourly window, but show a number every 30 seconds of wall-clock time while it fills.</p>
   <div class="cols">
     <div style="flex:0 0 54%">
       <pre class="code small"><span class="lang">Python</span>per_hour = events | beam.WindowInto(
@@ -2024,7 +2074,7 @@ per_minute = events | beam.WindowInto(
     accumulation_mode=AccumulationMode.ACCUMULATING,
     allowed_lateness=Duration(seconds=<span class="kw">0</span>))</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li><code>early=</code> decorates the watermark trigger with extra firings <em>before</em> it</li>
         <li><code>AfterProcessingTime(30)</code> runs on the worker's clock — the dashboard's refresh rate, independent of event time</li>
         <li>Each pane is a <strong>new element</strong> emitted downstream — a new row, a new message. Nothing is updated in place; the consumer keeps the latest</li>
@@ -2062,7 +2112,7 @@ per_minute = events | beam.WindowInto(
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Early firings trade compute for freshness — the aggregation reruns per firing. Combiner-friendly aggregations (Module 5) keep that cheap.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Early firings trade compute for freshness — the aggregation reruns per firing. Combiner-friendly aggregations (Module 5) keep that cheap.</div>
 </section>
 <details class="notes" data-title="Early firings">
   <summary>Speaker notes &mdash; Early firings</summary>
@@ -2090,7 +2140,7 @@ per_minute = events | beam.WindowInto(
     allowed_lateness=Duration(seconds=<span class="kw">2</span> * <span class="kw">3600</span>),
     accumulation_mode=AccumulationMode.ACCUMULATING)</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li><code>late=</code> adds firings <em>after</em> the watermark, for as long as <code>allowed_lateness</code> keeps the window alive</li>
         <li>This window now emits many panes — so what's <em>in</em> each pane? That's the <strong>accumulation mode</strong></li>
         <li><strong>ACCUMULATING</strong>: every pane = everything so far. <strong>DISCARDING</strong>: every pane = only what's new since the last pane</li>
@@ -2141,7 +2191,7 @@ per_minute = events | beam.WindowInto(
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">Accumulation only matters when a trigger fires more than once — which is exactly why it lives here and not in the windows section.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">Accumulation only matters when a trigger fires more than once — which is exactly why it lives here and not in the windows section.</div>
 </section>
 <details class="notes" data-title="Late firings + accumulation">
   <summary>Speaker notes &mdash; Late firings + accumulation</summary>
@@ -2157,7 +2207,7 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1>Choosing an accumulation mode: look at your sink</h1>
-  <table class="tbl" style="font-size:14.5px">
+  <table class="tbl" style="font-size:15.5px">
     <tr><th style="width:44%">Your sink / consumer</th><th style="width:20%">Mode</th><th>Why</th></tr>
     <tr>
       <td>A reader that keeps the <strong>latest</strong> — dashboard tile; BigQuery rows read through a "newest pane per window" view</td>
@@ -2171,9 +2221,9 @@ per_minute = events | beam.WindowInto(
     </tr>
   </table>
   <div class="vgap"></div>
-  <div class="callout good" style="font-size:14px">Ask "what does the <strong>reader</strong> of my output do with two panes for the same window?" If it keeps the latest — accumulate. If it adds — discard. (Discarding suits associative, commutative aggregations; it also keeps state small on wide windows.)</div>
+  <div class="callout good" style="font-size:15px">Ask "what does the <strong>reader</strong> of my output do with two panes for the same window?" If it keeps the latest — accumulate. If it adds — discard. (Discarding suits associative, commutative aggregations; it also keeps state small on wide windows.)</div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Streaming writes to BigQuery <strong>append</strong> — they don't update in place. Write every pane as its own row (window start + pane timestamp), and put the mode's logic in a view: latest-per-window for accumulating, <code>SUM</code>-per-window for discarding.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Streaming writes to BigQuery <strong>append</strong> — they don't update in place. Write every pane as its own row (window start + pane timestamp), and put the mode's logic in a view: latest-per-window for accumulating, <code>SUM</code>-per-window for discarding.</div>
 </section>
 <details class="notes" data-title="Choosing an accumulation mode">
   <summary>Speaker notes &mdash; Choosing an accumulation mode</summary>
@@ -2193,17 +2243,19 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Triggers without watermarks</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14px">Scenario: a running total of orders since launch — one endless window, results on <em>our</em> schedule: every 100 orders or every 60 seconds, whichever comes first.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: a running total of orders since launch — one endless window, results on <em>our</em> schedule: every 100 orders or every 60 seconds, whichever comes first.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
       <pre class="code small"><span class="lang">Python</span>running = orders | beam.WindowInto(
     window.GlobalWindows(),
     trigger=Repeatedly(
-        AfterAny(AfterCount(<span class="kw">100</span>),
-                 AfterProcessingTime(<span class="kw">60</span>))),
-    accumulation_mode=AccumulationMode.ACCUMULATING)</pre>
+        AfterAny(
+            AfterCount(<span class="kw">100</span>),
+            AfterProcessingTime(<span class="kw">60</span>))),
+    accumulation_mode=
+        AccumulationMode.ACCUMULATING)</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li><code>AfterCount</code> (data-driven) and <code>AfterProcessingTime</code> ignore event time entirely</li>
         <li><code>AfterAny</code> / <code>AfterAll</code> / <code>AfterEach</code> compose them; <code>Repeatedly(...)</code> keeps a trigger re-arming forever</li>
         <li>This is the legal way to aggregate an unbounded stream in the global window — the trigger supplies what the watermark can't</li>
@@ -2233,7 +2285,7 @@ per_minute = events | beam.WindowInto(
     </div>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:12.5px;padding:8px 14px"><code>AfterCount(100)</code> alone strands elements 1&ndash;99 of a slow stream forever — nothing fires until the count is met. Compose a time-based trigger alongside it, as here.</div>
+  <div class="callout warn" style="font-size:13.5px;padding:8px 14px"><code>AfterCount(100)</code> alone strands elements 1&ndash;99 of a slow stream forever — nothing fires until the count is met. Compose a time-based trigger alongside it, as here.</div>
 </section>
 <details class="notes" data-title="Triggers without watermarks">
   <summary>Speaker notes &mdash; Triggers without watermarks</summary>
@@ -2265,12 +2317,12 @@ per_minute = events | beam.WindowInto(
     | beam.CombinePerKey(<span class="fn">sum</span>)                         <span class="cm"># WHAT to compute</span>
     | beam.io.WriteToBigQuery(TABLE, ...))</pre>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14px">
+  <ul class="body" style="font-size:15px">
     <li>Every line answers one of the four questions — nothing here is boilerplate</li>
     <li>The red question mark from Section 2 is resolved: this window fires early, on time, and late — and the sink overwrites</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">This block is the module. If you can annotate each argument with its question — <strong>what / where / when / how</strong> — you own streaming in Beam.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">This block is the module. If you can annotate each argument with its question — <strong>what / where / when / how</strong> — you own streaming in Beam.</div>
 </section>
 <details class="notes" data-title="The whole dashboard, annotated">
   <summary>Speaker notes &mdash; The whole dashboard, annotated</summary>
@@ -2285,7 +2337,7 @@ per_minute = events | beam.WindowInto(
 <section class="slide">
   <div class="kicker"></div>
   <h1>Best practices</h1>
-  <ol class="steps" style="font-size:14.5px">
+  <ol class="steps" style="font-size:15.5px">
     <li><strong>Window in event time, stamp early.</strong> Use the true event timestamp (<code>timestamp_attribute</code>, or <code>TimestampedValue</code> right after the source), never arrival time — unless micro-batching is genuinely the requirement</li>
     <li><strong>Set <code>allowed_lateness</code> on purpose.</strong> The default silently drops stragglers; pick a budget from the data (watch data freshness and <code>droppedDueToLateness</code>) and pay the state cost knowingly</li>
     <li><strong>Match accumulation to the sink.</strong> Reader keeps the latest pane &rarr; ACCUMULATING; reader adds panes up &rarr; DISCARDING. This is the most common silent-wrong-number bug</li>
@@ -2318,7 +2370,7 @@ per_minute = events | beam.WindowInto(
     <div class="kicker"></div>
     <h1 style="font-size:30px">Lab</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Using Dataflow for Streaming Analytics (Python/Java)</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Read data from a streaming source</li>
       <li>Write data to a streaming sink</li>
       <li>Window data in a streaming context</li>
@@ -2342,15 +2394,15 @@ per_minute = events | beam.WindowInto(
   <h1>Additional material</h1>
   <div class="cols">
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Readings</p>
-      <ul class="body" style="font-size:15px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Readings</p>
+      <ul class="body" style="font-size:16px">
         <li><a href="https://www.oreilly.com/radar/the-world-beyond-batch-streaming-101/" style="color:#1a73e8">Streaming 101</a> &amp; <a href="https://www.oreilly.com/radar/the-world-beyond-batch-streaming-102/" style="color:#1a73e8">Streaming 102</a> (Tyler Akidau) — the origin of the what/where/when/how frame</li>
         <li>Beam Programming Guide: <a href="https://beam.apache.org/documentation/programming-guide/#windowing" style="color:#1a73e8">Windowing</a> · <a href="https://beam.apache.org/documentation/programming-guide/#triggers" style="color:#1a73e8">Triggers</a></li>
       </ul>
     </div>
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Reference</p>
-      <ul class="body" style="font-size:15px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Reference</p>
+      <ul class="body" style="font-size:16px">
         <li><a href="https://tour.beam.apache.org/" style="color:#1a73e8">Tour of Beam</a> — runnable windowing/trigger units</li>
         <li>Dataflow docs: <a href="https://cloud.google.com/dataflow/docs/concepts/streaming-pipelines" style="color:#1a73e8">streaming pipelines</a> · <a href="https://cloud.google.com/dataflow/docs/guides/using-monitoring-intf" style="color:#1a73e8">monitoring (data freshness &amp; system latency)</a></li>
         <li><a href="https://beam.apache.org/get-started/mobile-gaming-example/" style="color:#1a73e8">Beam mobile-gaming examples</a> — sessions, triggers, and late data end to end</li>
@@ -2369,17 +2421,21 @@ per_minute = events | beam.WindowInto(
 
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -2396,9 +2452,84 @@ per_minute = events | beam.WindowInto(
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -2417,15 +2548,34 @@ per_minute = events | beam.WindowInto(
   }
 
   function fit() {
-    /* Reserve room below the slide: just the collapsed bar normally,
-       the full open panel (notes body is capped at 32vh) when expanded. */
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -2433,13 +2583,21 @@ per_minute = events | beam.WindowInto(
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
 
   /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
@@ -2450,8 +2608,8 @@ per_minute = events | beam.WindowInto(
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 

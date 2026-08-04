@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -129,23 +126,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -157,7 +157,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -174,13 +174,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -261,13 +261,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -319,16 +319,18 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
   .callout.good { background: #e6f4ea; border-color: var(--g-green); }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -337,7 +339,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -364,18 +366,49 @@
   /* ---------- speaker notes ---------- */
   /* Per-slide notes live in the deck as <details class="notes"> siblings of the
      slides. On screen they are hidden; the active slide's notes are mirrored
-     into the #notes-panel below the stage. In print, each appears under its slide. */
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -389,31 +422,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -423,21 +441,26 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
 
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -448,14 +471,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -470,16 +511,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -539,7 +587,7 @@
   <h1>Agenda</h1>
   <div class="cols">
     <div>
-      <ul class="body" style="font-size:16px">
+      <ul class="body" style="font-size:17px">
         <li>What is Apache Beam? Pipelines, PCollections, and PTransforms</li>
         <li>Running a pipeline: runners and pipeline options</li>
         <li>Built-in transforms — the toolbox you'll use 80% of the time</li>
@@ -671,7 +719,7 @@
   <h1 style="margin-bottom:14px">The four core concepts</h1>
   <div class="cols">
     <div style="flex:0 0 46%">
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li><strong>Pipeline</strong> — the whole job, structured as a <strong>DAG</strong>: a directed graph of steps, no cycles — data only flows forward</li>
         <li><strong>PTransform</strong> — a <strong>node</strong> in the graph: consumes PCollections, produces new ones</li>
         <li><strong>PCollection</strong> — an <strong>edge</strong>: the dataset flowing between transforms
@@ -682,7 +730,7 @@
         </li>
         <li><strong>Runner</strong> — executes the DAG on a backend</li>
       </ul>
-      <div class="callout" style="font-size:12.5px;padding:10px 14px">Immutable ≠ copied: a "new PCollection" is a new <strong>edge in the graph</strong>, not a physical duplicate. Immutability is what makes distributing — and safely retrying — the work possible.</div>
+      <div class="callout" style="font-size:13.5px;padding:10px 14px">Immutable ≠ copied: a "new PCollection" is a new <strong>edge in the graph</strong>, not a physical duplicate. Immutability is what makes distributing — and safely retrying — the work possible.</div>
     </div>
     <div class="figure" style="align-self:center">
       <svg width="440" height="250" viewBox="0 0 440 250">
@@ -755,7 +803,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1>Building a pipeline</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: read a text file from Cloud Storage, compute the length of each line, write the results back out.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: read a text file from Cloud Storage, compute the length of each line, write the results back out.</p>
   <pre class="code small"><span class="lang">Python</span><span class="kw">import</span> apache_beam <span class="kw">as</span> beam
 
 p = beam.Pipeline()
@@ -767,12 +815,12 @@ p = beam.Pipeline()
 )
 p.run()   <span class="cm"># nothing executes until here</span></pre>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14.5px">
+  <ul class="body" style="font-size:15.5px">
     <li>Each <code>|</code> adds a step to the graph and returns the new edge (a PCollection); Java uses <code>.apply(...)</code> chaining — same idea</li>
     <li>The string before <code>&gt;&gt;</code> is the <strong>transform label</strong> — unique per step, and it becomes the step name in the Dataflow job graph</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px"><strong>Build, then run.</strong> Everything above <code>p.run()</code> only constructs the DAG — no data moves. <code>run()</code> hands the finished graph to the runner for execution.</div>
+  <div class="callout" style="font-size:14.5px"><strong>Build, then run.</strong> Everything above <code>p.run()</code> only constructs the DAG — no data moves. <code>run()</code> hands the finished graph to the runner for execution.</div>
 </section>
 <details class="notes" data-title="Building a pipeline">
   <summary>Speaker notes &mdash; Building a pipeline</summary>
@@ -789,10 +837,10 @@ p.run()   <span class="cm"># nothing executes until here</span></pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1>Running a pipeline: <span class="accent">PipelineOptions</span></h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Runtime behavior — which runner, which project, where to stage files — is set via <strong>PipelineOptions</strong>, parsed from <code>--flag=value</code> args. A few options are core Beam; each runner contributes its own.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Runtime behavior — which runner, which project, where to stage files — is set via <strong>PipelineOptions</strong>, parsed from <code>--flag=value</code> args. A few options are core Beam; each runner contributes its own.</p>
   <div class="cols">
     <div style="flex:0 0 54%">
-      <table class="tbl" style="font-size:13px">
+      <table class="tbl" style="font-size:14px">
         <tr><th>Flag</th><th>Purpose</th></tr>
         <tr><td colspan="2" style="padding:5px 14px;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:#5f6368;background:#f8f9fa;font-weight:600">Core Beam — every runner</td></tr>
         <tr><td><code>--runner</code></td><td>Which runner (<code>DirectRunner</code>, <code>DataflowRunner</code>)</td></tr>
@@ -804,14 +852,15 @@ p.run()   <span class="cm"># nothing executes until here</span></pre>
       </table>
     </div>
     <div>
-      <pre class="term" style="font-size:12px;padding:9px 14px"><span class="lbl">Run locally:</span>python3 my_pipeline.py <span class="flag">--runner</span>=DirectRunner</pre>
+      <pre class="term" style="font-size:13px;padding:9px 14px"><span class="lbl">Run locally:</span>python3 my_pipeline.py \
+  <span class="flag">--runner</span>=DirectRunner</pre>
       <div style="height:8px"></div>
-      <pre class="term" style="font-size:12px;padding:9px 14px"><span class="lbl">Run on Dataflow — same script:</span>python3 my_pipeline.py \
+      <pre class="term" style="font-size:13px;padding:9px 14px"><span class="lbl">Run on Dataflow — same script:</span>python3 my_pipeline.py \
   <span class="flag">--runner</span>=DataflowRunner \
   <span class="flag">--project</span>=$PROJECT_ID <span class="flag">--region</span>=$REGION \
   <span class="flag">--temp_location</span>=gs://$BUCKET/tmp/</pre>
       <div style="height:8px"></div>
-      <div class="callout good" style="font-size:13px;padding:10px 14px">The pipeline <strong>code</strong> doesn't change between local and cloud — only the options passed in. That's the payoff of the unified model.</div>
+      <div class="callout good" style="font-size:14px;padding:10px 14px">The pipeline <strong>code</strong> doesn't change between local and cloud — only the options passed in. That's the payoff of the unified model.</div>
     </div>
   </div>
 </section>
@@ -920,7 +969,7 @@ p.run()</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:15px">
+  <ul class="body" style="font-size:16px">
     <li>Takes a plain function, applies it to every element — strictly <strong>1&nbsp;:&nbsp;1</strong></li>
     <li>Same picture as the DAG: <strong>Map is a node</strong>; <code>words</code> and <code>uppercased</code> are edges — the boxes just show what's flowing on each edge (Java: <code>MapElements</code>)</li>
   </ul>
@@ -939,7 +988,7 @@ p.run()</pre>
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">FlatMap</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:14px">FlatMap: any number out, per element in</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: tokenize lines of text — each line becomes many words.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: tokenize lines of text — each line becomes many words.</p>
   <pre class="code small"><span class="lang">Python</span><span class="kw">def</span> <span class="fn">split_into_words</span>(line):
     <span class="kw">return</span> line.split()
 
@@ -972,7 +1021,7 @@ words = lines | beam.FlatMap(split_into_words)</pre>
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14.5px">
+  <ul class="body" style="font-size:15.5px">
     <li>Every element the function returns (or yields) lands in the output PCollection — <strong>0, 1, or many</strong> per input</li>
     <li>This is the general shape of per-element processing; Map is the "always exactly one" case</li>
   </ul>
@@ -994,20 +1043,20 @@ words = lines | beam.FlatMap(split_into_words)</pre>
   <span class="brick b-blue" style="position:absolute;top:44px;right:64px">Filter</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">Filter: a specialized FlatMap</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:15px">Scenario: drop empty lines. FlatMap can already do this — emit the element unchanged, or emit nothing:</p>
+  <p class="lede" style="margin-bottom:8px;font-size:16px">Scenario: drop empty lines. FlatMap can already do this — emit the element unchanged, or emit nothing:</p>
   <pre class="code small"><span class="lang">Python</span><span class="kw">def</span> <span class="fn">keep_non_empty</span>(word):
     <span class="kw">if</span> <span class="fn">len</span>(word) &gt; 0:
         <span class="kw">return</span> [word]    <span class="cm"># emit the element, unchanged</span>
     <span class="kw">return</span> []            <span class="cm"># emit nothing</span>
 
 non_empty = words | beam.FlatMap(keep_non_empty)</pre>
-  <p class="lede" style="margin:8px 0;font-size:15px"><strong>Filter</strong> states the same intent directly — give it a predicate:</p>
+  <p class="lede" style="margin:8px 0;font-size:16px"><strong>Filter</strong> states the same intent directly — give it a predicate:</p>
   <pre class="code small"><span class="lang">Python</span><span class="kw">def</span> <span class="fn">is_non_empty</span>(word):
     <span class="kw">return</span> <span class="fn">len</span>(word) &gt; 0
 
 non_empty = words | beam.Filter(is_non_empty)</pre>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px">One machine, three output counts: <strong>Map</strong> — exactly one · <strong>FlatMap</strong> — zero or more · <strong>Filter</strong> — zero or one, the element unchanged.</div>
+  <div class="callout" style="font-size:14px">One machine, three output counts: <strong>Map</strong> — exactly one · <strong>FlatMap</strong> — zero or more · <strong>Filter</strong> — zero or one, the element unchanged.</div>
 </section>
 <details class="notes" data-title="Filter">
   <summary>Speaker notes &mdash; Filter</summary>
@@ -1022,7 +1071,7 @@ non_empty = words | beam.Filter(is_non_empty)</pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Key-value pairs: the prep for grouping</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Grouping, aggregating, and joining (next) all operate on <strong>key-value pairs</strong> — in Python, plain 2-tuples. A few small transforms handle the plumbing.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Grouping, aggregating, and joining (next) all operate on <strong>key-value pairs</strong> — in Python, plain 2-tuples. A few small transforms handle the plumbing.</p>
   <div class="cols">
     <div style="flex:0 0 55%">
       <pre class="code small"><span class="lang">Python</span><span class="cm"># Sale: a NamedTuple with fields region, amount</span>
@@ -1034,7 +1083,7 @@ regions = keyed | beam.Keys()
 records = keyed | beam.Values()</pre>
     </div>
     <div>
-      <table class="tbl" style="font-size:13.5px">
+      <table class="tbl" style="font-size:14.5px">
         <tr><th>Per-element recap</th><th>Out, per element in</th></tr>
         <tr><td><code>Map</code></td><td>exactly 1</td></tr>
         <tr><td><code>FlatMap</code></td><td>0, 1, or many</td></tr>
@@ -1076,7 +1125,7 @@ records = keyed | beam.Values()</pre>
     </svg>
   </div>
   <div style="height:6px"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">No magic: each of these is a one-line <code>Map</code> under the hood — a hand-written <code>Map</code> returning <code>(key, value)</code> tuples is exactly equivalent.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">No magic: each of these is a one-line <code>Map</code> under the hood — a hand-written <code>Map</code> returning <code>(key, value)</code> tuples is exactly equivalent.</div>
 </section>
 <details class="notes" data-title="Key-value pairs">
   <summary>Speaker notes &mdash; Key-value pairs</summary>
@@ -1094,7 +1143,7 @@ records = keyed | beam.Values()</pre>
   <span class="brick b-gray" style="position:absolute;top:44px;right:64px">GroupByKey</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">GroupByKey: collect all values per key</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: from (city, ZIP) records, list every ZIP code for each city.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: from (city, ZIP) records, list every ZIP code for each city.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
       <pre class="code small"><span class="lang">Python</span><span class="cm"># zip_records — Rec is a NamedTuple(city, zip):</span>
@@ -1112,7 +1161,7 @@ city_zips = (
       <span class="cm"># ('Lexington', ['40513', '40502'])</span>
 )</pre>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:13px"><strong>What works:</strong> every value for a key arrives together — the full iterable, for arbitrary per-group logic (formatting, medians, custom rules).</div>
+      <div class="callout good" style="font-size:14px"><strong>What works:</strong> every value for a key arrives together — the full iterable, for arbitrary per-group logic (formatting, medians, custom rules).</div>
     </div>
     <div>
       <div class="figure">
@@ -1151,7 +1200,7 @@ city_zips = (
         </svg>
       </div>
       <div class="vgap-s"></div>
-      <div class="callout warn" style="font-size:12.5px"><strong>The concern:</strong> the values are re-partitioned by key across the network (the <strong>shuffle</strong>), and each key lands on <strong>one</strong> worker. A hot key means one overloaded worker while the rest idle (Section 6).</div>
+      <div class="callout warn" style="font-size:13.5px"><strong>The concern:</strong> the values are re-partitioned by key across the network (the <strong>shuffle</strong>), and each key lands on <strong>one</strong> worker. A hot key means one overloaded worker while the rest idle (Section 6).</div>
     </div>
   </div>
 </section>
@@ -1176,7 +1225,7 @@ city_zips = (
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">Combine</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:12px">CombinePerKey: reduce values per key</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:15px">Scenario: total sales per salesperson, from ('amara', 120.0) pairs.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:16px">Scenario: total sales per salesperson, from ('amara', 120.0) pairs.</p>
   <div class="cols">
     <div style="flex:0 0 50%">
       <pre class="code small"><span class="lang">Python</span>totals = sales | beam.CombinePerKey(<span class="fn">sum</span>)
@@ -1188,7 +1237,7 @@ grand_total = (
     | beam.CombineGlobally(<span class="fn">sum</span>)
 )        <span class="cm"># one number overall</span></pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>Works with <code>sum</code>, <code>min</code>, <code>max</code>, <code>beam.combiners.MeanCombineFn</code> — or your own <code>CombineFn</code> (next slide)</li>
       </ul>
     </div>
@@ -1225,7 +1274,7 @@ grand_total = (
         </svg>
       </div>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12.5px">Because <code>sum</code> is associative &amp; commutative, each worker <strong>pre-aggregates before the shuffle</strong> — no worker ever owns a giant pile. Section 6 quantifies the win.</div>
+      <div class="callout good" style="font-size:13.5px">Because <code>sum</code> is associative &amp; commutative, each worker <strong>pre-aggregates before the shuffle</strong> — no worker ever owns a giant pile. Section 6 quantifies the win.</div>
     </div>
   </div>
 </section>
@@ -1249,7 +1298,7 @@ grand_total = (
   <span class="brick b-red" style="position:absolute;top:44px;right:64px">CombineFn</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Custom CombineFn: when state ≠ answer</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: <em>average</em> sale per salesperson. You can't merge means — mean([1,2])=1.5 and mean([3])=3 don't give you mean([1,2,3])=2 — so the working state must carry <strong>(sum, count)</strong>.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: <em>average</em> sale per salesperson. You can't merge means — mean([1,2])=1.5 and mean([3])=3 don't give you mean([1,2,3])=2 — so the working state must carry <strong>(sum, count)</strong>.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
       <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">Python</span><span class="kw">class</span> <span class="fn">MeanFn</span>(beam.CombineFn):
@@ -1307,7 +1356,7 @@ avg_sale = sales | beam.CombinePerKey(MeanFn())</pre>
         </svg>
       </div>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:12px;padding:8px 14px">In practice, reach for built-ins first (<code>beam.combiners.MeanCombineFn</code>, <code>Count</code>, <code>Top</code>) — write your own when no built-in matches your state shape.</div>
+      <div class="callout" style="font-size:13px;padding:8px 14px">In practice, reach for built-ins first (<code>beam.combiners.MeanCombineFn</code>, <code>Count</code>, <code>Top</code>) — write your own when no built-in matches your state shape.</div>
     </div>
   </div>
 </section>
@@ -1326,7 +1375,7 @@ avg_sale = sales | beam.CombinePerKey(MeanFn())</pre>
   <span class="brick b-yellow" style="position:absolute;top:44px;right:64px">CoGroupByKey</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">CoGroupByKey: join by key</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: <strong>find orders that haven't shipped</strong>. Answering that requires matching each order with its shipments by order ID — CoGroupByKey does the matching.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: <strong>find orders that haven't shipped</strong>. Answering that requires matching each order with its shipments by order ID — CoGroupByKey does the matching.</p>
   <div class="cols">
     <div style="flex:0 0 50%">
       <pre class="code small" style="font-size:11.5px;line-height:1.5"><span class="lang">Python</span>joined = (
@@ -1339,7 +1388,7 @@ avg_sale = sales | beam.CombinePerKey(MeanFn())</pre>
 
 unshipped = joined | beam.Filter(is_unshipped)</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>Both inputs already keyed by the same key (the order ID)</li>
         <li>Output per key: both sides' matches as lists, tagged by the dict names — an <strong>empty list is an unmatched row</strong>, which is exactly what the scenario needs</li>
       </ul>
@@ -1391,7 +1440,7 @@ unshipped = joined | beam.Filter(is_unshipped)</pre>
   <span class="brick b-gray" style="position:absolute;top:44px;right:64px">Flatten</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Flatten: merge same-type PCollections</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: identically formatted click events arrive from three sources, landing in <strong>three PCollections</strong>. Downstream processing shouldn't care where an event came from — it wants <strong>one collection</strong>.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: identically formatted click events arrive from three sources, landing in <strong>three PCollections</strong>. Downstream processing shouldn't care where an event came from — it wants <strong>one collection</strong>.</p>
   <div class="cols">
     <div style="flex:0 0 48%">
       <pre class="code small"><span class="lang">Python</span>all_events = (
@@ -1399,12 +1448,12 @@ unshipped = joined | beam.Filter(is_unshipped)</pre>
     | beam.Flatten()
 )</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>A <strong>union</strong>, not a join — no keys, no matching; the elements are simply merged</li>
         <li>All inputs must share the same element type</li>
       </ul>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:12.5px">Don't confuse with CoGroupByKey: <strong>Flatten</strong> merges same-typed collections; <strong>CoGroupByKey</strong> matches different-typed collections by key.</div>
+      <div class="callout" style="font-size:13.5px">Don't confuse with CoGroupByKey: <strong>Flatten</strong> merges same-typed collections; <strong>CoGroupByKey</strong> matches different-typed collections by key.</div>
     </div>
     <div>
       <div class="figure">
@@ -1461,7 +1510,7 @@ unshipped = joined | beam.Filter(is_unshipped)</pre>
   <span class="brick b-green" style="position:absolute;top:44px;right:64px">Partition</span>
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Partition: split one PCollection into several</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">Scenario: route log records by severity — <strong>errors page someone, warnings get reviewed, info goes to cheap archive</strong>. One pass over the data, three destinations.</p>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Scenario: route log records by severity — <strong>errors page someone, warnings get reviewed, info goes to cheap archive</strong>. One pass over the data, three destinations.</p>
   <div class="cols">
     <div style="flex:0 0 50%">
       <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">Python</span>SEVERITIES = [<span class="st">'INFO'</span>, <span class="st">'WARN'</span>, <span class="st">'ERROR'</span>]
@@ -1476,7 +1525,7 @@ error | beam.io.WriteToBigQuery(alert_table)
 warn  | beam.io.WriteToBigQuery(review_table)
 info  | beam.io.WriteToText(<span class="st">'gs://logs/archive'</span>)</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>The function returns a <strong>partition index</strong>; the number of outputs is fixed when the graph is built</li>
         <li>The opposite of Flatten — each output is an ordinary PCollection with its own downstream steps</li>
       </ul>
@@ -1519,7 +1568,7 @@ info  | beam.io.WriteToText(<span class="st">'gs://logs/archive'</span>)</pre>
         </svg>
       </div>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:12.5px">Need one slice → <code>Filter</code> · a top-N ranking → <code>beam.combiners.Top</code> · <strong>every slice continuing to different processing → Partition</strong></div>
+      <div class="callout" style="font-size:13.5px">Need one slice → <code>Filter</code> · a top-N ranking → <code>beam.combiners.Top</code> · <strong>every slice continuing to different processing → Partition</strong></div>
     </div>
   </div>
 </section>
@@ -1569,7 +1618,7 @@ info  | beam.io.WriteToText(<span class="st">'gs://logs/archive'</span>)</pre>
   <h1 style="margin-bottom:12px">ParDo + DoFn: who does what</h1>
   <div class="cols">
     <div style="flex:0 0 52%">
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li><strong>ParDo</strong> ("parallel do") — the transform: a node in the DAG that says <em>"apply this logic to every element, in parallel"</em></li>
         <li><strong>DoFn</strong> ("do function") — the object holding the logic: its <code>process()</code> method is called once per element</li>
         <li>You write the DoFn; ParDo handles the distribution</li>
@@ -1690,7 +1739,7 @@ word_lengths = words | beam.ParDo(
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14px">
+  <ul class="body" style="font-size:15px">
     <li>Your DoFn is <strong>serialized and shipped to every worker</strong>; each worker builds its own copies</li>
     <li>Workers process their bundles <strong>independently</strong> — no coordination between them; that's why adding workers adds speed</li>
     <li>All the workers' outputs together form the new PCollection <span class="muted">— bundles, retries, and the DoFn lifecycle in depth: Section 5</span></li>
@@ -1711,25 +1760,26 @@ word_lengths = words | beam.ParDo(
   <h1 style="margin-bottom:14px">Map, written as a ParDo</h1>
   <div class="cols">
     <div>
-      <p class="muted" style="font-size:13px;margin-bottom:6px">What you write:</p>
+      <p class="muted" style="font-size:14px;margin-bottom:6px">What you write:</p>
       <pre class="code small">uppercased = words | beam.Map(str.upper)</pre>
     </div>
     <div>
-      <p class="muted" style="font-size:13px;margin-bottom:6px">What it becomes:</p>
+      <p class="muted" style="font-size:14px;margin-bottom:6px">What it becomes:</p>
       <pre class="code small"><span class="kw">class</span> <span class="fn">UppercaseFn</span>(beam.DoFn):
     <span class="kw">def</span> <span class="fn">process</span>(self, word):
         yield word.upper()
 
-uppercased = words | beam.ParDo(UppercaseFn())</pre>
+uppercased = (words
+    | beam.ParDo(UppercaseFn()))</pre>
     </div>
   </div>
   <div class="vgap"></div>
-  <ul class="body" style="font-size:15px">
+  <ul class="body" style="font-size:16px">
     <li>Identical output — <strong>Map constructs the DoFn for you</strong>; ParDo is what always runs</li>
     <li>yield exactly once → Map · yield any number → FlatMap · yield the element or nothing → Filter</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px">So "when do I use ParDo?" really means: <strong>when do I need something the wrappers don't expose?</strong> That's the next two slides.</div>
+  <div class="callout" style="font-size:14.5px">So "when do I use ParDo?" really means: <strong>when do I need something the wrappers don't expose?</strong> That's the next two slides.</div>
 </section>
 <details class="notes" data-title="Map, written as a ParDo">
   <summary>Speaker notes &mdash; Map, written as a ParDo</summary>
@@ -1754,7 +1804,7 @@ uppercased = words | beam.ParDo(UppercaseFn())</pre>
   <div class="vgap"></div>
   <div class="callout">The wrappers construct a ParDo from your function, but expose only the simple path. A full <code>DoFn</code> unlocks: <strong>multiple named outputs</strong> — one ParDo feeding several distinct output PCollections (next slides) — plus <strong>lifecycle methods</strong> (<code>setup</code>, <code>start_bundle</code>, ..., Section 5) and <strong>state &amp; timers</strong> (later module).</div>
   <div class="vgap"></div>
-  <p class="muted" style="font-size:14.5px">Next: the situations where those extra capabilities earn their keep.</p>
+  <p class="muted" style="font-size:15.5px">Next: the situations where those extra capabilities earn their keep.</p>
 </section>
 <details class="notes" data-title="ParDo vs. its convenience wrappers">
   <summary>Speaker notes &mdash; ParDo vs. its convenience wrappers</summary>
@@ -1771,7 +1821,7 @@ uppercased = words | beam.ParDo(UppercaseFn())</pre>
   <h1 style="margin-bottom:10px">The three situations that call for a custom ParDo</h1>
   <div class="cols" style="gap:22px">
     <div>
-      <p style="font-size:14px;font-weight:600;margin-bottom:6px">1 · Route good / bad records</p>
+      <p style="font-size:15px;font-weight:600;margin-bottom:6px">1 · Route good / bad records</p>
       <div class="figure"><svg width="230" height="60" viewBox="0 0 230 60">
         <defs><marker id="arrD1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
         <line x1="4" y1="30" x2="58" y2="30" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrD1)"/>
@@ -1791,7 +1841,7 @@ uppercased = words | beam.ParDo(UppercaseFn())</pre>
           <span class="st">'bad'</span>, raw)</pre>
     </div>
     <div>
-      <p style="font-size:14px;font-weight:600;margin-bottom:6px">2 · Call an external service</p>
+      <p style="font-size:15px;font-weight:600;margin-bottom:6px">2 · Call an external service</p>
       <div class="figure"><svg width="230" height="60" viewBox="0 0 230 60">
         <rect x="8" y="14" width="86" height="32" rx="16" fill="#4285F4"/>
         <text x="51" y="34" text-anchor="middle" font-size="10.5" font-weight="600" fill="#fff">EnrichFn</text>
@@ -1810,7 +1860,7 @@ uppercased = words | beam.ParDo(UppercaseFn())</pre>
         order.ip)</pre>
     </div>
     <div>
-      <p style="font-size:14px;font-weight:600;margin-bottom:6px">3 · Batch external writes</p>
+      <p style="font-size:15px;font-weight:600;margin-bottom:6px">3 · Batch external writes</p>
       <div class="figure"><svg width="230" height="60" viewBox="0 0 230 60">
         <rect x="8" y="10" width="20" height="8" rx="3" fill="#9aa0a6"/>
         <rect x="8" y="22" width="20" height="8" rx="3" fill="#9aa0a6"/>
@@ -1834,7 +1884,7 @@ uppercased = words | beam.ParDo(UppercaseFn())</pre>
     db.write(self.batch)</pre>
     </div>
   </div>
-  <p class="muted" style="font-size:13px;margin-top:12px">Tagged outputs: next slide &nbsp;·&nbsp; <code>setup</code> / <code>start_bundle</code> / <code>finish_bundle</code>: Section 5</p>
+  <p class="muted" style="font-size:14px;margin-top:12px">Tagged outputs: next slide &nbsp;·&nbsp; <code>setup</code> / <code>start_bundle</code> / <code>finish_bundle</code>: Section 5</p>
 </section>
 <details class="notes" data-title="The three situations that call for a custom ParDo">
   <summary>Speaker notes &mdash; When you need a custom ParDo</summary>
@@ -1911,8 +1961,8 @@ failed = output.failure   <span class="cm"># a PCollection — write to a "faile
   <h1 style="margin-bottom:12px">Two scenarios, same shape</h1>
   <div class="cols">
     <div>
-      <p style="font-weight:600;font-size:15px;margin-bottom:8px">A — a single computed value</p>
-      <p class="lede" style="font-size:14px;margin-bottom:10px">Flag any order above the <strong>average order value</strong>. The average is one number — computed from the entire dataset.</p>
+      <p style="font-weight:600;font-size:16px;margin-bottom:8px">A — a single computed value</p>
+      <p class="lede" style="font-size:15px;margin-bottom:10px">Flag any order above the <strong>average order value</strong>. The average is one number — computed from the entire dataset.</p>
       <div class="figure"><svg width="330" height="118" viewBox="0 0 330 118">
         <defs><marker id="arrS1" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 Z" fill="#9aa0a6"/></marker></defs>
         <g font-family="Roboto Mono,monospace" font-size="11" fill="#202124">
@@ -1930,8 +1980,8 @@ failed = output.failure   <span class="cm"># a PCollection — write to a "faile
       </svg></div>
     </div>
     <div>
-      <p style="font-weight:600;font-size:15px;margin-bottom:8px">B — a small lookup table</p>
-      <p class="lede" style="font-size:14px;margin-bottom:10px">Convert transaction amounts to USD using a <strong>200-row currency table</strong>.</p>
+      <p style="font-weight:600;font-size:16px;margin-bottom:8px">B — a small lookup table</p>
+      <p class="lede" style="font-size:15px;margin-bottom:10px">Convert transaction amounts to USD using a <strong>200-row currency table</strong>.</p>
       <div class="figure"><svg width="330" height="118" viewBox="0 0 330 118">
         <g font-family="Roboto Mono,monospace" font-size="11" fill="#202124">
           <rect x="4" y="8" width="150" height="82" rx="6" fill="#f8f9fa" stroke="#dadce0"/>
@@ -1976,14 +2026,16 @@ failed = output.failure   <span class="cm"># a PCollection — write to a "faile
     <span class="kw">return</span> order.amount &gt; avg
 
 flagged = orders | beam.Filter(
-    above_avg, avg=beam.pvalue.AsSingleton(avg))</pre>
+    above_avg,
+    avg=beam.pvalue.AsSingleton(avg))</pre>
       <div class="vgap-s"></div>
       <pre class="code small"><span class="cm"># the table scenario: same move, dict-shaped</span>
 <span class="kw">def</span> <span class="fn">to_usd</span>(txn, rates):
     <span class="kw">return</span> txn.amount * rates[txn.currency]
 
 usd = txns | beam.Map(
-    to_usd, rates=beam.pvalue.AsDict(rate_pairs))</pre>
+    to_usd,
+    rates=beam.pvalue.AsDict(rate_pairs))</pre>
     </div>
     <div>
       <div class="figure"><svg width="330" height="164" viewBox="0 0 330 164">
@@ -2015,7 +2067,7 @@ usd = txns | beam.Map(
         <text x="165" y="156" text-anchor="middle" font-size="9.5" fill="#188038">one copy of the small data, cached on every worker</text>
       </svg></div>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><strong>Computed once</strong>, as its own small PCollection</li>
         <li><strong>Only the small data moves</strong> — a copy to each worker; the big collection never shuffles</li>
         <li>Arrives as a plain <strong>extra argument to your function</strong> — a value (<code>AsSingleton</code>) or a dict (<code>AsDict</code>); works with <code>Map</code>, <code>Filter</code>, <code>FlatMap</code>, and <code>ParDo</code> alike</li>
@@ -2041,7 +2093,7 @@ usd = txns | beam.Map(
   <h1 style="margin-bottom:14px">When a side input is the right tool</h1>
   <div class="cols">
     <div>
-      <div class="callout good" style="font-size:14.5px;padding:16px 20px"><strong style="font-size:16px">Good fit</strong><br><br>
+      <div class="callout good" style="font-size:15.5px;padding:16px 20px"><strong style="font-size:17px">Good fit</strong><br><br>
       Small, broadcastable data that fits comfortably in worker memory and changes rarely (per window at most):
       <ul style="margin:10px 0 0 18px;line-height:1.7">
         <li>reference tables — currency rates, product catalogs</li>
@@ -2052,14 +2104,14 @@ usd = txns | beam.Map(
       </ul></div>
     </div>
     <div>
-      <div class="callout warn" style="font-size:14.5px;padding:16px 20px"><strong style="font-size:16px">Wrong tool</strong><br><br>
+      <div class="callout warn" style="font-size:15.5px;padding:16px 20px"><strong style="font-size:17px">Wrong tool</strong><br><br>
       Data that is <strong>large</strong>, or that varies <strong>per key</strong> — that's a join: use <code>CoGroupByKey</code>.
       <ul style="margin:10px 0 0 18px;line-height:1.7">
         <li>an oversized side input lands a full copy on <em>every</em> worker — memory pressure everywhere</li>
         <li>the scaling problem doesn't disappear; it just hides somewhere harder to see than a shuffle</li>
       </ul></div>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:14px;text-align:center"><strong>Broadcast small · join big</strong></div>
+      <div class="callout" style="font-size:15px;text-align:center"><strong>Broadcast small · join big</strong></div>
     </div>
   </div>
 </section>
@@ -2149,7 +2201,7 @@ usd = txns | beam.Map(
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:15px">
+  <ul class="body" style="font-size:16px">
     <li>The runner splits each PCollection into <strong>bundles</strong> and hands bundles to workers — the bundle, not the element, is the unit of work (and of retry)</li>
     <li>Bundle size is the runner's tradeoff: <span class="muted">smaller → less lost work on failure, more overhead (streaming); larger → more efficient (batch)</span></li>
     <li>A worker runs several bundles at once (separate threads), <strong>each with its own DoFn instance</strong> — multiple copies of your DoFn are live in one process</li>
@@ -2359,7 +2411,7 @@ usd = txns | beam.Map(
     </svg>
   </div>
   <div style="height:4px"></div>
-  <ul class="body" style="font-size:12.5px">
+  <ul class="body" style="font-size:13.5px">
     <li>The shuffle <strong>breaks fusion</strong>: stages 1 and 2 execute separately, and the Dataflow job graph splits exactly here — parallelism in stage 2 is bounded by your keys (Section 6)</li>
   </ul>
 </section>
@@ -2378,7 +2430,7 @@ usd = txns | beam.Map(
 <section class="slide">
   <div class="kicker"></div>
   <h1>Failure handling and retries</h1>
-  <ul class="body" style="font-size:15.5px">
+  <ul class="body" style="font-size:16.5px">
     <li>Bundles are the unit of retry: if your code <strong>raises an uncaught exception</strong> while processing any element, the runner discards the bundle's work and <strong>retries the whole bundle</strong> — not just the failing element</li>
     <li>This is exactly why the DoFn rules matter:
       <ul>
@@ -2443,7 +2495,7 @@ usd = txns | beam.Map(
       </div>
     </div>
     <div>
-      <table class="tbl" style="font-size:13.5px">
+      <table class="tbl" style="font-size:14.5px">
         <tr><th>Method</th><th>Called</th><th>Use for</th></tr>
         <tr><td><code>setup</code></td><td>once per DoFn instance</td><td>open DB / network connections, helper processes</td></tr>
         <tr><td><code>start_bundle</code></td><td>per bundle</td><td>reset per-bundle state, init batching</td></tr>
@@ -2452,7 +2504,7 @@ usd = txns | beam.Map(
         <tr><td><code>teardown</code></td><td>instance retired</td><td>close what <code>setup</code> opened</td></tr>
       </table>
       <div class="vgap-s"></div>
-      <div class="callout" style="font-size:13px">DoFn instances are <strong>reused across bundles</strong>, and the same bundle may be processed redundantly on different workers. Java: <code>@Setup</code>, <code>@StartBundle</code>, <code>@ProcessElement</code>, <code>@FinishBundle</code>, <code>@Teardown</code>.</div>
+      <div class="callout" style="font-size:14px">DoFn instances are <strong>reused across bundles</strong>, and the same bundle may be processed redundantly on different workers. Java: <code>@Setup</code>, <code>@StartBundle</code>, <code>@ProcessElement</code>, <code>@FinishBundle</code>, <code>@Teardown</code>.</div>
     </div>
   </div>
 </section>
@@ -2492,7 +2544,7 @@ usd = txns | beam.Map(
         self.batcher.flush()                          <span class="cm"># commit before the next bundle</span>
         self.batcher = <span class="kw">None</span></pre>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14.5px">
+  <ul class="body" style="font-size:15.5px">
     <li>Connection created once and reused (instance persists); the batcher is reset per bundle and flushed in <code>finish_bundle</code> — exactly the pattern the retry rules require</li>
   </ul>
 </section>
@@ -2581,7 +2633,7 @@ usd = txns | beam.Map(
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:15px">
+  <ul class="body" style="font-size:16px">
     <li><code>GroupByKey</code> sends all values for a key to <strong>one</strong> worker — with a hot key, one worker grinds through a million values while the other idles after a thousand</li>
     <li>The stage finishes when the <em>slowest</em> key finishes; wall-clock time and cost are both set by your worst key</li>
   </ul>
@@ -2600,7 +2652,7 @@ usd = txns | beam.Map(
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Salting a hot key, step by step</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">One key ('x') dominates the data, so one worker gets the whole pile. <strong>Salting</strong> temporarily turns that one key into several, spreads the pile, then merges the partial results.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">One key ('x') dominates the data, so one worker gets the whole pile. <strong>Salting</strong> temporarily turns that one key into several, spreads the pile, then merges the partial results.</p>
   <div class="cols">
     <div style="flex:0 0 46%">
       <pre class="code small" style="font-size:11px;line-height:1.45"><span class="lang">Python</span><span class="kw">def</span> <span class="fn">salt</span>(pair):
@@ -2663,7 +2715,7 @@ totals = (pairs
         </svg>
       </div>
       <div class="vgap-s"></div>
-      <div class="callout good" style="font-size:12px;padding:8px 14px">For Combines this ships built-in: <code>beam.CombinePerKey(sum).with_hot_key_fanout(10)</code> — prefer it over hand-rolling. Legal for the same reason lifting is: the partials merge because <code>sum</code> is associative &amp; commutative.</div>
+      <div class="callout good" style="font-size:13px;padding:8px 14px">For Combines this ships built-in: <code>beam.CombinePerKey(sum).with_hot_key_fanout(10)</code> — prefer it over hand-rolling. Legal for the same reason lifting is: the partials merge because <code>sum</code> is associative &amp; commutative.</div>
     </div>
   </div>
 </section>
@@ -2715,7 +2767,7 @@ totals = (pairs
     <div class="kicker"></div>
     <h1 style="font-size:30px">Lab</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Writing an ETL pipeline using Apache Beam and Dataflow (Python/Java)</div>
-    <ul class="body" style="font-size:14.5px">
+    <ul class="body" style="font-size:15.5px">
       <li>Build a batch ETL pipeline: raw data from Cloud Storage → BigQuery</li>
       <li>Run the pipeline on Dataflow</li>
       <li>Parameterize execution with custom <code>PipelineOptions</code></li>
@@ -2738,16 +2790,16 @@ totals = (pairs
   <h1>Additional material</h1>
   <div class="cols">
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Additional exercises</p>
-      <ul class="body" style="font-size:15px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Additional exercises</p>
+      <ul class="body" style="font-size:16px">
         <li>Transform Catalog — <a href="https://beam.apache.org/documentation/transforms/java/overview/" style="color:#1a73e8">Java</a> · <a href="https://beam.apache.org/documentation/transforms/python/overview/" style="color:#1a73e8">Python</a></li>
         <li><a href="https://beam.apache.org/get-started/resources/learning-resources/#beam-katas" style="color:#1a73e8">Beam Katas</a></li>
         <li><a href="https://tour.beam.apache.org/" style="color:#1a73e8">Tour of Beam</a> — self-paced, transform-by-transform practice</li>
       </ul>
     </div>
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Reference</p>
-      <ul class="body" style="font-size:15px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Reference</p>
+      <ul class="body" style="font-size:16px">
         <li><a href="https://beam.apache.org/documentation/basics/" style="color:#1a73e8">Basics of the Beam Model</a></li>
         <li><a href="https://beam.apache.org/documentation/programming-guide/" style="color:#1a73e8">Beam Programming Guide</a></li>
         <li><a href="https://beam.apache.org/get-started/resources/learning-resources/" style="color:#1a73e8">Beam Learning Resources</a></li>
@@ -2767,17 +2819,21 @@ totals = (pairs
 
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -2794,9 +2850,84 @@ totals = (pairs
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -2815,15 +2946,34 @@ totals = (pairs
   }
 
   function fit() {
-    /* Reserve room below the slide: just the collapsed bar normally,
-       the full open panel (notes body is capped at 32vh) when expanded. */
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -2831,13 +2981,21 @@ totals = (pairs
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
 
   /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
@@ -2848,8 +3006,8 @@ totals = (pairs
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 

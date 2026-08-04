@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -129,23 +126,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -157,7 +157,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -174,13 +174,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -261,13 +261,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -320,16 +320,18 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
   .callout.good { background: #e6f4ea; border-color: var(--g-green); }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -338,7 +340,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -365,18 +367,49 @@
   /* ---------- speaker notes ---------- */
   /* Per-slide notes live in the deck as <details class="notes"> siblings of the
      slides. On screen they are hidden; the active slide's notes are mirrored
-     into the #notes-panel below the stage. In print, each appears under its slide. */
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -390,31 +423,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -424,21 +442,26 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
 
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -449,14 +472,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -471,16 +512,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -540,10 +588,10 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1>Tuesday, 08:41</h1>
-  <div class="lede" style="max-width:900px;font-size:15.5px;margin-bottom:12px">Every night at 02:30 a scheduled query computes each customer&rsquo;s poor-audio rate over the trailing 7 days; at 08:00 the SLA report emails out. Tuesday&rsquo;s report told Acme <strong>0.4%</strong>. At 08:41 Acme&rsquo;s IT admin replies: Monday was their worst day in months &mdash; a regional network incident &mdash; and ClearMeet&rsquo;s own dashboard agrees, showing <strong>3.1%</strong>.</div>
+  <div class="lede" style="max-width:900px;font-size:16.5px;margin-bottom:12px">Every night at 02:30 a scheduled query computes each customer&rsquo;s poor-audio rate over the trailing 7 days; at 08:00 the SLA report emails out. Tuesday&rsquo;s report told Acme <strong>0.4%</strong>. At 08:41 Acme&rsquo;s IT admin replies: Monday was their worst day in months &mdash; a regional network incident &mdash; and ClearMeet&rsquo;s own dashboard agrees, showing <strong>3.1%</strong>.</div>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:14.5px">
+      <ul class="body" style="font-size:15.5px">
         <li>Monday&rsquo;s samples load nightly; Tuesday&rsquo;s load ran long and committed at <strong>02:47</strong> instead of the usual ~02:10.</li>
         <li>The 02:30 report query ran on time &mdash; against a table whose newest rows were Sunday&rsquo;s. No error: the table was complete and consistent, it just didn&rsquo;t include Monday yet.</li>
         <li>Acme&rsquo;s trailing-7-day rate <em>without</em> its worst day: 0.4%. With Monday, as the dashboard later showed: 3.1%.</li>
@@ -599,7 +647,7 @@
   <h1>The pile</h1>
   <div class="lede">This is what ClearMeet&rsquo;s nightly analytics actually is, drawn out for the first time.</div>
   <div class="figure">
-    <svg width="790" height="252" viewBox="0 0 790 252" aria-hidden="true">
+    <svg width="640" height="236" viewBox="0 0 640 236" aria-hidden="true">
       <defs>
         <marker id="s3a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#9aa0a6"/></marker>
       </defs>
@@ -640,11 +688,11 @@
         <path d="M126 146 C 230 190, 300 216, 404 172"/>
         <path d="M480 32 C 520 60, 420 190, 420 206"/>
       </g>
-      <line x1="0" y1="240" x2="790" y2="240" stroke="#dadce0" stroke-width="1"/>
-      <text x="0" y="246" font-size="9.5" fill="#5f6368">dashed = the real dependencies, in the FROM clauses &nbsp;&middot;&nbsp; &#9201; = the scheduled time, staggered by hand</text>
-      <text x="612" y="124" font-size="10.5" fill="#b3261e" font-weight="600">the arrows are real;</text>
-      <text x="612" y="140" font-size="10.5" fill="#b3261e" font-weight="600">the clocks are a guess</text>
     </svg>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:24px">
+    <div class="figcap" style="text-align:left">dashed = the real dependencies, in the <code>FROM</code> clauses &nbsp;&middot;&nbsp; &#9201; = the scheduled time, staggered by hand</div>
+    <div style="color:#b3261e;font-weight:600;font-size:16px;white-space:nowrap">the arrows are real; the clocks are a guess</div>
   </div>
   <div class="vgap-s"></div>
   <div class="callout">The dependency graph already exists &mdash; it is written in the <code>FROM</code> clauses. It just isn&rsquo;t <em>readable</em> by anything that could act on it.</div>
@@ -664,7 +712,7 @@
   <div class="kicker"></div>
   <h1>Five words, five stages</h1>
   <div class="lede">Five terms carry the rest of this module. They sound interchangeable and are not &mdash; they are the successive stages between a file you edit and a job that runs in BigQuery.</div>
-  <table class="tbl" style="font-size:14px">
+  <table class="tbl" style="font-size:15px">
     <tr><th style="width:210px">Term</th><th>What it is</th><th style="width:150px">When it exists</th></tr>
     <tr><td><strong>definition</strong> <span class="muted">(action)</span></td><td>one <code>.sqlx</code> file = one table, view, assertion, or operation</td><td class="muted">you wrote it</td></tr>
     <tr><td><strong>compilation result</strong></td><td>the whole repo turned into SQL, once, with settings frozen in</td><td class="muted">compile time</td></tr>
@@ -781,7 +829,7 @@
   <div class="kicker"></div>
   <h1>What replaces what</h1>
   <div class="lede">ClearMeet&rsquo;s current setup for these five queries, and what of it Dataform absorbs.</div>
-  <table class="tbl" style="font-size:14px">
+  <table class="tbl" style="font-size:15px">
     <tr><th style="width:250px">The job</th><th>ClearMeet today</th><th>With Dataform</th></tr>
     <tr><td>The transformation SQL itself</td><td class="muted">5 scheduled queries in the console</td><td>5 <code>.sqlx</code> files in one repo</td></tr>
     <tr class="hl"><td>Run order</td><td class="muted">cron times, staggered by hand</td><td>derived from <code>ref()</code></td></tr>
@@ -808,7 +856,7 @@
   <h1>Repository, workspace, and where your code lives</h1>
   <div class="lede" style="max-width:900px">The five queries from the pile now live as five definitions in one repository, <code>analytics-transforms</code>. Priya opens a <strong>development workspace</strong> &mdash; her own editable copy &mdash; to add a sixth derived table, the per-region rollup behind the support team&rsquo;s new report.</div>
   <div class="cols c-55-45">
-    <div>
+    <div style="flex:0 0 60%">
       <div class="figure">
         <svg width="410" height="228" viewBox="0 0 410 228" aria-hidden="true">
           <defs><marker id="s8a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="#5f6368"/></marker></defs>
@@ -844,13 +892,13 @@
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li><strong>Repository</strong> &mdash; connects to GitHub/GitLab, holds settings.</li>
         <li><strong>Development workspace</strong> &mdash; an editable copy per person; edits start as uncommitted local changes.</li>
         <li>A workspace is <strong>not</strong> a git branch &mdash; it is a working copy that commits <em>to</em> a branch.</li>
       </ul>
       <div class="vgap-s"></div>
-      <div class="callout warn" style="font-size:14px">The workspace-is-not-a-branch distinction trips up every git-fluent team. Two people can have workspaces off the same branch; their edits are invisible to each other until pushed.</div>
+      <div class="callout warn" style="font-size:15px">The workspace-is-not-a-branch distinction trips up every git-fluent team. Two people can have workspaces off the same branch; their edits are invisible to each other until pushed.</div>
     </div>
   </div>
 </section>
@@ -877,7 +925,7 @@ package.json
 package-lock.json
 .gitignore</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><span class="blue">definitions/</span> &mdash; every <code>.sqlx</code>: tables, views, assertions, operations</li>
         <li><span class="blue">includes/</span> &mdash; <code>.js</code> reused across the repo</li>
         <li class="muted"><code>package*.json</code> &mdash; only if you use JS packages</li>
@@ -892,7 +940,7 @@ package-lock.json
 <span class="kw">vars</span>:
   <span class="kw">poor_audio_threshold</span>: <span class="st">"3.5"</span></pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><code>defaultDataset</code> is where a definition lands unless its config overrides it. Consumer-facing tables override to <code>clearmeet_analytics</code>.</li>
         <li><code>vars</code> reach every definition at compile time &mdash; <code>poor_audio_threshold</code> returns in section 4.</li>
       </ul>
@@ -968,7 +1016,8 @@ package-lock.json
     <div>
       <pre class="code small"><span class="lang">qos_events_clean.sqlx</span><span class="fn">config</span> {
   <span class="kw">type</span>: <span class="st">"table"</span>,
-  <span class="kw">description</span>: <span class="st">"QoS samples, device names normalized."</span>,
+  <span class="kw">description</span>:
+    <span class="st">"QoS samples, device names normalized."</span>,
 }
 
 <span class="kw">SELECT</span>
@@ -978,7 +1027,7 @@ package-lock.json
 <span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"qos_events_raw"</span>)}</pre>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li><code>config { }</code> &mdash; what to build, plus documentation and tests. <code>type:</code> is one of <code>table</code>, <code>view</code>, <code>incremental</code>, <code>assertion</code>, <code>operations</code>, <code>declaration</code>.</li>
         <li>SQL body &mdash; the only required part; a bare <code>SELECT</code>, no DDL. Dataform adds the <code>CREATE&hellip;</code> wrapper at compile time.</li>
         <li><code>js { }</code>, <code>pre_operations { }</code>, <code>post_operations { }</code> &mdash; optional, covered later.</li>
@@ -1032,7 +1081,7 @@ package-lock.json
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>A declaration is a <strong>read-only pointer</strong> to a table Dataform did not create.</li>
         <li>It produces no SQL and modifies nothing &mdash; it only gives you a name to <code>ref()</code>.</li>
         <li>Declarations can be a dependency, never a dependent.</li>
@@ -1192,7 +1241,7 @@ package-lock.json
 <section class="slide">
   <div class="kicker"></div>
   <h1>Incremental tables: the mechanism</h1>
-  <div class="lede" style="font-size:15.5px;margin-bottom:8px"><code>qos_events_clean</code> holds 90 days &asymp; <strong>450 billion rows</strong>. A nightly <code>type: "table"</code> rebuild re-writes all 450 billion &mdash; to add the 5 billion that are new.</div>
+  <div class="lede" style="font-size:16.5px;margin-bottom:8px"><code>qos_events_clean</code> holds 90 days &asymp; <strong>450 billion rows</strong>. A nightly <code>type: "table"</code> rebuild re-writes all 450 billion &mdash; to add the 5 billion that are new.</div>
   <div class="cols c-45-55">
     <div>
       <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="fn">config</span> {
@@ -1208,7 +1257,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
      <span class="kw">SELECT</span> <span class="fn">MAX</span>(event_time) <span class="kw">FROM</span> ${<span class="fn">self</span>()})`)}</pre>
     </div>
     <div>
-      <ul class="body" style="font-size:13px">
+      <ul class="body" style="font-size:14px">
         <li><strong>First run</strong> (no table yet) and full refresh: the <code>when()</code> clause contributes nothing, and the table is built from scratch with <code>CREATE OR REPLACE</code>.</li>
         <li><strong>Every run after:</strong> the same body compiles into an <code>INSERT</code> of only the rows passing the incremental <code>WHERE</code>.</li>
         <li><code>${self()}</code> is this table&rsquo;s own name: the subquery reads the current high-water mark, so &ldquo;new&rdquo; is defined by the data already in the table, not by the clock.</li>
@@ -1241,7 +1290,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       <text x="690" y="52" font-size="9" fill="#5f6368">not 450 billion</text>
     </svg>
   </div>
-  <div class="callout" style="margin-top:6px;font-size:14px">The <code>when(incremental(), &hellip;)</code> clause is the <em>whole</em> difference. On an incremental run Dataform applies it; on a full refresh it ignores it and rebuilds with <code>CREATE OR REPLACE</code>.</div>
+  <div class="callout" style="margin-top:6px;font-size:15px">The <code>when(incremental(), &hellip;)</code> clause is the <em>whole</em> difference. On an incremental run Dataform applies it; on a full refresh it ignores it and rebuilds with <code>CREATE OR REPLACE</code>.</div>
 </section>
 <details class="notes" data-title="Incremental tables: the mechanism">
   <summary>Speaker notes &mdash; Incremental tables: the mechanism</summary>
@@ -1258,7 +1307,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
 <section class="slide">
   <div class="kicker"></div>
   <h1>Late data and duplicates: <code style="font-size:.8em">uniqueKey</code></h1>
-  <div class="lede" style="max-width:900px;font-size:15px;margin-bottom:10px">A participant&rsquo;s laptop drops off the network mid-meeting. The ClearMeet client buffers unsent samples and re-uploads on reconnect &mdash; and when an ack is lost, it re-sends. So <code>qos_events_raw</code> sometimes holds the <strong>same sample twice</strong>, written minutes apart.</div>
+  <div class="lede" style="max-width:900px;font-size:16px;margin-bottom:10px">A participant&rsquo;s laptop drops off the network mid-meeting. The ClearMeet client buffers unsent samples and re-uploads on reconnect &mdash; and when an ack is lost, it re-sends. So <code>qos_events_raw</code> sometimes holds the <strong>same sample twice</strong>, written minutes apart.</div>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11px;line-height:1.45"><span class="fn">config</span> {
@@ -1271,7 +1320,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
   `<span class="kw">WHERE</span> load_time &gt; (
      <span class="kw">SELECT</span> <span class="fn">MAX</span>(load_time) <span class="kw">FROM</span> ${<span class="fn">self</span>()})`)}</pre>
       <div class="vgap-s"></div>
-      <div style="font-size:12px;color:#5f6368;line-height:1.45">Watermark on <code>load_time</code>, not <code>event_time</code> &mdash; the reconnect&rsquo;s rows carry <em>old</em> event times and a strict event-time watermark would drop them.</div>
+      <div style="font-size:13px;color:#5f6368;line-height:1.45">Watermark on <code>load_time</code>, not <code>event_time</code> &mdash; the reconnect&rsquo;s rows carry <em>old</em> event times and a strict event-time watermark would drop them.</div>
     </div>
     <div>
       <div class="figure">
@@ -1396,7 +1445,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
   <h1>Recap: definitions and the graph</h1>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>One <code>.sqlx</code> per object; <code>config</code> says what to build, the body says what&rsquo;s in it.</li>
         <li><code>ref()</code> resolves the name <em>and</em> records the edge &mdash; that&rsquo;s the DAG.</li>
         <li>Declare external inputs so the graph shows the boundary of what you own.</li>
@@ -1406,8 +1455,8 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
     <div>
       <div style="background:#e8f0fe;border-radius:8px;padding:16px 18px">
         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1a73e8;font-weight:600;margin-bottom:8px">Lab 1 &middot; 45 min</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:10px">Build a SQL workflow with dependencies</div>
-        <ul class="body" style="font-size:13.5px">
+        <div style="font-size:17px;font-weight:600;margin-bottom:10px">Build a SQL workflow with dependencies</div>
+        <ul class="body" style="font-size:14.5px">
           <li>Declare <code>qos_events_raw</code>; build <code>qos_events_clean</code> with partitioning and clustering.</li>
           <li>Add a view on top, with labels and column descriptions.</li>
           <li>Execute manually and read the compiled SQL.</li>
@@ -1490,7 +1539,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li><code>device_rollup</code> groups by <code>device</code>. macOS traffic now lands in <strong>two rows</strong>, each carrying roughly half the real share.</li>
         <li>No number raises an eyebrow unless you know the list of device names that should exist.</li>
         <li>Every job succeeded, every night, for nine days. The missing check is one line.</li>
@@ -1520,7 +1569,8 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       <pre class="code small" style="font-size:11.5px;line-height:1.42"><span class="fn">config</span> {
   <span class="kw">type</span>: <span class="st">"table"</span>,
   <span class="kw">assertions</span>: {
-    <span class="kw">nonNull</span>: [<span class="st">"meeting_id"</span>, <span class="st">"event_time"</span>, <span class="st">"org_id"</span>],
+    <span class="kw">nonNull</span>: [<span class="st">"meeting_id"</span>, <span class="st">"event_time"</span>,
+      <span class="st">"org_id"</span>],
     <span class="kw">uniqueKey</span>: [<span class="st">"meeting_id"</span>],
     <span class="kw">uniqueKeys</span>: [[<span class="st">"meeting_id"</span>, <span class="st">"event_time"</span>]],
     <span class="kw">rowConditions</span>: [
@@ -1532,7 +1582,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
 }</pre>
     </div>
     <div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li>Each entry becomes its <strong>own action</strong> that runs after the table builds.</li>
         <li>An assertion is a query that hunts for violating rows; finding <strong>any</strong> marks it <code>FAILED</code> that night.</li>
         <li><code>rowConditions</code> is evaluated per row: every row must satisfy every listed expression.</li>
@@ -1547,7 +1597,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       </table>
     </div>
   </div>
-  <div class="callout" style="margin-top:6px;font-size:14px">The second <code>rowConditions</code> entry is the nine-day bug, caught on night one. Assertions are cheapest to write at the moment you learn what &ldquo;wrong&rdquo; looks like.</div>
+  <div class="callout" style="margin-top:6px;font-size:15px">The second <code>rowConditions</code> entry is the nine-day bug, caught on night one. Assertions are cheapest to write at the moment you learn what &ldquo;wrong&rdquo; looks like.</div>
 </section>
 <details class="notes" data-title="Assertions: four built in">
   <summary>Speaker notes &mdash; Assertions: four built in</summary>
@@ -1563,7 +1613,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
   <div class="kicker"></div>
   <h1>What an assertion compiles into</h1>
   <div class="lede">Trace <code>uniqueKey: ["meeting_id"]</code> from config to the thing that actually fails the run.</div>
-  <ul class="body" style="font-size:13.5px">
+  <ul class="body" style="font-size:14.5px">
     <li>Dataform inverts the rule into a <strong>violations view</strong>: a query for the rows that <em>break</em> it, materialized in <code>clearmeet_assertions</code>.</li>
     <li>The assertion action is then a single <code>ASSERT</code> that the view is empty.</li>
   </ul>
@@ -1672,7 +1722,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li>By default, <strong>yes</strong>. The assertion is a node <em>beside</em> the table, not <em>between</em> the table and its dependents &mdash; <code>sla_by_org</code> depends only on <code>qos_events_clean</code>, which <code>SUCCEEDED</code>.</li>
         <li><code>dependOnDependencyAssertions: true</code> rewires this: every assertion of every dependency becomes an additional dependency.</li>
         <li>Now the failed assertion is on the path, and <code>sla_by_org</code> ends the night <code>SKIPPED</code>.</li>
@@ -1711,7 +1761,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
 <span class="kw">GROUP BY</span> org_id</pre>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>A manual assertion is a query that must return <strong>zero rows</strong> &mdash; any result row is a violation, and the action fails.</li>
         <li>It is a first-class node: it has dependencies (via <code>ref()</code>), a state, and dependents.</li>
         <li>Use it for referential integrity, cross-table totals, and business rules.</li>
@@ -1767,7 +1817,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>Three controls answer three nested questions, and all three are plain BigQuery:</li>
         <li><strong>IAM</strong> &mdash; can you open the dataset or table at all?</li>
         <li><strong>Policy tags</strong> (column-level) &mdash; of the columns, which can you read?</li>
@@ -1791,7 +1841,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
 <section class="slide">
   <div class="kicker"></div>
   <h1>Writing the grants</h1>
-  <div class="lede" style="font-size:15.5px;margin-bottom:12px">Both controls are written in the same file that defines <code>sla_by_org</code>.</div>
+  <div class="lede" style="font-size:16.5px;margin-bottom:12px">Both controls are written in the same file that defines <code>sla_by_org</code>.</div>
   <div class="cols">
     <div>
       <pre class="code small"><span class="lang">post_operations</span><span class="fn">post_operations</span> {
@@ -1813,7 +1863,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
     </div>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:12.5px">
+  <ul class="body" style="font-size:13.5px">
     <li>The <code>GRANT</code> is plain BigQuery DCL &mdash; the same statement you could type in the console. <code>post_operations</code> runs it after every build of this table.</li>
     <li><code>${self()}</code> = this file&rsquo;s table; <code>${ref("x")}</code> to grant on another&rsquo;s. Row access policies go here too.</li>
   </ul>
@@ -1835,7 +1885,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
   <h1>Recap: trust</h1>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Four built-in assertions; manual assertions for anything cross-table.</li>
         <li>An assertion compiles to a view of the offending rows plus an <code>ASSERT</code> &mdash; the view persists.</li>
         <li><strong>A failed assertion blocks nothing unless you wire it in</strong> (<code>dependOnDependencyAssertions</code>).</li>
@@ -1845,8 +1895,8 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
     <div>
       <div style="background:#e8f0fe;border-radius:8px;padding:16px 18px">
         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1a73e8;font-weight:600;margin-bottom:8px">Lab 2 &middot; 60 min</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:10px">Assertions and BigQuery security settings</div>
-        <ul class="body" style="font-size:13.5px">
+        <div style="font-size:17px;font-weight:600;margin-bottom:10px">Assertions and BigQuery security settings</div>
+        <ul class="body" style="font-size:14.5px">
           <li>Add built-in and manual assertions; make one fail on purpose and read the view.</li>
           <li>Gate a downstream table on the assertion.</li>
           <li>Add IAM, column-level, and row-level access.</li>
@@ -2019,7 +2069,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>Environments are <strong>release configurations over git refs</strong>, not copies of the code.</li>
         <li><code>projectSuffix</code> / <code>datasetSuffix</code> / <code>namePrefix</code> keep the outputs from colliding.</li>
         <li><code>vars</code> overrides let the same SQL behave differently per environment.</li>
@@ -2074,7 +2124,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>Compilation runs in a sandbox with <strong>no internet access</strong> and no external calls.</li>
         <li>The same code plus the same settings always compiles to the same SQL.</li>
         <li>Anything dynamic must arrive as a <strong>compilation variable</strong>, or be done in SQL.</li>
@@ -2140,7 +2190,7 @@ ${<span class="fn">when</span>(<span class="fn">incremental</span>(),
   <span class="kw">tags</span>: [<span class="st">"hourly"</span>, <span class="st">"core"</span>],
 }</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li>Tag any action; a workflow configuration selects by tag or by named action.</li>
         <li>&ldquo;Include dependencies&rdquo; pulls in upstream actions the tag didn&rsquo;t name.</li>
         <li>One repository can serve many cadences without splitting.</li>
@@ -2224,7 +2274,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
   <h1>Recap: execution</h1>
   <div class="cols c-55-45">
     <div>
-      <ul class="body" style="font-size:15px">
+      <ul class="body" style="font-size:16px">
         <li>Compile &rarr; release configuration (which code) &rarr; workflow configuration (when/what) &rarr; invocation.</li>
         <li>Environments are release configs over git refs; promotion is a merge.</li>
         <li>Compilation is hermetic; anything dynamic arrives as a <code>var</code>.</li>
@@ -2234,8 +2284,8 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
     <div>
       <div style="background:#e8f0fe;border-radius:8px;padding:16px 18px">
         <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1a73e8;font-weight:600;margin-bottom:8px">Lab 3 &middot; 60 min</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:10px">Automate and monitor SQL workflow executions</div>
-        <ul class="body" style="font-size:13.5px">
+        <div style="font-size:17px;font-weight:600;margin-bottom:10px">Automate and monitor SQL workflow executions</div>
+        <ul class="body" style="font-size:14.5px">
           <li>Create and execute a release configuration and a workflow configuration.</li>
           <li>Trigger a run via the API with a <code>vars</code> override.</li>
           <li>Create a log-based alert on failed invocations.</li>
@@ -2351,7 +2401,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1>Reuse: one function, five call sites</h1>
-  <div class="lede" style="font-size:15.5px;margin-bottom:12px">The device-name fix is needed in five definitions. Copy-paste is how the customer-tier <code>CASE</code> statement drifted apart.</div>
+  <div class="lede" style="font-size:16.5px;margin-bottom:12px">The device-name fix is needed in five definitions. Copy-paste is how the customer-tier <code>CASE</code> statement drifted apart.</div>
   <div class="cols c-45-55">
     <div>
       <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">includes/mappings.js</span><span class="kw">function</span> <span class="fn">normalize_device</span>(col) {
@@ -2364,7 +2414,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 <span class="kw">module</span>.exports = { normalize_device };</pre>
     </div>
     <div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li>At compile time, <code>${mappings.normalize_device("device")}</code> in a sqlx body <strong>calls the function and splices its return string into the SQL</strong>.</li>
         <li>Inside the function, <code>${col}</code> is ordinary JavaScript interpolation &mdash; it inserts the column name, producing <code>CASE WHEN LOWER(device) &hellip;</code>.</li>
         <li><code>module.exports</code> makes it callable from any definition as <code>filename.functionname</code>.</li>
@@ -2437,7 +2487,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
       </div>
     </div>
     <div>
-      <ul class="body" style="font-size:14px">
+      <ul class="body" style="font-size:15px">
         <li>A daily overwrite answers &ldquo;what is true now&rdquo; and destroys &ldquo;what was true then.&rdquo;</li>
         <li>Any question joining an event to an attribute <em>as of the event&rsquo;s date</em> needs history.</li>
         <li><strong>Type 1</strong> = overwrite (what they have). <strong>Type 2</strong> = keep every version, with validity dates.</li>
@@ -2459,7 +2509,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1>SCD Type 2: incremental table + <code style="font-size:.8em">LEAD()</code> view</h1>
-  <div class="lede" style="font-size:15.5px;margin-bottom:12px">Two definitions. The incremental table keeps every version; the view turns <code>updated_at</code> into validity ranges.</div>
+  <div class="lede" style="font-size:16.5px;margin-bottom:12px">Two definitions. The incremental table keeps every version; the view turns <code>updated_at</code> into validity ranges.</div>
   <div class="cols c-40-60">
     <div>
       <pre class="code small" style="font-size:11.5px;line-height:1.45"><span class="lang">orgs_history.sqlx</span><span class="fn">config</span> { <span class="kw">type</span>: <span class="st">"view"</span> }
@@ -2471,7 +2521,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
     <span class="kw">ORDER BY</span> updated_at) <span class="kw">AS</span> valid_to
 <span class="kw">FROM</span> ${<span class="fn">ref</span>(<span class="st">"orgs_updates"</span>)}</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:12px">
+      <ul class="body" style="font-size:13px">
         <li><code>orgs_updates</code> only ever <strong>appends</strong> &mdash; every changed version becomes a new row.</li>
         <li><code>LEAD</code> looks one row ahead per org: a version&rsquo;s <code>valid_to</code> is the next version&rsquo;s <code>valid_from</code>.</li>
         <li>The newest version has no next row &rarr; <code>NULL</code> = current.</li>
@@ -2532,8 +2582,8 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1>Caveats, and when not to use Dataform</h1>
-  <div class="lede" style="font-size:15.5px;margin-bottom:12px">ClearMeet&rsquo;s ingestion is Pub/Sub &rarr; Dataflow. None of that belongs in Dataform. Where is the line?</div>
-  <table class="tbl" style="font-size:14px">
+  <div class="lede" style="font-size:16.5px;margin-bottom:12px">ClearMeet&rsquo;s ingestion is Pub/Sub &rarr; Dataflow. None of that belongs in Dataform. Where is the line?</div>
+  <table class="tbl" style="font-size:15px">
     <tr><th style="width:280px">If you need&hellip;</th><th style="width:190px">Use</th><th>Why not Dataform</th></tr>
     <tr class="hl"><td>SQL transforms inside BigQuery</td><td><strong>Dataform</strong></td><td class="muted">&mdash;</td></tr>
     <tr><td>Non-SQL steps, other systems, sensors</td><td><strong>Composer / Airflow</strong></td><td class="muted">Dataform only issues BigQuery SQL</td></tr>
@@ -2542,7 +2592,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
     <tr><td>Streaming / sub-minute freshness</td><td><strong>Dataflow, or BQ streaming + MV</strong></td><td class="muted">min compilation frequency 1 h <em>(service limit)</em></td></tr>
   </table>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13px">
+  <ul class="body" style="font-size:14px">
     <li>Composer can <em>trigger</em> Dataform (<code>DataformCreateWorkflowInvocationOperator</code>) &mdash; a common and good combination, not an either/or.</li>
   </ul>
   <div class="callout warn">The honest failure mode is scope creep: teams push non-BigQuery orchestration into Dataform via <code>operations</code> blocks and end up with an orchestrator that can only speak SQL. When the graph must wait on something outside BigQuery, that is Composer&rsquo;s job.</div>
@@ -2560,7 +2610,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 <section class="slide">
   <div class="kicker"></div>
   <h1>Consequences you can act on</h1>
-  <table class="tbl" style="font-size:13px">
+  <table class="tbl" style="font-size:14px">
     <tr><th style="width:250px">You observed</th><th style="width:230px">Because</th><th>So you&hellip;</th></tr>
     <tr><td>Tuesday&rsquo;s SLA report was missing its worst day</td><td class="muted">order was three cron times, enforced by nothing</td><td>Replace <code>FROM</code> with <code>${ref()}</code> &mdash; order is derived every compile</td></tr>
     <tr><td>Nine days of split <code>macos</code> rows, all jobs green</td><td class="muted">nothing asserted what a valid <code>device</code> is</td><td>Add <code>rowConditions</code> the day you learn what wrong looks like</td></tr>
@@ -2585,7 +2635,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
   <h1>References</h1>
   <div class="cols">
     <div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><a href="https://docs.cloud.google.com/dataform/docs/overview">Dataform overview</a></li>
         <li><a href="https://docs.cloud.google.com/dataform/docs/create-tables">Create tables</a> &mdash; table types, incremental, <code>onSchemaChange</code>, <code>protected</code></li>
         <li><a href="https://docs.cloud.google.com/dataform/docs/dependencies">Set dependencies</a> &mdash; <code>ref()</code>, <code>dependOnDependencyAssertions</code></li>
@@ -2594,7 +2644,7 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
       </ul>
     </div>
     <div>
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><a href="https://docs.cloud.google.com/dataform/docs/code-lifecycle">Code lifecycle</a> &middot; <a href="https://docs.cloud.google.com/dataform/docs/release-configurations">Release configurations</a></li>
         <li><a href="https://docs.cloud.google.com/dataform/docs/configure-dataform">Configure Dataform</a> &middot; <a href="https://docs.cloud.google.com/dataform/docs/structure-repositories">Structure repositories</a></li>
         <li><a href="https://docs.cloud.google.com/bigquery/docs/column-level-security-intro">Column-level security</a> &middot; <a href="https://docs.cloud.google.com/dataform/docs/table-access">Table access</a></li>
@@ -2615,17 +2665,21 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 </details>
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -2642,9 +2696,84 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -2663,15 +2792,34 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
   }
 
   function fit() {
-    /* Reserve room below the slide: just the collapsed bar normally,
-       the full open panel (notes body is capped at 32vh) when expanded. */
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -2679,13 +2827,21 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
 
   /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
@@ -2696,8 +2852,8 @@ jsonPayload.terminalState=<span class="flag">"FAILED"</span></pre>
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 

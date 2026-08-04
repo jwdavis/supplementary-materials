@@ -32,11 +32,8 @@
   #wrap {
     height: 100%;
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    gap: 14px;
-    padding: 16px 16px 44px;
   }
 
   #viewport { position: relative; flex: none; }
@@ -70,7 +67,7 @@
     margin-bottom: 12px;
   }
   h1 {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 500;
     letter-spacing: -.2px;
     margin-bottom: 22px;
@@ -80,7 +77,7 @@
   /* ---------- body text ---------- */
   ul.body {
     list-style: none;
-    font-size: 16.5px;
+    font-size: 17.5px;
     line-height: 1.5;
     color: var(--ink);
   }
@@ -105,7 +102,7 @@
     padding-left: 18px;
     position: relative;
     margin-bottom: 5px;
-    font-size: 15px;
+    font-size: 16px;
     color: var(--ink-soft);
   }
   ul.body ul li::before {
@@ -117,7 +114,7 @@
     border: 1.2px solid var(--ink-soft);
   }
   .lede {
-    font-size: 17px;
+    font-size: 18px;
     color: var(--ink-soft);
     line-height: 1.55;
     margin-bottom: 16px;
@@ -129,23 +126,26 @@
 
   /* ---------- code ---------- */
   pre.code {
+    position: relative;
     background: var(--code-bg);
     border-radius: 6px;
     padding: 14px 18px;
     font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 14.5px;
     line-height: 1.55;
     color: var(--ink);
     overflow: hidden;
     white-space: pre;
   }
-  pre.code.small { font-size: 12.5px; line-height: 1.5; }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
   pre.code .lang {
-    float: right;
+    position: absolute;
+    top: 6px; right: 12px;
     font-family: inherit;
     font-size: 11px;
     color: var(--ink-soft);
   }
+  pre.code:has(.lang) { padding-top: 26px; }
   .kw  { color: #1967d2; }
   .st  { color: #188038; }
   .cm  { color: #80868b; }
@@ -157,7 +157,7 @@
     border-radius: 6px;
     padding: 12px 16px;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.55;
     white-space: pre;
   }
@@ -175,13 +175,13 @@
   table.tbl {
     border-collapse: collapse;
     width: 100%;
-    font-size: 15px;
+    font-size: 16px;
   }
   table.tbl th {
     text-align: left;
     font-weight: 500;
     color: var(--ink-soft);
-    font-size: 13.5px;
+    font-size: 14.5px;
     padding: 8px 14px;
     border-bottom: 2px solid var(--line);
   }
@@ -262,13 +262,13 @@
     justify-content: center;
   }
   .divider .sec-no {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--g-blue-d);
     font-weight: 500;
     margin-bottom: 10px;
   }
-  .divider h1 { font-size: 34px; margin-bottom: 14px; }
-  .divider .sub { font-size: 17px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
 
   .progress {
     display: flex;
@@ -320,16 +320,18 @@
     border-left: 4px solid var(--g-blue);
     border-radius: 0 6px 6px 0;
     padding: 12px 16px;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.5;
   }
   .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
   .callout.good { background: #e6f4ea; border-color: var(--g-green); }
 
   .figure { text-align: center; }
-  .figure svg { max-width: 100%; height: auto; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
   .figcap {
-    font-size: 12.5px;
+    font-size: 13px;
     color: var(--ink-soft);
     margin-top: 6px;
   }
@@ -338,7 +340,7 @@
   ol.steps {
     list-style: none;
     counter-reset: n;
-    font-size: 15.5px;
+    font-size: 16.5px;
     line-height: 1.45;
   }
   ol.steps li {
@@ -365,18 +367,49 @@
   /* ---------- speaker notes ---------- */
   /* Per-slide notes live in the deck as <details class="notes"> siblings of the
      slides. On screen they are hidden; the active slide's notes are mirrored
-     into the #notes-panel below the stage. In print, each appears under its slide. */
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
   #deck > details.notes { display: none; }
 
   #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
     background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 14px 22px;
-    width: 960px;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
     flex: none;
   }
-  #notes-panel summary,
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
   #deck > details.notes summary {
     cursor: pointer;
     font-family: "Roboto Mono", Menlo, Consolas, monospace;
@@ -390,31 +423,16 @@
     gap: 8px;
     user-select: none;
   }
-  #notes-panel summary::-webkit-details-marker,
   #deck > details.notes summary::-webkit-details-marker { display: none; }
-  #notes-panel summary::before,
-  #deck > details.notes summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform .15s ease;
-    color: var(--g-blue);
-  }
-  #notes-panel[open] summary::before,
-  #deck > details.notes[open] summary::before { transform: rotate(90deg); }
-  #notes-panel summary:focus-visible {
-    outline: 2px solid var(--g-blue);
-    outline-offset: 3px;
-    border-radius: 2px;
-  }
 
-  #notes-body { max-height: 32vh; overflow-y: auto; }
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
   #notes-body > ul, .n-body > ul {
     margin: 12px 0 2px;
     padding-left: 18px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    font-size: 14px;
+    font-size: 15px;
     color: var(--ink-2);
     line-height: 1.5;
   }
@@ -424,7 +442,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13.5px;
+    font-size: 14.5px;
   }
   #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
   #notes-body a, .n-body a { color: var(--g-blue-d); }
@@ -432,14 +450,19 @@
   /* ---------- chrome ---------- */
   #hud {
     position: fixed;
-    right: 16px; bottom: 12px;
+    right: 12px; bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: var(--ink-soft);
     user-select: none;
-    z-index: 50;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
   }
   #hud button {
     border: 1px solid var(--line);
@@ -450,14 +473,32 @@
     color: var(--ink-soft);
     cursor: pointer;
   }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
   #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
   #hint {
     position: fixed;
     left: 16px; bottom: 12px;
     font-size: 12px;
-    color: #80868b;
+    color: #5f6368;
     z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
   }
+  #hint.faded { opacity: 0; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; animation: none !important; }
@@ -472,16 +513,23 @@
       transform: none !important;
       position: static;
       width: 960px;
-      height: auto;
+      height: auto !important;
       margin: 0 auto;
     }
     .slide {
       display: block !important;
       position: relative;
-      width: 960px; height: 540px;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
       margin: 0 auto 14px;
       box-shadow: none;
       page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
     }
     #deck > details.notes {
       display: block;
@@ -540,7 +588,7 @@
   <h1>Agenda</h1>
   <div class="cols">
     <div>
-      <ul class="body" style="font-size:16px">
+      <ul class="body" style="font-size:17px">
         <li><span class="blue">Batch loading</span> — files, load jobs, schemas, formats, <code>LOAD DATA</code></li>
         <li><span class="blue">Streaming</span> — Storage Write API, Pub/Sub subscriptions, Dataflow</li>
         <li><span class="blue">Pipelines &amp; replication</span> — Datastream CDC, Data Transfer Service</li>
@@ -583,7 +631,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">The goal: every signal in one warehouse</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: you run the data platform for a <strong>videoconferencing SaaS</strong>. Product, finance, support, and marketing all want answers in BigQuery — but their data arrives five different ways.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Scenario: you run the data platform for a <strong>videoconferencing SaaS</strong>. Product, finance, support, and marketing all want answers in BigQuery — but their data arrives five different ways.</p>
   <div class="figure">
     <svg width="830" height="268" viewBox="0 0 830 268">
       <defs><marker id="arrG3" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
@@ -645,7 +693,7 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px">You don't pick an ingestion method — the <strong>shape and cadence</strong> of each source picks it for you. Two questions per source: <strong>how does it arrive?</strong> and <strong>how fresh must it be?</strong></div>
+  <div class="callout" style="font-size:14.5px">You don't pick an ingestion method — the <strong>shape and cadence</strong> of each source picks it for you. Two questions per source: <strong>how does it arrive?</strong> and <strong>how fresh must it be?</strong></div>
 </section>
 <details class="notes" data-title="The goal: every signal in one warehouse">
   <summary>Speaker notes &mdash; The goal: every signal in one warehouse</summary>
@@ -687,8 +735,8 @@
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">Your first load</h1>
   <div style="margin-bottom:6px"><span class="brick b-blue">bq load</span></div>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Scenario: finance's billing vendor drops a CSV of yesterday's usage into Cloud Storage every morning. Get it into BigQuery.</p>
-  <pre class="term" style="font-size:12.5px">bq load <span class="flag">--source_format</span>=CSV <span class="flag">--autodetect</span> <span class="flag">--skip_leading_rows</span>=1 \
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Scenario: finance's billing vendor drops a CSV of yesterday's usage into Cloud Storage every morning. Get it into BigQuery.</p>
+  <pre class="term" style="font-size:13.5px">bq load <span class="flag">--source_format</span>=CSV <span class="flag">--autodetect</span> <span class="flag">--skip_leading_rows</span>=1 \
   billing.daily_usage \
   gs://vc-billing-drop/2026-07-28/usage_*.csv</pre>
   <div class="vgap-s"></div>
@@ -721,12 +769,12 @@
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13.5px">
+  <ul class="body" style="font-size:14.5px">
     <li>One command: source format, destination table, source files (wildcards allowed). Default <strong>appends</strong>; <code>--replace</code> truncates first</li>
     <li><code>--autodetect</code> infers a schema from a sample of rows — fine for a first look</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">Batch loading is <strong>free</strong> — no compute charge, ever; you pay only for storage afterward. That one fact makes "load it" the default answer for anything that tolerates batch cadence.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">Batch loading is <strong>free</strong> — no compute charge, ever; you pay only for storage afterward. That one fact makes "load it" the default answer for anything that tolerates batch cadence.</div>
 </section>
 <details class="notes" data-title="Your first load">
   <summary>Speaker notes &mdash; Your first load</summary>
@@ -742,7 +790,7 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">What a load job actually does</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">While the 3.2M-row load runs, an analyst queries the table. What do they see?</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">While the 3.2M-row load runs, an analyst queries the table. What do they see?</p>
   <div class="figure">
     <svg width="830" height="182" viewBox="0 0 830 182">
       <defs><marker id="arrL6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
@@ -790,12 +838,12 @@
     <div class="figcap">one load job = one atomic storage-set commit — all of the data or none of it</div>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13.5px">
+  <ul class="body" style="font-size:14.5px">
     <li>Loads run on a <strong>shared, free slot pool</strong> (<code>default-pipeline</code>) — separate from your query slots, but with <strong>no throughput guarantee</strong></li>
     <li>Workers write Capacitor files into a new storage set, state <strong>PENDING</strong> — invisible; on success it flips to <strong>COMMITTED</strong> atomically. A failed load leaves the table untouched</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13px;padding:9px 14px">Every ingestion method in this module ends exactly here — <strong>a storage set committing</strong>. Loads, streams, and CDC differ only in how the bytes travel before that commit.</div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">Every ingestion method in this module ends exactly here — <strong>a storage set committing</strong>. Loads, streams, and CDC differ only in how the bytes travel before that commit.</div>
 </section>
 <details class="notes" data-title="What a load job actually does">
   <summary>Speaker notes &mdash; What a load job actually does</summary>
@@ -810,8 +858,8 @@
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Schemas: autodetect is a starting point, not production</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Day 3: the load fails. The vendor uses the string <code>N/A</code> in the <code>minutes</code> column for meetings that never started.</p>
-  <pre class="term" style="font-size:12px"><span class="cmt"># Error: Could not parse 'N/A' as INT64 for field minutes</span>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Day 3: the load fails. The vendor uses the string <code>N/A</code> in the <code>minutes</code> column for meetings that never started.</p>
+  <pre class="term" style="font-size:13px"><span class="cmt"># Error: Could not parse 'N/A' as INT64 for field minutes</span>
 bq load <span class="flag">--source_format</span>=CSV \
   <span class="flag">--schema</span>=daily_usage_schema.json <span class="flag">--skip_leading_rows</span>=1 \
   <span class="flag">--null_marker</span>='N/A' \
@@ -844,11 +892,11 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13px">
+  <ul class="body" style="font-size:14px">
     <li>Autodetect reads only a <strong>sample</strong> of the rows. Every sampled <code>minutes</code> value was a number, so it chose INT64 — then row 400,000 held <code>N/A</code> and the load failed</li>
     <li>Cheap path to a schema file: let autodetect run once, then <code>bq show --schema</code> &rarr; review and edit &rarr; reload with <code>--schema</code></li>
   </ul>
-  <div class="callout warn" style="font-size:12px;padding:7px 14px">A failed load is the <em>lucky</em> outcome — you find out immediately. Had <code>N/A</code> landed in the sample, <code>minutes</code> would have been typed STRING, the load would have <strong>succeeded</strong>, and every <code>SUM(minutes)</code> after would error or need casting. <strong>Pin schemas for anything recurring.</strong></div>
+  <div class="callout warn" style="font-size:13px;padding:7px 14px">A failed load is the <em>lucky</em> outcome — you find out immediately. Had <code>N/A</code> landed in the sample, <code>minutes</code> would have been typed STRING, the load would have <strong>succeeded</strong>, and every <code>SUM(minutes)</code> after would error or need casting. <strong>Pin schemas for anything recurring.</strong></div>
 </section>
 <details class="notes" data-title="Schemas: autodetect">
   <summary>Speaker notes &mdash; Schemas: autodetect</summary>
@@ -864,8 +912,8 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">File formats: what to ask your upstream for</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">The vendor offers exports as gzipped CSV or Parquet. Which do you want?</p>
-  <table class="tbl" style="font-size:13px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">The vendor offers exports as gzipped CSV or Parquet. Which do you want?</p>
+  <table class="tbl" style="font-size:14px">
     <tr><th>Format</th><th>Schema</th><th>Parallel load</th><th>Notes</th></tr>
     <tr class="hl"><td><strong>Parquet / Avro</strong></td><td>self-describing</td><td class="yes">✓ even compressed</td><td>what to ask for</td></tr>
     <tr><td>ORC</td><td>self-describing</td><td class="yes">✓</td><td>fine; less common on GCP</td></tr>
@@ -904,7 +952,7 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">Prefer <strong>Parquet or Avro</strong> for loads: self-describing schema (slide 7's failure can't happen) and parallel loading even compressed. Stuck with CSV/JSON? Uncompressed loads faster than gzipped.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">Prefer <strong>Parquet or Avro</strong> for loads: self-describing schema (slide 7's failure can't happen) and parallel loading even compressed. Stuck with CSV/JSON? Uncompressed loads faster than gzipped.</div>
 </section>
 <details class="notes" data-title="File formats">
   <summary>Speaker notes &mdash; File formats</summary>
@@ -920,7 +968,7 @@ bq load <span class="flag">--source_format</span>=CSV \
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">The same load in SQL: LOAD DATA</h1>
   <div style="margin-bottom:6px"><span class="brick b-blue">LOAD DATA</span></div>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Your orchestration is SQL-first — scheduled queries, Dataform. Loads don't have to leave SQL.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Your orchestration is SQL-first — scheduled queries, Dataform. Loads don't have to leave SQL.</p>
   <pre class="code"><span class="lang">SQL</span><span class="kw">LOAD DATA INTO</span> billing.daily_usage
 <span class="kw">FROM FILES</span> (
   format = <span class="st">'PARQUET'</span>,
@@ -942,12 +990,12 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:14px">
+  <ul class="body" style="font-size:15px">
     <li><code>LOAD DATA OVERWRITE</code> replaces the table; options cover partitioning, clustering, and schema on first create</li>
     <li>Composes with SQL tooling: scheduled queries, Dataform/dbt, scripting</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px"><code>bq load</code>, the console, <code>LOAD DATA</code>, and client libraries all create the <strong>same load job</strong>. Choose by what your automation speaks, not by capability.</div>
+  <div class="callout" style="font-size:14.5px"><code>bq load</code>, the console, <code>LOAD DATA</code>, and client libraries all create the <strong>same load job</strong>. Choose by what your automation speaks, not by capability.</div>
 </section>
 <details class="notes" data-title="LOAD DATA">
   <summary>Speaker notes &mdash; LOAD DATA</summary>
@@ -962,7 +1010,7 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The anti-pattern: many tiny loads</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Support wants fresher usage numbers. Someone proposes: run the load every 15 minutes. What breaks?</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Support wants fresher usage numbers. Someone proposes: run the load every 15 minutes. What breaks?</p>
   <div class="figure">
     <svg width="820" height="176" viewBox="0 0 820 176">
       <defs><marker id="arrLA" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
@@ -1008,13 +1056,13 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13.5px">
+  <ul class="body" style="font-size:14.5px">
     <li>Every load commits a storage set — 96/day means fragmented tiny files until the optimizer catches up</li>
     <li>Hard stop: <strong>1,500 load jobs per table per day</strong>, failed ones included</li>
     <li>And 15 minutes still isn't "now" — batch has a cadence floor; below it you're fighting the tool</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout warn" style="font-size:13px;padding:9px 14px">Cranking load frequency for freshness is the signal to <strong>switch doors</strong>. Streaming is the next section — and it doesn't touch load-job quotas at all.</div>
+  <div class="callout warn" style="font-size:14px;padding:9px 14px">Cranking load frequency for freshness is the signal to <strong>switch doors</strong>. Streaming is the next section — and it doesn't touch load-job quotas at all.</div>
 </section>
 <details class="notes" data-title="Many tiny loads">
   <summary>Speaker notes &mdash; Many tiny loads</summary>
@@ -1055,8 +1103,8 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">The ask: see call quality <span class="accent">now</span></h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Support's SLA: when a customer's calls degrade, an engineer sees it within seconds — not tomorrow morning.</p>
-  <ul class="body" style="font-size:14px">
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Support's SLA: when a customer's calls degrade, an engineer sees it within seconds — not tomorrow morning.</p>
+  <ul class="body" style="font-size:15px">
     <li>Every client emits telemetry — thousands of events per second, no natural "file" anywhere</li>
     <li>The batch path's best case: buffer to files, load, wait — minutes at minimum, plus slide 10's fragmentation</li>
     <li>We need rows queryable <strong>seconds after the event</strong>, at firehose rates</li>
@@ -1099,7 +1147,7 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px">Streaming inverts the batch contract: rows arrive one-by-one and are queryable immediately — and that path is <strong>metered per GiB</strong>, unlike free loads. Freshness is what you're paying for.</div>
+  <div class="callout" style="font-size:14.5px">Streaming inverts the batch contract: rows arrive one-by-one and are queryable immediately — and that path is <strong>metered per GiB</strong>, unlike free loads. Freshness is what you're paying for.</div>
 </section>
 <details class="notes" data-title="The ask: see call quality now">
   <summary>Speaker notes &mdash; The ask: see call quality now</summary>
@@ -1116,7 +1164,7 @@ bq load <span class="flag">--source_format</span>=CSV \
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">The front door: the Storage Write API</h1>
   <div style="margin-bottom:6px"><span class="brick b-blue">Storage Write API</span></div>
-  <p class="lede" style="margin-bottom:8px;font-size:14px;max-width:830px">The telemetry service sends each event straight to the table as it happens — no files, no jobs, no waiting.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15px;max-width:830px">The telemetry service sends each event straight to the table as it happens — no files, no jobs, no waiting.</p>
   <div class="figure">
     <svg width="830" height="216" viewBox="0 0 830 216">
       <defs><marker id="arrS13" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker>
@@ -1169,11 +1217,11 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:12.5px">
+  <ul class="body" style="font-size:13.5px">
     <li>Every table has a <strong>default stream</strong> — start appending, no setup, as many senders as you like. Use it unless you have a reason not to</li>
     <li>Delivery is <strong>at-least-once</strong>: a retry can land a row twice. Where that's unacceptable, application-created streams give exactly-once, at the cost of bookkeeping in your client</li>
   </ul>
-  <div class="callout good" style="font-size:12px;padding:7px 14px">You aren't choosing a storage format here — fresh rows land row-oriented and BigQuery rewrites them columnar on its own. Same <strong>generational storage</strong> as the Architecture module; streaming just makes the first half briefly visible.</div>
+  <div class="callout good" style="font-size:13px;padding:7px 14px">You aren't choosing a storage format here — fresh rows land row-oriented and BigQuery rewrites them columnar on its own. Same <strong>generational storage</strong> as the Architecture module; streaming just makes the first half briefly visible.</div>
 </section>
 <details class="notes" data-title="Storage Write API">
   <summary>Speaker notes &mdash; Storage Write API</summary>
@@ -1192,8 +1240,8 @@ bq load <span class="flag">--source_format</span>=CSV \
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">Streaming without code: Pub/Sub BigQuery subscriptions</h1>
   <div style="margin-bottom:6px"><span class="brick b-green">BigQuery subscription</span></div>
-  <p class="lede" style="margin-bottom:6px;font-size:14px;max-width:830px">The telemetry events already flow through a Pub/Sub topic — getting them into BigQuery takes zero new services.</p>
-  <pre class="term" style="font-size:12px;padding:9px 14px">gcloud pubsub subscriptions create call-quality-to-bq \
+  <p class="lede" style="margin-bottom:6px;font-size:15px;max-width:830px">The telemetry events already flow through a Pub/Sub topic — getting them into BigQuery takes zero new services.</p>
+  <pre class="term" style="font-size:13px;padding:9px 14px">gcloud pubsub subscriptions create call-quality-to-bq \
   <span class="flag">--topic</span>=call-quality \
   <span class="flag">--bigquery-table</span>=vc-analytics:telemetry.call_quality \
   <span class="flag">--use-topic-schema</span></pre>
@@ -1224,12 +1272,12 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13.5px">
+  <ul class="body" style="font-size:14.5px">
     <li>Schema options: map the <strong>topic schema</strong> to columns (as here), or land raw bytes + metadata and parse in SQL</li>
     <li>Semantics: at-least-once; write failures can route to a dead-letter topic</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:12.5px;padding:8px 14px">Already in Pub/Sub and needs no reshaping? This is the current best-practice default — <strong>fewest moving parts</strong>, and under the hood it's slide 13's Storage Write API.</div>
+  <div class="callout good" style="font-size:13.5px;padding:8px 14px">Already in Pub/Sub and needs no reshaping? This is the current best-practice default — <strong>fewest moving parts</strong>, and under the hood it's slide 13's Storage Write API.</div>
 </section>
 <details class="notes" data-title="Pub/Sub BigQuery subscriptions">
   <summary>Speaker notes &mdash; Pub/Sub BigQuery subscriptions</summary>
@@ -1245,7 +1293,7 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">When you need a pipeline in the middle: Dataflow</h1>
-  <p class="lede" style="margin-bottom:6px;font-size:14px;max-width:830px">Product doesn't want the raw events. They want <strong>one row per meeting per minute</strong>, holding a single quality score computed from all that minute's events — with the customer's plan attached.</p>
+  <p class="lede" style="margin-bottom:6px;font-size:15px;max-width:830px">Product doesn't want the raw events. They want <strong>one row per meeting per minute</strong>, holding a single quality score computed from all that minute's events — with the customer's plan attached.</p>
   <div class="figure" style="margin-bottom:6px">
     <svg width="680" height="70" viewBox="0 0 700 72">
       <defs><marker id="arrS15a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
@@ -1263,7 +1311,7 @@ bq load <span class="flag">--source_format</span>=CSV \
       <text x="350" y="48" font-size="8.5" font-family="Roboto Mono,monospace" fill="#188038">m-3841 &middot; 10:02 &middot; mos 2.1 &middot; degraded &middot; Acme (enterprise)</text>
     </svg>
   </div>
-  <ul class="body" style="font-size:12.5px">
+  <ul class="body" style="font-size:13.5px">
     <li>Neither piece can happen as rows land: <strong>summarizing a minute</strong> needs the minute's events held together, and <strong>attaching the plan</strong> needs a lookup against another dataset</li>
     <li>So that work goes in a pipeline between the topic and BigQuery — Dataflow parses, validates, groups by time, aggregates, enriches, and writes finished rows</li>
     <li>Rule of thumb: no reshaping &rarr; BigQuery subscription (slide 14); reshaping &rarr; Dataflow</li>
@@ -1299,7 +1347,7 @@ bq load <span class="flag">--source_format</span>=CSV \
       <text x="612" y="128" text-anchor="middle" font-size="9.5" fill="#5f6368">raw events still land via slide 14 — both paths coexist on one topic</text>
     </svg>
   </div>
-  <div class="callout" style="font-size:12px;padding:7px 14px">This deck stops at the doorway: windows, triggers, and watermarks are their own course. Here it's one decision — <strong>does the data need to change shape before it lands?</strong></div>
+  <div class="callout" style="font-size:13px;padding:7px 14px">This deck stops at the doorway: windows, triggers, and watermarks are their own course. Here it's one decision — <strong>does the data need to change shape before it lands?</strong></div>
 </section>
 <details class="notes" data-title="Dataflow in the middle">
   <summary>Speaker notes &mdash; Dataflow in the middle</summary>
@@ -1341,7 +1389,7 @@ bq load <span class="flag">--source_format</span>=CSV \
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">Mirroring the operational database: Datastream</h1>
   <div style="margin-bottom:6px"><span class="brick b-green">Datastream CDC</span></div>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Support dashboards need plan and seat counts — which live in Cloud SQL Postgres and change all day. Nightly dumps are stale by 9 a.m.</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Support dashboards need plan and seat counts — which live in Cloud SQL Postgres and change all day. Nightly dumps are stale by 9 a.m.</p>
   <div class="figure">
     <svg width="830" height="158" viewBox="0 0 830 158">
       <defs><marker id="arrS19" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#9aa0a6"/></marker></defs>
@@ -1378,13 +1426,13 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13.5px">
+  <ul class="body" style="font-size:14.5px">
     <li>Tails the database's change log and continuously applies inserts/updates/deletes to a BigQuery replica</li>
     <li>Sources: MySQL, PostgreSQL (incl. AlloyDB), Oracle, SQL Server, MongoDB, Spanner, plus SaaS (Salesforce&hellip;)</li>
     <li>Two modes: <strong>merge</strong> (table mirrors current state — the usual choice) or <strong>append-only</strong> (every change kept as history)</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">The old pattern — export, load to staging, hand-written <code>MERGE</code> — is now a managed service. Reach for Datastream <strong>before</strong> building custom CDC plumbing.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">The old pattern — export, load to staging, hand-written <code>MERGE</code> — is now a managed service. Reach for Datastream <strong>before</strong> building custom CDC plumbing.</div>
 </section>
 <details class="notes" data-title="Datastream">
   <summary>Speaker notes &mdash; Datastream</summary>
@@ -1400,8 +1448,8 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:6px">What Datastream is driving: BigQuery CDC</h1>
-  <p class="lede" style="margin-bottom:6px;font-size:14px;max-width:830px"><strong>Datastream</strong> reads the change out of the source database. <strong>BigQuery CDC</strong> is what applies it on this side — and it hands you one dial, <code>max_staleness</code>, that trades freshness against cost.</p>
-  <pre class="code" style="padding:9px 16px;font-size:12.5px"><span class="lang">SQL</span><span class="kw">ALTER TABLE</span> crm.customers
+  <p class="lede" style="margin-bottom:6px;font-size:15px;max-width:830px"><strong>Datastream</strong> reads the change out of the source database. <strong>BigQuery CDC</strong> is what applies it on this side — and it hands you one dial, <code>max_staleness</code>, that trades freshness against cost.</p>
+  <pre class="code" style="padding:9px 16px;font-size:13.5px"><span class="lang">SQL</span><span class="kw">ALTER TABLE</span> crm.customers
   <span class="kw">SET OPTIONS</span> (max_staleness = <span class="kw">INTERVAL</span> <span class="st">15</span> <span class="kw">MINUTE</span>);</pre>
   <div class="vgap-s"></div>
   <div class="figure">
@@ -1438,12 +1486,12 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:13px">
+  <ul class="body" style="font-size:14px">
     <li>Each change lands as an <strong>UPSERT or DELETE row</strong> (a <code>_CHANGE_TYPE</code> value) matched to an existing row by the table's primary key — not as a hand-written <code>MERGE</code></li>
     <li>Tight staleness forces <strong>runtime merges</strong> — every query pays to reconcile; relaxed staleness lets cheap background applies do it</li>
     <li>Datastream sets this up for you; the dial stays yours to tune, and you can drive the same machinery from your own Write API client</li>
   </ul>
-  <div class="callout" style="font-size:12px;padding:7px 14px"><code>max_staleness</code> is the freshness-vs-cost contract in one number. Set it from the <strong>consumer's</strong> real tolerance — support dashboards rarely need sub-minute customer records.</div>
+  <div class="callout" style="font-size:13px;padding:7px 14px"><code>max_staleness</code> is the freshness-vs-cost contract in one number. Set it from the <strong>consumer's</strong> real tolerance — support dashboards rarely need sub-minute customer records.</div>
 </section>
 <details class="notes" data-title="BigQuery CDC">
   <summary>Speaker notes &mdash; BigQuery CDC</summary>
@@ -1460,7 +1508,7 @@ bq load <span class="flag">--source_format</span>=CSV \
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">SaaS on a schedule: Data Transfer Service</h1>
   <div style="margin-bottom:6px"><span class="brick b-yellow">DTS</span></div>
-  <p class="lede" style="margin-bottom:6px;font-size:14px;max-width:830px">Marketing wants Ads spend joined to signups — but Google Ads won't stream it; something has to fetch its reports, every day, forever.</p>
+  <p class="lede" style="margin-bottom:6px;font-size:15px;max-width:830px">Marketing wants Ads spend joined to signups — but Google Ads won't stream it; something has to fetch its reports, every day, forever.</p>
   <pre class="term" style="font-size:11.5px;padding:9px 14px">bq mk <span class="flag">--transfer_config</span> <span class="flag">--data_source</span>=google_ads <span class="flag">--target_dataset</span>=marketing \
   <span class="flag">--display_name</span>="Ads spend (daily)" <span class="flag">--params</span>='{"customer_id":"123-456-7890"}'</pre>
   <div class="vgap-s"></div>
@@ -1494,12 +1542,12 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <ul class="body" style="font-size:12.5px">
+  <ul class="body" style="font-size:13.5px">
     <li>Connectors: Google marketing stack &middot; SaaS (Salesforce, Stripe&hellip;) &middot; warehouses (Redshift, Snowflake&hellip;) &middot; storage (GCS, S3, Azure)</li>
     <li>The <strong>scheduled Cloud Storage transfer</strong> closes slide 9's loop — the managed daily billing load, no cron job owned</li>
   </ul>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:12.5px;padding:8px 14px">DTS moves data <strong>in</strong> on a schedule — load jobs with a calendar and a connector catalog. Not a streaming tool; can't export.</div>
+  <div class="callout" style="font-size:13.5px;padding:8px 14px">DTS moves data <strong>in</strong> on a schedule — load jobs with a calendar and a connector catalog. Not a streaming tool; can't export.</div>
 </section>
 <details class="notes" data-title="Data Transfer Service">
   <summary>Speaker notes &mdash; Data Transfer Service</summary>
@@ -1541,17 +1589,18 @@ bq load <span class="flag">--source_format</span>=CSV \
   <div class="kicker"></div>
   <h1 style="margin-bottom:4px">External tables: the data stays in the bucket</h1>
   <div style="margin-bottom:6px"><span class="brick b-gray">EXTERNAL TABLE</span><span class="brick b-gray">BigLake</span></div>
-  <p class="lede" style="margin-bottom:6px;font-size:14px;max-width:830px">The acquired company left 40 TB of meeting-archive Parquet in Cloud Storage; legal asks one question a quarter. Loading it means storing it twice.</p>
+  <p class="lede" style="margin-bottom:6px;font-size:15px;max-width:830px">The acquired company left 40 TB of meeting-archive Parquet in Cloud Storage; legal asks one question a quarter. Loading it means storing it twice.</p>
   <div class="cols">
     <div style="flex:0 0 52%">
       <pre class="code small"><span class="lang">SQL</span><span class="kw">CREATE EXTERNAL TABLE</span> partner.archived_meetings
 <span class="kw">WITH CONNECTION</span> <span class="st">`us.gcs-reader`</span>
 <span class="kw">OPTIONS</span> (
   format = <span class="st">'PARQUET'</span>,
-  uris = [<span class="st">'gs://confcall-archive/meetings/*.parquet'</span>]
+  uris =
+    [<span class="st">'gs://confcall-archive/meetings/*.parquet'</span>]
 );</pre>
       <div class="vgap-s"></div>
-      <ul class="body" style="font-size:12.5px">
+      <ul class="body" style="font-size:13.5px">
         <li>An external table is <strong>schema + pointer</strong>: queries read the files in place — nothing is copied into BigQuery storage, and you pay query compute only</li>
         <li>The <code>CONNECTION</code> makes it <strong>BigLake</strong>: BigQuery's service account reads the bucket — analysts need only table permissions; row/column security works</li>
       </ul>
@@ -1593,7 +1642,7 @@ bq load <span class="flag">--source_format</span>=CSV \
       </div>
     </div>
   </div>
-  <div class="callout good" style="font-size:12.5px;padding:8px 14px">Query in place when data is <strong>cold, still changing upstream, or not yet understood</strong> — and use it as the ELT on-ramp: explore externally, then load exactly what earns its keep.</div>
+  <div class="callout good" style="font-size:13.5px;padding:8px 14px">Query in place when data is <strong>cold, still changing upstream, or not yet understood</strong> — and use it as the ELT on-ramp: explore externally, then load exactly what earns its keep.</div>
 </section>
 <details class="notes" data-title="External tables">
   <summary>Speaker notes &mdash; External tables</summary>
@@ -1609,8 +1658,8 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:10px">Load it, or leave it?</h1>
-  <p class="lede" style="margin-bottom:10px;font-size:14.5px">The same four signals decide it every time.</p>
-  <table class="tbl" style="font-size:14px">
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The same four signals decide it every time.</p>
+  <table class="tbl" style="font-size:15px">
     <tr><th>Signal</th><th>Leave it external</th><th>Load it (native)</th></tr>
     <tr><td>Query frequency</td><td>rare / exploratory</td><td><strong>hot, repeated</strong></td></tr>
     <tr><td>Performance need</td><td>"eventually" is fine</td><td><strong>interactive dashboards</strong></td></tr>
@@ -1621,7 +1670,7 @@ bq load <span class="flag">--source_format</span>=CSV \
   <pre class="code small"><span class="lang">SQL — promoting the hot slice</span><span class="kw">CREATE TABLE</span> partner.recent_meetings <span class="kw">AS</span>
 <span class="kw">SELECT</span> * <span class="kw">FROM</span> partner.archived_meetings <span class="kw">WHERE</span> meeting_date &gt;= <span class="st">'2024-01-01'</span>;</pre>
   <div class="vgap"></div>
-  <div class="callout warn" style="font-size:13.5px">External tables give up real capabilities: no time travel, no copies/snapshots, weaker statistics and pruning — and cost estimation can't see into the files. When a dataset goes hot, <strong>promote it</strong>: one <code>CREATE TABLE AS SELECT</code> (or <code>LOAD DATA</code>), and only the useful slice pays for native storage.</div>
+  <div class="callout warn" style="font-size:14.5px">External tables give up real capabilities: no time travel, no copies/snapshots, weaker statistics and pruning — and cost estimation can't see into the files. When a dataset goes hot, <strong>promote it</strong>: one <code>CREATE TABLE AS SELECT</code> (or <code>LOAD DATA</code>), and only the useful slice pays for native storage.</div>
 </section>
 <details class="notes" data-title="Load it, or leave it?">
   <summary>Speaker notes &mdash; Load it, or leave it?</summary>
@@ -1636,10 +1685,10 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1 style="margin-bottom:8px">Where transformation happens: EL &rarr; ELT &rarr; ETL</h1>
-  <p class="lede" style="margin-bottom:8px;font-size:14.5px">Zoom out: every path so far lands <em>raw-ish</em> data. Who cleans it, and where?</p>
+  <p class="lede" style="margin-bottom:8px;font-size:15.5px">Zoom out: every path so far lands <em>raw-ish</em> data. Who cleans it, and where?</p>
   <div class="cols">
     <div style="flex:0 0 46%">
-      <ul class="body" style="font-size:13.5px">
+      <ul class="body" style="font-size:14.5px">
         <li><strong>EL</strong> — data is already clean (Parquet from the vendor): load it, done. Prefer this when you can get it</li>
         <li><strong>ELT</strong> — land raw into a <strong>raw/staging</strong> layer, transform <em>inside</em> BigQuery with SQL, publish to <strong>reporting</strong> tables. The default for everything else</li>
         <li><strong>ETL</strong> — transform <em>before</em> landing (Dataflow, slide 15) only when SQL can't: in-flight enrichment, streaming aggregation, non-SQL logic</li>
@@ -1692,7 +1741,7 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout good" style="font-size:13px;padding:9px 14px">Prefer <strong>EL, then ELT, then ETL</strong> — in that order. Keeping raw data in BigQuery is cheap; the expensive thing is a transform you can't redo.</div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">Prefer <strong>EL, then ELT, then ETL</strong> — in that order. Keeping raw data in BigQuery is cheap; the expensive thing is a transform you can't redo.</div>
 </section>
 <details class="notes" data-title="EL, ELT, ETL">
   <summary>Speaker notes &mdash; EL, ELT, ETL</summary>
@@ -1786,7 +1835,7 @@ bq load <span class="flag">--source_format</span>=CSV \
     </svg>
   </div>
   <div class="vgap-s"></div>
-  <div class="callout" style="font-size:13.5px">Cover the labels and quiz it: name a source &rarr; supply <strong>method + latency + cost model + delivery semantics</strong>. If you can do that, the module landed.</div>
+  <div class="callout" style="font-size:14.5px">Cover the labels and quiz it: name a source &rarr; supply <strong>method + latency + cost model + delivery semantics</strong>. If you can do that, the module landed.</div>
 </section>
 <details class="notes" data-title="The whole platform, annotated">
   <summary>Speaker notes &mdash; The whole platform, annotated</summary>
@@ -1801,7 +1850,7 @@ bq load <span class="flag">--source_format</span>=CSV \
 <section class="slide">
   <div class="kicker"></div>
   <h1>Choosing an ingestion method</h1>
-  <ol class="steps" style="font-size:13.5px">
+  <ol class="steps" style="font-size:14.5px">
     <li><strong>Files, and batch cadence is fine?</strong> Load jobs — they're free. Ask upstream for Parquet/Avro; pin schemas for anything recurring</li>
     <li><strong>Need rows in seconds?</strong> Storage Write API — via a Pub/Sub BigQuery subscription if it's already a topic and needs no reshaping; via Dataflow if it must transform in flight; default stream unless duplicates carry real cost</li>
     <li><strong>Mirroring a database?</strong> Datastream CDC; set <code>max_staleness</code> from the consumer's real tolerance, not zero</li>
@@ -1835,7 +1884,7 @@ bq load <span class="flag">--source_format</span>=CSV \
     <div class="kicker"></div>
     <h1 style="font-size:30px">Activity</h1>
     <div class="sub" style="font-size:18px;color:#202124;margin-bottom:20px">Ingesting real data (30&ndash;45 min)</div>
-    <ul class="body" style="font-size:14px">
+    <ul class="body" style="font-size:15px">
       <li>Load a CSV with <code>bq load</code> — hit the sentinel failure, fix it with a pinned schema</li>
       <li>Re-run the load as a SQL <code>LOAD DATA</code> statement</li>
       <li>Create an external table over Hive-partitioned Parquet in Cloud Storage — query without loading</li>
@@ -1858,8 +1907,8 @@ bq load <span class="flag">--source_format</span>=CSV \
   <h1>Additional material</h1>
   <div class="cols">
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Docs (canonical)</p>
-      <ul class="body" style="font-size:13.5px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Docs (canonical)</p>
+      <ul class="body" style="font-size:14.5px">
         <li><a href="https://docs.cloud.google.com/bigquery/docs/loading-data" style="color:#1a73e8">Introduction to loading data</a> &middot; <a href="https://docs.cloud.google.com/bigquery/docs/batch-loading-data" style="color:#1a73e8">Batch loading</a> &middot; <a href="https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/load-statements" style="color:#1a73e8">LOAD DATA</a></li>
         <li><a href="https://docs.cloud.google.com/bigquery/docs/write-api" style="color:#1a73e8">Storage Write API</a> &middot; <a href="https://docs.cloud.google.com/bigquery/quotas#write-api-limits" style="color:#1a73e8">quotas</a> &middot; <a href="https://cloud.google.com/bigquery/pricing#data_ingestion_pricing" style="color:#1a73e8">ingestion pricing</a></li>
         <li><a href="https://docs.cloud.google.com/pubsub/docs/bigquery" style="color:#1a73e8">Pub/Sub BigQuery subscriptions</a> &middot; <a href="https://docs.cloud.google.com/datastream/docs/overview" style="color:#1a73e8">Datastream</a> &middot; <a href="https://docs.cloud.google.com/bigquery/docs/change-data-capture" style="color:#1a73e8">BigQuery CDC</a> &middot; <a href="https://docs.cloud.google.com/bigquery/docs/dts-introduction" style="color:#1a73e8">DTS</a></li>
@@ -1867,8 +1916,8 @@ bq load <span class="flag">--source_format</span>=CSV \
       </ul>
     </div>
     <div>
-      <p style="font-weight:600;font-size:16px;margin-bottom:10px">Deeper / adjacent</p>
-      <ul class="body" style="font-size:13.5px">
+      <p style="font-weight:600;font-size:17px;margin-bottom:10px">Deeper / adjacent</p>
+      <ul class="body" style="font-size:14.5px">
         <li><em>Google BigQuery: The Definitive Guide</em> ch.&nbsp;4 (loading) &amp; ch.&nbsp;6 (storage sets) — 2019; read alongside this module's modernization notes</li>
         <li><a href="https://docs.cloud.google.com/bigquery/docs/continuous-queries-introduction" style="color:#1a73e8">Continuous queries</a> — streaming ELT in SQL (Enterprise + reservation)</li>
         <li><a href="https://docs.cloud.google.com/bigquery/docs/iceberg-tables" style="color:#1a73e8">Apache Iceberg managed tables</a> — the writable open-lakehouse path</li>
@@ -1888,17 +1937,21 @@ bq load <span class="flag">--source_format</span>=CSV \
 
 </div></div>
 
-<details id="notes-panel">
-  <summary>Speaker notes &mdash; <span id="notes-title"></span></summary>
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
   <div id="notes-body"></div>
-</details>
+</aside>
 </div>
 
-<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
 <div id="hud">
   <button id="prev" title="Previous">‹</button>
   <span id="counter">1 / 1</span>
   <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
 </div>
 
 <script>
@@ -1915,9 +1968,84 @@ bq load <span class="flag">--source_format</span>=CSV \
 
   function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
 
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
   function show(n) {
     i = clamp(n);
     slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
     counter.textContent = (i + 1) + ' / ' + slides.length;
     var src = noteSrcs[i];
     while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
@@ -1936,15 +2064,34 @@ bq load <span class="flag">--source_format</span>=CSV \
   }
 
   function fit() {
-    /* Reserve room below the slide: just the collapsed bar normally,
-       the full open panel (notes body is capped at 32vh) when expanded. */
-    var reserve = panel.open ? Math.round(window.innerHeight * 0.32) + 130 : 118;
-    var s = Math.min((window.innerWidth - 48) / 960, (window.innerHeight - reserve) / 540);
-    s = Math.min(s, 1.5);
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
     viewport.style.width = (960 * s) + 'px';
-    viewport.style.height = (540 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
     deck.style.transform = 'scale(' + s + ')';
-    panel.style.width = Math.max(560, 960 * s) + 'px';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
   }
 
   document.addEventListener('keydown', function (e) {
@@ -1952,13 +2099,21 @@ bq load <span class="flag">--source_format</span>=CSV \
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
     else if (e.key === 'Home') { show(0); }
     else if (e.key === 'End') { show(slides.length - 1); }
-    else if (e.key === 'n' || e.key === 'N') { panel.open = !panel.open; }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
   });
 
   document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
   document.getElementById('next').addEventListener('click', function () { show(i + 1); });
-  window.addEventListener('resize', fit);
-  panel.addEventListener('toggle', fit);
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
 
   /* Print: reveal every slide's notes inline; restore state afterwards. */
   window.addEventListener('beforeprint', function () {
@@ -1969,8 +2124,8 @@ bq load <span class="flag">--source_format</span>=CSV \
   });
 
   var start = parseInt((location.hash || '').slice(1), 10);
-  show(isNaN(start) ? 0 : start - 1);
   fit();
+  show(isNaN(start) ? 0 : start - 1);
 })();
 </script>
 
