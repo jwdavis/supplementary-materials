@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge Catalog: From Metadata to Meaning</title>
+<style>
+  :root {
+    --g-blue:   #4285F4;
+    --g-blue-d: #1a73e8;
+    --g-red:    #EA4335;
+    --g-yellow: #FBBC04;
+    --g-green:  #34A853;
+    --ink:      #202124;
+    --ink-2:    #3c4043;
+    --ink-soft: #5f6368;
+    --line:     #dadce0;
+    --code-bg:  #f1f3f4;
+    --panel:    #f8f9fa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: #e8eaed;
+    font-family: "Google Sans", "Product Sans", Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  #wrap {
+    height: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  #viewport { position: relative; flex: none; }
+
+  #deck {
+    width: 960px;
+    height: 540px;
+    position: absolute;
+    top: 0; left: 0;
+    transform-origin: top left;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 1px solid #9aa0a6;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    padding: 52px 64px 44px 64px;
+    display: none;
+    overflow: hidden;
+  }
+  .slide.active { display: block; }
+
+  /* ---------- headings ---------- */
+  .kicker {
+    width: 30px;
+    height: 3px;
+    background: var(--g-blue);
+    border-radius: 2px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -.2px;
+    margin-bottom: 22px;
+  }
+  h1 .accent { color: var(--g-blue-d); }
+
+  /* ---------- body text ---------- */
+  ul.body {
+    list-style: none;
+    font-size: 17.5px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  ul.body > li {
+    padding-left: 20px;
+    position: relative;
+    margin-bottom: 10px;
+  }
+  ul.body > li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+  }
+  ul.body ul {
+    list-style: none;
+    margin-top: 6px;
+  }
+  ul.body ul li {
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 5px;
+    font-size: 16px;
+    color: var(--ink-soft);
+  }
+  ul.body ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 9px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    border: 1.2px solid var(--ink-soft);
+  }
+  .lede {
+    font-size: 18px;
+    color: var(--ink-soft);
+    line-height: 1.55;
+    margin-bottom: 16px;
+    max-width: 780px;
+  }
+  strong { font-weight: 600; }
+  .blue   { color: var(--g-blue-d); font-weight: 500; }
+  .muted  { color: var(--ink-soft); }
+
+  /* ---------- code ---------- */
+  pre.code {
+    position: relative;
+    background: var(--code-bg);
+    border-radius: 6px;
+    padding: 14px 18px;
+    font-family: "Roboto Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--ink);
+    overflow: hidden;
+    white-space: pre;
+  }
+  pre.code.small { font-size: 13.5px; line-height: 1.5; }
+  pre.code .lang {
+    position: absolute;
+    top: 6px; right: 12px;
+    font-family: inherit;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  pre.code:has(.lang) { padding-top: 26px; }
+  .kw  { color: #1967d2; }
+  .st  { color: #188038; }
+  .cm  { color: #80868b; }
+  .fn  { color: #b3261e; }
+
+  pre.term {
+    background: #202124;
+    color: #e8eaed;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    white-space: pre;
+  }
+  pre.term .flag { color: #8ab4f8; }
+  pre.term .lbl {
+    display: block;
+    color: #9aa0a6;
+    font-family: "Google Sans", Roboto, sans-serif;
+    font-size: 11.5px;
+    margin-bottom: 4px;
+  }
+
+  /* ---------- tables ---------- */
+  table.tbl {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 16px;
+  }
+  table.tbl th {
+    text-align: left;
+    font-weight: 500;
+    color: var(--ink-soft);
+    font-size: 14.5px;
+    padding: 8px 14px;
+    border-bottom: 2px solid var(--line);
+  }
+  table.tbl td {
+    padding: 9px 14px;
+    border-bottom: 1px solid #eceff1;
+    vertical-align: top;
+  }
+  table.tbl tr.hl td { background: #e8f0fe; }
+  table.tbl code, li code, p code, td code, .n-body code, #notes-body code {
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre code { background: none; padding: 0; }
+  .yes { color: var(--g-green); font-weight: 700; }
+  .no  { color: #c5221f; font-weight: 700; }
+
+  /* ---------- lego brick tags ---------- */
+  .brick {
+    display: inline-block;
+    position: relative;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 14px 6px;
+    border-radius: 2px;
+    margin: 10px 8px 2px 0;
+  }
+  .brick::before, .brick::after {
+    content: "";
+    position: absolute;
+    top: -5px;
+    width: 14px; height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: inherit;
+  }
+  .brick::before { left: 12px; }
+  .brick::after  { left: 34px; }
+  .brick.b-blue   { background: var(--g-blue); }
+  .brick.b-red    { background: var(--g-red); }
+  .brick.b-yellow { background: var(--g-yellow); color: #3c2f00; }
+  .brick.b-green  { background: var(--g-green); }
+  .brick.b-gray   { background: #9aa0a6; }
+
+  /* ---------- title & divider slides ---------- */
+  .slide.title-slide { padding: 0; }
+  .title-wedge {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
+  .title-content {
+    position: absolute;
+    left: 64px; top: 150px;
+    max-width: 420px;
+    z-index: 2;
+  }
+  .title-content .cloud-logo { margin-bottom: 18px; }
+  .title-content h1 {
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+  .title-content .sub {
+    font-size: 17px;
+    color: var(--ink-soft);
+  }
+
+  .slide.divider { padding-top: 0; }
+  .divider .div-inner {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .divider .sec-no {
+    font-size: 16px;
+    color: var(--g-blue-d);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .divider h1 { font-size: 38px; margin-bottom: 14px; }
+  .divider .sub { font-size: 18.5px; color: var(--ink-soft); max-width: 640px; line-height: 1.55; }
+
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 46px;
+  }
+  .progress .p-step {
+    display: flex;
+    align-items: center;
+  }
+  .progress .p-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: #dadce0;
+    flex: none;
+  }
+  .progress .p-step.done .p-dot    { background: var(--g-red); }
+  .progress .p-step.current .p-dot {
+    background: var(--g-red);
+    outline: 5px solid #fce8e6;
+  }
+  .progress .p-bar {
+    width: 74px; height: 2px;
+    background: #dadce0;
+  }
+  .progress .p-step.done + .p-step .p-bar,
+  .progress .p-bar.done { background: var(--g-red); }
+  .progress-labels {
+    display: flex;
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .progress-labels span { width: 85px; }
+  .progress-labels span.current { color: var(--ink); font-weight: 600; }
+
+  /* ---------- layout helpers ---------- */
+  .cols { display: flex; gap: 28px; }
+  .cols > div { flex: 1; min-width: 0; }
+  .cols.c-40-60 > div:first-child { flex: 0 0 40%; }
+  .cols.c-55-45 > div:first-child { flex: 0 0 55%; }
+  .vgap-s { height: 10px; }
+  .vgap   { height: 16px; }
+  .vgap-l { height: 24px; }
+
+  .callout {
+    background: #e8f0fe;
+    border-left: 4px solid var(--g-blue);
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .callout.warn { background: #fef7e0; border-color: var(--g-yellow); }
+  .callout.good { background: #e6f4ea; border-color: var(--g-green); }
+
+  .figure { text-align: center; }
+  /* figures are vector: render at full container width so diagram type
+     scales up with the space available, not at the authored pixel size */
+  .figure svg { width: 100%; height: auto; }
+  .figcap {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+
+  /* numbered list for skew slide */
+  ol.steps {
+    list-style: none;
+    counter-reset: n;
+    font-size: 16.5px;
+    line-height: 1.45;
+  }
+  ol.steps li {
+    counter-increment: n;
+    position: relative;
+    padding-left: 38px;
+    margin-bottom: 12px;
+  }
+  ol.steps li::before {
+    content: counter(n);
+    position: absolute;
+    left: 0; top: 1px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--g-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---------- speaker notes ---------- */
+  /* Per-slide notes live in the deck as <details class="notes"> siblings of the
+     slides. On screen they are hidden; the active slide's notes are mirrored
+     into the #notes-panel flyout (Notes button or N key). In print, each
+     appears under its slide. */
+  #deck > details.notes { display: none; }
+
+  #notes-panel {
+    position: fixed;
+    top: 0; right: 0; bottom: 0;
+    width: min(460px, 92vw);
+    background: #fff;
+    border-left: 1px solid var(--line);
+    box-shadow: -12px 0 32px rgba(0,0,0,.16);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(calc(100% + 40px));
+    transition: transform .22s ease;
+    z-index: 60;
+  }
+  #notes-panel.open { transform: none; }
+  #notes-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--line);
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    flex: none;
+  }
+  #notes-close {
+    margin-left: auto;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+    padding: 2px 4px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #notes-close:hover { color: var(--ink); }
+
+  #deck > details.notes summary {
+    cursor: pointer;
+    font-family: "Roboto Mono", Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+  }
+  #deck > details.notes summary::-webkit-details-marker { display: none; }
+
+  #notes-body { flex: 1; overflow-y: auto; padding: 4px 18px 56px; }
+  #notes-body > ul, .n-body > ul {
+    margin: 12px 0 2px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 15px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  #notes-body ul ul, .n-body ul ul {
+    margin-top: 8px;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14.5px;
+  }
+  #notes-body li::marker, .n-body li::marker { color: #9aa0a6; }
+
+  /* ---------- chrome ---------- */
+  #hud {
+    position: fixed;
+    right: 12px; bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    user-select: none;
+    z-index: 70;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 5px 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.10);
+  }
+  #hud button {
+    border: 1px solid var(--line);
+    background: #fff;
+    border-radius: 50%;
+    width: 30px; height: 30px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+  }
+  #hud button.pill {
+    border-radius: 15px;
+    width: auto;
+    padding: 0 12px;
+    font-size: 12.5px;
+  }
+  #hud button:hover { background: var(--panel); }
+  #hud button.pill[aria-expanded="true"] {
+    background: #e8f0fe;
+    border-color: var(--g-blue);
+    color: var(--g-blue-d);
+  }
+  #hint {
+    position: fixed;
+    left: 16px; bottom: 12px;
+    font-size: 12px;
+    color: #5f6368;
+    z-index: 50;
+    background: rgba(248,249,250,.92);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: opacity .6s ease;
+    pointer-events: none;
+  }
+  #hint.faded { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  /* ---------- print: each slide followed by its speaker notes ---------- */
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #wrap { display: block; height: auto; padding: 0; }
+    #viewport { width: auto !important; height: auto !important; position: static; }
+    #deck {
+      transform: none !important;
+      position: static;
+      width: 960px;
+      height: auto !important;
+      margin: 0 auto;
+    }
+    .slide {
+      display: block !important;
+      position: relative;
+      width: 960px;
+      /* auto height with a 540 floor: a handout slide grows to hold its
+         content rather than clipping at a fixed frame */
+      height: auto;
+      min-height: 540px;
+      margin: 0 auto 14px;
+      box-shadow: none;
+      page-break-inside: avoid;
+      /* undo on-screen auto-fit; slight shrink absorbs the wider type in
+         fixed-width code blocks */
+      zoom: 0.95 !important;
+    }
+    #deck > details.notes {
+      display: block;
+      width: 960px;
+      margin: 0 auto 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 22px;
+      page-break-after: always;
+      page-break-inside: avoid;
+    }
+    #notes-panel, #hud, #hint { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+<div id="viewport"><div id="deck">
+
+<!-- ============ 1. TITLE ============ -->
+<section class="slide title-slide">
+  <svg class="title-wedge" viewBox="0 0 960 540" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M 585 0 L 960 0 L 960 540 L 660 540 L 448 305 Q 428 283 448 261 L 560 27 Q 572 0 585 0 Z" fill="#4285F4"/>
+  </svg>
+  <svg aria-hidden="true" style="position:absolute;left:270px;bottom:40px;z-index:2" width="220" height="120" viewBox="0 0 220 120">
+    <rect x="10" y="45" width="70" height="70" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <polygon points="95,55 150,25 150,85" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="150" cy="95" r="38" fill="none" stroke="#dadce0" stroke-width="2"/>
+    <circle cx="88" cy="22" r="7" fill="#FBBC04"/>
+    <rect x="158" y="42" width="13" height="13" fill="#34A853" transform="rotate(45 164.5 48.5)"/>
+  </svg>
+  <div class="title-content">
+    <svg class="cloud-logo" width="46" height="38" viewBox="0 0 46 38" aria-hidden="true">
+      <path d="M30.6 14.1l4.1-4.1.3-1.7C27.5.5 15.6.6 8.2 8.5 6.1 10.7 4.6 13.4 3.8 16.3l1.5-.2 8.2-1.4.6-.6c3.7-4 9.9-4.6 14.1-1.2l2.4 1.2z" fill="#EA4335"/>
+      <path d="M42 16.2c-.9-3.5-2.9-6.6-5.6-9l-5.8 5.8c2.4 2 3.8 5 3.7 8.1v1c2.8 0 5.1 2.3 5.1 5.1s-2.3 5.1-5.1 5.1h-10.2l-1 1.1v6.1l1 1h10.2c7.3.1 13.3-5.8 13.4-13.1 0-4.4-2.2-8.6-5.7-11.2z" fill="#4285F4"/>
+      <path d="M13 40.5h10.2v-8.2H13c-.7 0-1.4-.2-2.1-.5l-1.4.4-4.1 4.1-.4 1.4c2.3 1.8 5.1 2.8 8 2.8z" fill="#34A853" transform="translate(0 -2.5)"/>
+      <path d="M13 11.4C5.7 11.4-.2 17.4-.1 24.7c0 4.1 1.9 7.9 5.1 10.4l5.9-5.9c-2.6-1.2-3.7-4.2-2.5-6.8 1.2-2.6 4.2-3.7 6.8-2.5.9.4 1.7 1.1 2.1 2l5.9-5.9c-2.5-3.3-6.2-5.6-10.2-4.6z" fill="#FBBC04" transform="translate(2 0)"/>
+    </svg>
+    <h1>Knowledge Catalog</h1>
+    <div class="sub">From metadata to meaning &middot; Google Cloud data governance</div>
+  </div>
+</section>
+<details class="notes" data-title="Title">
+  <summary>Speaker notes &mdash; Title</summary>
+  <div class="n-body"><ul>
+    <li><strong>The framing sentence:</strong> every other deck in this program is about <em>moving or computing</em> data. This one is about <em>knowing what you have</em> &mdash; and, increasingly, about giving AI agents that same knowledge.</li>
+    <li>Naming will confuse people, so get ahead of it: this product has been <em>Data Catalog</em>, then <em>Dataplex Universal Catalog</em>, and since April 2026 it is <strong>Knowledge Catalog</strong>. The APIs, <code>gcloud dataplex</code> commands, and billing SKUs still say "dataplex." Slide 3 has a callout for this.</li>
+    <li>Rough timing: 50&ndash;60 minutes across the four sections. If you have 45, compress Section 3's quality slide and the knowledge check.</li>
+    <li>All facts (prices, limits, service lists) verified against the August 2026 documentation; the final slide carries the links. Prices are us-central1 and drift &mdash; re-check <a href="https://cloud.google.com/dataplex/pricing">the pricing page</a> before teaching the cost slide as gospel.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 2. DIVIDER: THE MAP ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 1 of 4</div>
+    <h1>The map</h1>
+    <div class="sub">Why a data estate needs a catalog, what Knowledge Catalog actually is, and the small data model &mdash; entries and aspects &mdash; that everything else is built on.</div>
+    <div class="progress">
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span class="current">The map</span><span>Metadata in</span><span>Meaning</span><span>Cost &amp; rollout</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: The map">
+  <summary>Speaker notes &mdash; Section 1: The map</summary>
+  <div class="n-body"><ul>
+    <li><strong>The Socratic move:</strong> before advancing, ask the room how a new analyst at <em>their</em> company finds the right table today. The honest answer is almost always "you ask someone." That answer is this section's villain.</li>
+    <li>Three slides here: the problem, the product, the data model. Resist diving into features &mdash; per house style, mechanics land before product names.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 3. SCENARIO ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Fourteen tables named <span class="accent">revenue</span> &mdash; and nobody knows which one is real</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Meridian Outfitters, a mid-size retailer. The data is all there. The knowledge about the data lives in people's heads.</p>
+  <div class="cols">
+    <div style="flex:0 0 44%">
+      <ul class="body" style="font-size:15px">
+        <li>~2,400 BigQuery tables in 40 datasets, operational Postgres in <strong>Cloud SQL</strong>, a legacy <strong>Snowflake</strong> warehouse, clickstream in <strong>Pub/Sub</strong>, files in <strong>Cloud Storage</strong></li>
+        <li><strong>Priya</strong>, analyst, day one: searches for revenue, gets 14 candidate tables &mdash; three abandoned, two experimental, one real</li>
+        <li><strong>Marcus</strong>, data engineering lead: owes an auditor the provenance of <code>customer_ltv</code>, and last quarter ate a surprise bill from scans nobody remembers scheduling</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="470" height="270" viewBox="0 0 470 270">
+        <defs>
+          <marker id="arrS1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa0a6"/></marker>
+        </defs>
+        <rect x="12" y="14" width="130" height="62" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="77" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#1a73e8">BigQuery</text>
+        <text x="77" y="56" text-anchor="middle" font-size="10.5" fill="#3c4043">2,400 tables &middot; 40 datasets</text>
+        <rect x="12" y="92" width="130" height="50" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="77" y="113" text-anchor="middle" font-size="12" font-weight="700" fill="#188038">Cloud SQL</text>
+        <text x="77" y="130" text-anchor="middle" font-size="10.5" fill="#3c4043">orders, inventory</text>
+        <rect x="12" y="158" width="130" height="50" rx="8" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+        <text x="77" y="179" text-anchor="middle" font-size="12" font-weight="700" fill="#3c2f00">Snowflake</text>
+        <text x="77" y="196" text-anchor="middle" font-size="10.5" fill="#3c4043">legacy warehouse</text>
+        <rect x="160" y="92" width="130" height="50" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="225" y="113" text-anchor="middle" font-size="12" font-weight="700" fill="#1a73e8">Pub/Sub</text>
+        <text x="225" y="130" text-anchor="middle" font-size="10.5" fill="#3c4043">clickstream</text>
+        <rect x="160" y="158" width="130" height="50" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="225" y="179" text-anchor="middle" font-size="12" font-weight="700" fill="#1a73e8">Cloud Storage</text>
+        <text x="225" y="196" text-anchor="middle" font-size="10.5" fill="#3c4043">exports, files</text>
+        <rect x="160" y="14" width="130" height="62" rx="8" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <text x="225" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#5f6368">Tribal knowledge</text>
+        <text x="225" y="56" text-anchor="middle" font-size="10.5" fill="#5f6368">wikis, Slack, Dave</text>
+        <rect x="330" y="70" width="128" height="118" rx="10" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="394" y="98" text-anchor="middle" font-size="24" font-weight="700" fill="#c5221f">?</text>
+        <text x="394" y="126" text-anchor="middle" font-size="11" fill="#c5221f">Which revenue</text>
+        <text x="394" y="142" text-anchor="middle" font-size="11" fill="#c5221f">table is real?</text>
+        <text x="394" y="166" text-anchor="middle" font-size="11" fill="#c5221f">Where is the PII?</text>
+        <line x1="296" y1="117" x2="324" y2="122" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrS1)"/>
+        <line x1="148" y1="45" x2="324" y2="95" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrS1)"/>
+        <line x1="296" y1="183" x2="324" y2="160" stroke="#9aa0a6" stroke-width="1.5" marker-end="url(#arrS1)"/>
+        <text x="235" y="248" text-anchor="middle" font-size="11.5" fill="#5f6368">Five systems, zero shared map &mdash; every question routes through a person</text>
+      </svg>
+      <div class="figcap">Meridian's estate: the data is fine; the questions have nowhere to go.</div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">The data isn't missing. The <strong>map</strong> is. Duplicated work, wrong numbers in executive dashboards, and audit exposure are all symptoms of the same gap.</div>
+</section>
+<details class="notes" data-title="The scenario: Meridian Outfitters">
+  <summary>Speaker notes &mdash; The scenario: Meridian Outfitters</summary>
+  <div class="n-body"><ul>
+    <li><strong>Introduce the two characters deliberately</strong> &mdash; they carry the whole deck. Priya is the <em>discovery</em> thread (search, glossary, data products). Marcus is the <em>governance</em> thread (acquisition, lineage, quality, cost). Every later slide answers one of them.</li>
+    <li>The "14 revenue tables" number is invented but conservative &mdash; ask experienced students for their own count and enjoy the answers.</li>
+    <li>Don't over-promise on the Snowflake box: it gets cataloged by a <em>scheduled pipeline</em> (Section 2), not automatically like the Google Cloud sources. If asked now, say "it joins the map, but by a different door."</li>
+    <li>Marcus's surprise bill is the setup for the cost slide (Section 4). Plant it now; pay it off there.</li>
+    <li>Keep this slide short &mdash; it's a problem statement, not content. Two minutes, maximum.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 4. WHAT IT IS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>A catalog is a queryable map of your data &mdash; kept fresh by machines</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Knowledge Catalog stores <em>metadata</em>, never the data itself: one searchable entry per asset, across every engine Meridian runs.</p>
+  <div class="cols">
+    <div style="flex:0 0 42%">
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Governance foundation</strong> &mdash; technical metadata collected automatically; one zone-level grant propagates IAM to attached storage</li>
+        <li><strong>Context curation</strong> &mdash; Gemini infers business meaning from schemas, query logs, and usage &mdash; accumulating into a <strong>context graph</strong></li>
+        <li><strong>Context retrieval</strong> &mdash; semantic search for people, MCP tools for AI agents: the same map, two kinds of readers</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:13.5px;padding:8px 13px">Naming history: <em>Data Catalog</em> &rarr; <em>Dataplex Universal Catalog</em> &rarr; <strong>Knowledge Catalog</strong> (April 2026). APIs, <code>gcloud dataplex</code>, and billing SKUs still say <em>dataplex</em>.</div>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="480" height="272" viewBox="0 0 480 272">
+        <defs>
+          <marker id="arrS2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker>
+          <marker id="arrS2a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1a73e8"/></marker>
+          <marker id="arrS2i" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#188038"/></marker>
+          <marker id="arrS2c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#b06000"/></marker>
+        </defs>
+        <rect x="8" y="20" width="96" height="34" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="56" y="41" text-anchor="middle" font-size="11" fill="#1a73e8" font-weight="700">BigQuery</text>
+        <rect x="8" y="62" width="96" height="34" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="56" y="83" text-anchor="middle" font-size="11" fill="#1a73e8" font-weight="700">Cloud SQL</text>
+        <rect x="8" y="104" width="96" height="34" rx="7" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.4"/>
+        <text x="56" y="125" text-anchor="middle" font-size="11" fill="#3c2f00" font-weight="700">Snowflake</text>
+        <rect x="8" y="146" width="96" height="34" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="56" y="167" text-anchor="middle" font-size="11" fill="#1a73e8" font-weight="700">Vertex AI</text>
+        <line x1="108" y1="37" x2="146" y2="37" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrS2a)"/>
+        <line x1="108" y1="79" x2="146" y2="79" stroke="#188038" stroke-width="1.6" marker-end="url(#arrS2i)"/>
+        <line x1="108" y1="121" x2="146" y2="121" stroke="#b06000" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrS2c)"/>
+        <line x1="108" y1="163" x2="146" y2="163" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrS2a)"/>
+        <rect x="152" y="16" width="176" height="196" rx="12" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.6"/>
+        <text x="240" y="40" text-anchor="middle" font-size="12.5" font-weight="700" fill="#202124">Knowledge Catalog</text>
+        <rect x="166" y="52" width="148" height="44" rx="7" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.4"/>
+        <text x="240" y="70" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1a73e8">1 &middot; Governance foundation</text>
+        <text x="240" y="86" text-anchor="middle" font-size="9.5" fill="#3c4043">technical metadata, policy</text>
+        <rect x="166" y="104" width="148" height="44" rx="7" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.4"/>
+        <text x="240" y="122" text-anchor="middle" font-size="10.5" font-weight="700" fill="#3c2f00">2 &middot; Context curation</text>
+        <text x="240" y="138" text-anchor="middle" font-size="9.5" fill="#3c4043">Gemini &middot; context graph</text>
+        <rect x="166" y="156" width="148" height="44" rx="7" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+        <text x="240" y="174" text-anchor="middle" font-size="10.5" font-weight="700" fill="#188038">3 &middot; Context retrieval</text>
+        <text x="240" y="190" text-anchor="middle" font-size="9.5" fill="#3c4043">search &middot; MCP tools</text>
+        <line x1="332" y1="70" x2="372" y2="70" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS2)"/>
+        <line x1="332" y1="160" x2="372" y2="160" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS2)"/>
+        <rect x="378" y="48" width="94" height="44" rx="7" fill="#fff" stroke="#dadce0" stroke-width="1.4"/>
+        <text x="425" y="66" text-anchor="middle" font-size="10.5" font-weight="700" fill="#202124">People</text>
+        <text x="425" y="82" text-anchor="middle" font-size="9.5" fill="#5f6368">Priya searches</text>
+        <rect x="378" y="138" width="94" height="44" rx="7" fill="#fff" stroke="#dadce0" stroke-width="1.4"/>
+        <text x="425" y="156" text-anchor="middle" font-size="10.5" font-weight="700" fill="#202124">AI agents</text>
+        <text x="425" y="172" text-anchor="middle" font-size="9.5" fill="#5f6368">via MCP</text>
+        <line x1="20" y1="224" x2="44" y2="224" stroke="#1a73e8" stroke-width="1.8"/>
+        <text x="50" y="228" font-size="9.5" fill="#5f6368">automatic</text>
+        <line x1="118" y1="224" x2="142" y2="224" stroke="#188038" stroke-width="1.8"/>
+        <text x="148" y="228" font-size="9.5" fill="#5f6368">integrated (default-on)</text>
+        <line x1="272" y1="224" x2="296" y2="224" stroke="#b06000" stroke-width="1.8" stroke-dasharray="5 4"/>
+        <text x="302" y="228" font-size="9.5" fill="#5f6368">scheduled connector</text>
+        <text x="240" y="252" text-anchor="middle" font-size="11" fill="#5f6368">Metadata flows in by three doors; context flows out to people and agents</text>
+      </svg>
+      <div class="figcap">The three pillars, straight from the docs: foundation, curation, retrieval.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="What Knowledge Catalog is">
+  <summary>Speaker notes &mdash; What Knowledge Catalog is</summary>
+  <div class="n-body"><ul>
+    <li><strong>Be precise about the boundary, because it's the compliance answer too:</strong> the catalog holds metadata &mdash; names, schemas, descriptions, relationships &mdash; never rows. That's why pointing it at everything is safe, and why lineage can be shown to auditors without exposing data.</li>
+    <li>The three pillars come verbatim from the <a href="https://docs.cloud.google.com/dataplex/docs/introduction">overview doc</a>. Pillar 3 ("retrieval &mdash; for agents") is what's genuinely new in 2026 and why Google renamed the product; Section 4 lands it.</li>
+    <li>The naming callout matters practically: students will find blog posts about "Dataplex," "Dataplex Universal Catalog," and "Data Catalog." Same lineage, one current product. Data Catalog itself is deprecated and being transitioned.</li>
+    <li><strong>The three arrow styles are the acquisition story in miniature</strong> (Section 2 expands it): Google Cloud analytics sources are automatic; Cloud SQL/AlloyDB are integrated &mdash; on by default for instances created after mid-April 2026, one <code>gcloud</code> patch for older ones; Snowflake and other externals arrive by scheduled connector pipeline. Nothing external is collected "automatically."</li>
+    <li><strong>Policy propagation, precisely:</strong> for resources attached as assets in a lake/zone, granting a data role (e.g. <code>roles/dataplex.dataReader</code>) makes the service write translated IAM bindings onto the underlying buckets and datasets themselves &mdash; the principal really appears in their IAM policies; takes up to 30 minutes. It applies only to attached assets &mdash; merely cataloging a table never touches its IAM. The other compliance pattern: require a <code>DataSensitivity</code> aspect via an entry type, then <code>aspect:DataSensitivity.level=PII</code> in search is the "show me every PII asset" audit, on demand.</li>
+    <li>Anticipated question: "is this a data warehouse?" No &mdash; nothing moves. The catalog references data where it lives.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 5. DATA MODEL ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Entries hold facts; <span class="accent">aspects</span> hold meaning</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:15px">Before any definitions, look at one: the actual catalog record for Meridian's orders table. All five words, visible at once.</p>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <pre class="code" style="font-size:12px;line-height:1.55">ENTRY  <span class="st">bigquery: meridian-prod.sales.customer_orders</span>
+├─ entry group  <span class="fn">@bigquery</span>        <span class="cm">the drawer it's filed in</span>
+├─ entry type   <span class="fn">bigquery-table</span>   <span class="cm">what kind of card this is</span>
+├─ aspects                        <span class="cm">forms stapled to the card</span>
+│  ├─ <span class="kw">schema</span> (system)       24 columns: order_id, email, &hellip;
+│  ├─ <span class="kw">ContactInfo</span> (custom)  owner=sales-eng &middot; #sales-data
+│  └─ <span class="kw">DataSensitivity</span>       on the <span class="flag">email column</span>: level=PII
+└─ entry links                    <span class="cm">string to other cards</span>
+   └─ <span class="kw">definition</span> &larr; glossary term <span class="st">"Net Revenue"</span></pre>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>Entry</strong> &mdash; the index card for one asset. Tables, topics, models &mdash; but glossary terms and data products are entries too</li>
+        <li><strong>Aspect</strong> &mdash; a filled-in form stapled to the card <em>or to one column</em>; the <strong>aspect type</strong> is the blank form</li>
+        <li><strong>Entry type</strong> &mdash; the checklist: "cards of this kind must carry forms X and Y"</li>
+        <li><strong>Entry group</strong> &mdash; the drawer of cards, and the IAM boundary</li>
+        <li><strong>Entry link</strong> &mdash; typed string between two cards: <code>synonym</code>, <code>related</code>, <code>definition</code>, <code>schema-join</code></li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13px;padding:8px 13px">Every later feature is these words combined: quality score = an <strong>aspect</strong> &middot; glossary term = an <strong>entry</strong> &middot; data product = an <strong>entry</strong> &middot; lineage = <strong>its own graph</strong>, <em>not</em> entry links.</div>
+</section>
+<details class="notes" data-title="The data model">
+  <summary>Speaker notes &mdash; The data model</summary>
+  <div class="n-body"><ul>
+    <li><strong>Slow down here</strong> &mdash; this is the one abstraction slide. Walk the tree on the left top to bottom <em>before</em> touching the definitions: students should see the object first, then hear the word. The metaphor to keep using all deck: entry = index card, aspect = filled-in form stapled to it, aspect type = the blank form, entry type = the checklist of required forms, entry group = the drawer, entry link = string between two cards.</li>
+    <li>Columns are addressable: an aspect can attach to a single column (the <code>DataSensitivity</code> line in the tree), which is how column-level sensitivity tags and glossary links work. Columns come into existence when the <code>schema</code> aspect lands on an entry.</li>
+    <li>The closing callout's last clause is a deliberate landmine-defuser: lineage "links" (Section 3) are <em>observed from job runs</em> and are not entry links. Same word, different mechanism &mdash; say it now and again on the lineage slide.</li>
+    <li>For anyone migrating from Data Catalog, the rosetta stone: tag template &rarr; aspect type, tag &rarr; aspect.</li>
+    <li>Gotcha worth stating: custom aspect types referenced by an entry type must live in the <strong>same project and location</strong> as that entry type. Plan one governance project rather than scattering types.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataplex/docs/catalog-overview">metadata management overview</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 6. DIVIDER: METADATA IN ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 2 of 4</div>
+    <h1>Getting metadata in</h1>
+    <div class="sub">A catalog nobody fills is a wiki with better branding. This one fills itself: Google Cloud sources for free, everything else by pipeline &mdash; and the first implementation step is one API enable.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The map</span><span class="current">Metadata in</span><span>Meaning</span><span>Cost &amp; rollout</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: Getting metadata in">
+  <summary>Speaker notes &mdash; Section 2: Getting metadata in</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> "You now know what the map looks like. The obvious objection is: who draws it? At Meridian, nobody has time. Good &mdash; mostly, nobody has to."</li>
+    <li>The wiki jab is earned: hand-curated catalogs die in month three because curation competes with day jobs. Automatic acquisition is the design answer, and it's why this section leads with the free path.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 7. AUTO-INGESTION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Google Cloud sources catalog themselves &mdash; <span class="accent">free</span>, in near real time</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The moment the API is enabled, Meridian's 2,400 BigQuery tables are already entries. Nobody typed anything.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ul class="body" style="font-size:14px">
+        <li><strong>Auto-ingested as system entries:</strong> BigQuery (datasets, tables, views, models, routines, connections, sharing listings), Spanner, Bigtable, Pub/Sub, Cloud Storage, Vertex AI, Looker, Dataform</li>
+        <li><strong>Cloud SQL &amp; AlloyDB are integrated</strong> &mdash; on by default for instances created after mid-April 2026; older instances take one <code>gcloud &hellip; patch --enable-dataplex-integration</code></li>
+        <li><strong>Near real time</strong> &mdash; a schema change in BigQuery shows up in the catalog without a scheduled crawl</li>
+        <li>A <strong>metadata change feed</strong> on Pub/Sub notifies downstream systems of schema changes and deletions</li>
+        <li>Storage for auto-ingested technical metadata is <strong>free</strong> &mdash; the inventory costs nothing to keep</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13.5px;padding:8px 13px">Day one at Meridian: enable one API, and the Google Cloud half of the estate is inventoried.</div>
+    </div>
+    <div style="align-self:center">
+      <pre class="term" style="font-size:12px"><span class="lbl">Look up the entry the system already made</span>
+$ gcloud dataplex entries lookup \
+    projects/meridian-prod/locations/us \
+    <span class="flag">--entry</span>=bigquery.googleapis.com/\
+projects/meridian-prod/datasets/\
+sales/tables/customer_orders \
+    <span class="flag">--view</span>=ALL
+
+name: .../entryGroups/@bigquery/entries/...
+entryType: bigquery-table
+aspects:  schema, bigquery-table-spec</pre>
+      <div class="figcap" style="margin-top:8px">System entries carry the <code>schema</code> aspect &mdash; which is what makes columns addressable.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Automatic ingestion">
+  <summary>Speaker notes &mdash; Automatic ingestion</summary>
+  <div class="n-body"><ul>
+    <li><strong>The moment to land:</strong> most students think "set up a catalog" is a project. For the Google Cloud half of the estate it is an API enable &mdash; the catalog exists whether or not you look at it. Demo this live if you can: open Search in the console on any project with BigQuery tables.</li>
+    <li><strong>Change feed, concretely:</strong> Marcus creates a feed scoped to the sales datasets, filtered to <code>UPDATE</code>/<code>DELETE</code>, targeting his topic <code>catalog-changes</code>. An engineer runs <code>ALTER TABLE customer_orders DROP COLUMN legacy_sku</code>; the BigQuery integration updates the entry's <code>schema</code> aspect; the feed publishes a message with the entry name, change type, and which aspect changed; a small Cloud Run subscriber checks it against registered data contracts and pages the owning team &mdash; <em>before</em> Monday's dashboards break. Scope + filters (entry type, aspect type, CREATE/UPDATE/DELETE) are how you avoid being firehosed.</li>
+    <li>Cloud SQL nuance for older estates: the integration covers the <em>primary</em> instance (not read replicas), and pre&ndash;April-2026 instances stay invisible until someone runs the patch command &mdash; worth a slide-9 checklist item.</li>
+    <li>Source list drifts &mdash; check <a href="https://docs.cloud.google.com/bigquery/docs/use-knowledge-catalog">the BigQuery integration page</a> for the current inventory. Sharing (Analytics Hub) exchanges and listings are included, which surprises people.</li>
+    <li>"Free" is specific: <em>metadata storage</em> for auto-ingested Google Cloud technical metadata. Custom aspects you add on top are billed storage &mdash; the cost slide has the numbers.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 8. PIPELINES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The rest of the estate arrives by pipeline, not by typing</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Marcus's problem: Snowflake and the old Postgres schemas aren't Google Cloud. <strong>Managed connectivity</strong> imports their metadata on a schedule.</p>
+  <div class="figure">
+    <svg width="820" height="180" viewBox="0 0 820 180">
+      <defs>
+        <marker id="arrS8" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker>
+      </defs>
+      <path d="M 120 44 Q 410 -6 700 44" fill="none" stroke="#9aa0a6" stroke-width="1.4" stroke-dasharray="5 4"/>
+      <text x="410" y="38" text-anchor="middle" font-size="10.5" fill="#5f6368">Workflows orchestrates the run, end to end</text>
+      <rect x="14" y="52" width="132" height="76" rx="9" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.5"/>
+      <text x="80" y="82" text-anchor="middle" font-size="12" font-weight="700" fill="#3c2f00">Snowflake</text>
+      <text x="80" y="100" text-anchor="middle" font-size="10" fill="#3c4043">third-party source</text>
+      <line x1="150" y1="90" x2="188" y2="90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS8)"/>
+      <rect x="194" y="52" width="150" height="76" rx="9" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="269" y="76" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1a73e8">Connector</text>
+      <text x="269" y="93" text-anchor="middle" font-size="9.5" fill="#3c4043">container on Managed Spark</text>
+      <text x="269" y="107" text-anchor="middle" font-size="9.5" fill="#3c4043">writes files, not the catalog</text>
+      <line x1="348" y1="90" x2="386" y2="90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS8)"/>
+      <rect x="392" y="52" width="150" height="76" rx="9" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.5"/>
+      <text x="467" y="76" text-anchor="middle" font-size="11.5" font-weight="700" fill="#202124">Import files</text>
+      <text x="467" y="93" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#3c4043">*.jsonl &middot; Cloud Storage</text>
+      <text x="467" y="107" text-anchor="middle" font-size="9.5" fill="#3c4043">one ImportItem per line</text>
+      <line x1="546" y1="90" x2="584" y2="90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS8)"/>
+      <rect x="590" y="52" width="216" height="76" rx="9" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+      <text x="698" y="76" text-anchor="middle" font-size="11.5" font-weight="700" fill="#188038">Metadata import job</text>
+      <text x="698" y="93" text-anchor="middle" font-size="9.5" fill="#3c4043">catalog-side &middot; CreateMetadataJob</text>
+      <text x="698" y="107" text-anchor="middle" font-size="9.5" fill="#3c4043">writes into entry group &middot; snowflake_dw</text>
+      <text x="410" y="164" text-anchor="middle" font-size="11" fill="#5f6368">Extract &rarr; transform to catalog format &rarr; import &mdash; the same shape as any ETL job, but for metadata</text>
+    </svg>
+    <div class="figcap">A managed connectivity pipeline. Swap the leftmost box for any source you can reach.</div>
+  </div>
+  <div class="vgap-s"></div>
+  <ul class="body" style="font-size:14px">
+    <li><strong>Prebuilt connectors</strong> &mdash; Oracle, MySQL, PostgreSQL, SQL Server: configure a connection + schedule on the console's <em>Connectors</em> page, no code; each run fully overwrites the connector's entries</li>
+    <li><strong>Community connectors</strong> &mdash; Snowflake and others: open source in the <code>cloud-dataplex</code> GitHub repo, <em>not officially supported</em>; they run on the pipeline above</li>
+    <li><strong>Custom connector</strong> &mdash; anything that can emit <code>ImportItem</code> files can be cataloged; the import job doesn't care who wrote them</li>
+  </ul>
+</section>
+<details class="notes" data-title="Managed connectivity">
+  <summary>Speaker notes &mdash; Managed connectivity</summary>
+  <div class="n-body"><ul>
+    <li><strong>The design point to emphasize:</strong> the import file format is the contract. Google's connectors, community connectors, and your own script are all equal citizens &mdash; if it emits <code>ImportItem</code>, the catalog ingests it. That's the extensibility story in one sentence.</li>
+    <li><strong>The two stages are genuinely separate:</strong> the connector only extracts and writes files; loading is the metadata import job, a <em>catalog-side</em> service operation (<code>CreateMetadataJob</code>) that the orchestrator invokes as its own step. Worked example: 02:00 Workflows starts the run &rarr; Snowflake connector on Managed Spark emits <code>snowflake-metadata-20260805.jsonl</code> to <code>gs://meridian-catalog-imports/</code> &rarr; pipeline calls <code>CreateMetadataJob</code> &rarr; the job diffs the file against entry group <code>snowflake_dw</code> &rarr; by 02:20 the new <code>finance_mart.q3_revenue</code> table is searchable next to its BigQuery cousins.</li>
+    <li><strong>ImportItem format:</strong> newline-delimited JSON, &lt; 1 GiB per file, one item per line: <code>{"entry": {"name", "entryType", "aspects"}, "updateMask", "aspectKeys"}</code>. Sync modes: <code>FULL</code> for entries &mdash; <em>anything in scope but missing from the file is deleted; the file is the source of truth</em> &mdash; and <code>INCREMENTAL</code> for aspects. Monitor with <code>GetMetadataJob</code> / Cloud Logging.</li>
+    <li>If asked what runs the prebuilt connectors: they're implemented on BigQuery Data Transfer Service &mdash; Google reused its mature scheduling/credential machinery to move <em>metadata</em>. Implementation detail, not concept; students may spot BQ DTS transfer configs in the console.</li>
+    <li>Be honest about support tiers: community connectors are public repos, <em>not officially supported by Google</em>. Fine for metadata (worst case: stale entries), but say it.</li>
+    <li>Foreshadow cost: connector runs bill as the services they use &mdash; Managed Spark, Cloud Storage, Dataflow &mdash; under <em>those</em> SKUs, not Dataplex. Marcus's bill-archaeology thread continues on the cost slide.</li>
+    <li>References: <a href="https://docs.cloud.google.com/dataplex/docs/managed-connectivity-overview">managed connectivity overview</a>, <a href="https://docs.cloud.google.com/dataplex/docs/develop-custom-connector">develop a custom connector</a>.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 9. IMPLEMENTATION 1 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Implementation, step one: turn it on and take inventory</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">Meridian's first afternoon, end to end. Nothing here requires a project plan.</p>
+  <div class="cols">
+    <div style="flex:0 0 52%">
+      <ol class="steps" style="font-size:14px">
+        <li>Enable <code>dataplex.googleapis.com</code> and <code>datalineage.googleapis.com</code> in the data projects</li>
+        <li>Open Search &mdash; confirm BigQuery and Pub/Sub assets already appear as system entries</li>
+        <li>Patch the pre-2026 Cloud SQL instances (<code>--enable-dataplex-integration</code>); newer ones are on by default</li>
+        <li>Create an entry group <code>snowflake_dw</code>; schedule the Snowflake community connector against it</li>
+        <li>Grant search access broadly &mdash; searchers only ever see entries their IAM roles allow</li>
+        <li>Subscribe the access-request tool to the metadata change feed</li>
+      </ol>
+    </div>
+    <div style="align-self:center">
+      <pre class="term" style="font-size:12.5px"><span class="lbl">Verify the inventory took</span>
+$ gcloud dataplex entries search \
+    <span class="flag">--project</span>=meridian-prod \
+    "system=CLOUD_SQL"
+
+  8 entries &middot; postgres: orders, inventory, ...
+
+$ gcloud dataplex entries search \
+    <span class="flag">--project</span>=meridian-prod "revenue"
+
+  14 entries   <span class="cm"># Priya's problem, now visible</span></pre>
+      <div class="vgap-s"></div>
+      <div class="callout" style="font-size:13.5px;padding:8px 13px"><strong>IAM is the fence:</strong> the catalog never widens access. It shows each person the subset of the map they're allowed to see.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Implementation: turn it on">
+  <summary>Speaker notes &mdash; Implementation: turn it on</summary>
+  <div class="n-body"><ul>
+    <li><strong>Pacing note:</strong> this is the first of three implementation beats (the others: scheduling scans in Section 3, and the full rollout runbook at the end). Each is deliberately small &mdash; the message is that adoption is incremental, not a migration.</li>
+    <li>Step 4 deserves a beat: teams often under-grant search access out of caution. The catalog is already permission-filtered, so restricting search just recreates the tribal-knowledge problem inside the tool that was meant to fix it.</li>
+    <li>The "14 entries" search result is the deliberate cliffhanger: inventory makes the mess <em>visible</em>, not <em>resolved</em>. Section 3 resolves it.</li>
+    <li>This is demo-able in ~5 minutes on any project with existing BigQuery tables; the search console is the fastest wow.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 10. DIVIDER: MEANING ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 3 of 4</div>
+    <h1>From metadata to meaning</h1>
+    <div class="sub">Inventory tells you what exists. Meaning tells you what to trust: search that understands the business, a glossary, Gemini-drafted context, lineage, quality numbers &mdash; and a certified answer for Priya.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div><div class="p-bar"></div>
+      <div class="p-step"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The map</span><span>Metadata in</span><span class="current">Meaning</span><span>Cost &amp; rollout</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: From metadata to meaning">
+  <summary>Speaker notes &mdash; Section 3: From metadata to meaning</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> "Search now returns 14 revenue tables. An inventory of a mess is still a mess &mdash; this section is about making one of the 14 obviously, provably the right answer."</li>
+    <li>Six slides: search, glossary, Gemini, lineage &times;2, quality/products. Lineage gets two because it's on the exam of real life &mdash; audits.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 11. SEARCH ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Search that understands <span class="accent">revenue</span>, not just tables named revenue</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">One search box over every entry, aspect, and glossary term &mdash; semantic when you type a question, exact when you type an operator.</p>
+  <div class="cols">
+    <div style="flex:0 0 48%">
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Natural-language semantic search</strong> &mdash; "customer churn" finds <code>attrition_scores</code>, because meaning, not string match, does the ranking</li>
+        <li><strong>Faceted filters and logical operators</strong> for precision when you already know the shape of the answer</li>
+        <li>Search indexes <strong>aspects too</strong> &mdash; enrichment isn't decoration; it's what makes assets findable</li>
+        <li>Programmatic lookup translates a fully qualified SQL name to its catalog entry &mdash; tools can resolve <code>sales.customer_orders</code> without screen-scraping</li>
+      </ul>
+    </div>
+    <div style="align-self:center">
+      <pre class="code small"><span class="lang">Search</span><span class="cm">-- what Priya types</span>
+which table has certified quarterly revenue?
+
+<span class="cm">-- what a power user types</span>
+system=BIGQUERY AND type=TABLE
+  AND description:revenue
+
+<span class="cm">-- what a steward types</span>
+aspect:DataSensitivity.level=PII</pre>
+      <div class="vgap-s"></div>
+      <div class="callout good" style="font-size:13.5px;padding:8px 13px">Results are IAM-filtered per searcher &mdash; the same query shows Priya and Marcus different maps.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Search">
+  <summary>Speaker notes &mdash; Search</summary>
+  <div class="n-body"><ul>
+    <li><strong>Demo the contrast</strong> if you can: a keyword search for "churn" (misses) vs the semantic phrasing (hits). That contrast is the whole slide in ten seconds.</li>
+    <li>The third bullet is the strategic one: search quality is downstream of enrichment. Teams that skip aspects and glossary get a search box that's only as good as their table naming &mdash; which is how they got 14 revenue tables in the first place.</li>
+    <li>Query syntax on the right is illustrative; exact operators are in the <a href="https://docs.cloud.google.com/dataplex/docs/discover-data">discover data</a> docs. Don't teach syntax from memory &mdash; teach that both modes exist.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 12. GLOSSARY ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>One example, end to end: making <span class="accent">Net Revenue</span> mean one thing</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:15px">Glossary term, entry links, custom aspect &mdash; three mechanisms from slide 5's vocabulary, composed to resolve Priya's 14-table search.</p>
+  <div class="cols">
+    <div style="flex:0 0 48%">
+      <ol class="steps" style="font-size:13px">
+        <li>Finance writes glossary term <strong>Net Revenue</strong> &mdash; a prose definition with an owner. The term <strong>is itself an entry</strong></li>
+        <li>A <code>definition</code> <strong>entry link</strong> attaches the term to column <code>fin.revenue_daily.net_revenue</code> &mdash; the column is now findable by the business word</li>
+        <li>A <code>synonym</code> <strong>entry link</strong> joins <em>Net Sales</em>, the old finance word, to <em>Net Revenue</em> &mdash; either vocabulary lands in the same place</li>
+        <li>Orthogonal to the glossary: a <strong>Certification aspect</strong> (<code>status=certified</code>) stamped on the table &mdash; an attribute of the <em>table</em>, not a definition of a <em>word</em></li>
+      </ol>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="460" height="252" viewBox="0 0 460 252">
+        <defs>
+          <marker id="arrS12" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1a73e8"/></marker>
+        </defs>
+        <rect x="20" y="26" width="140" height="52" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.6"/>
+        <text x="90" y="48" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1a73e8">Net Revenue</text>
+        <text x="90" y="66" text-anchor="middle" font-size="9" fill="#3c4043">glossary term &middot; an entry</text>
+        <circle cx="20" cy="26" r="9" fill="#1a73e8"/>
+        <text x="20" y="30" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">1</text>
+        <rect x="20" y="152" width="140" height="48" rx="8" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+        <text x="90" y="172" text-anchor="middle" font-size="11" font-weight="700" fill="#3c4043">Net Sales</text>
+        <text x="90" y="189" text-anchor="middle" font-size="9" fill="#5f6368">old vocabulary &middot; also a term</text>
+        <line x1="90" y1="80" x2="90" y2="150" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <circle cx="90" cy="115" r="9" fill="#1a73e8"/>
+        <text x="90" y="119" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">3</text>
+        <text x="104" y="119" font-size="9.5" fill="#5f6368">synonym</text>
+        <rect x="252" y="62" width="188" height="148" rx="10" fill="#fff" stroke="#34A853" stroke-width="1.7"/>
+        <text x="346" y="84" text-anchor="middle" font-size="10.5" font-family="Roboto Mono, monospace" fill="#202124">fin.revenue_daily</text>
+        <rect x="264" y="96" width="164" height="24" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1"/>
+        <text x="272" y="112" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">order_dt</text>
+        <rect x="264" y="126" width="164" height="24" rx="4" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.3"/>
+        <text x="272" y="142" font-size="9.5" font-family="Roboto Mono, monospace" fill="#1a73e8">net_revenue</text>
+        <rect x="264" y="156" width="164" height="24" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1"/>
+        <text x="272" y="172" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">region</text>
+        <line x1="160" y1="58" x2="258" y2="132" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrS12)"/>
+        <circle cx="200" cy="88" r="9" fill="#1a73e8"/>
+        <text x="200" y="92" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">2</text>
+        <text x="188" y="92" text-anchor="end" font-size="9.5" fill="#5f6368">definition</text>
+        <rect x="322" y="42" width="130" height="24" rx="12" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.4"/>
+        <text x="392" y="58" text-anchor="middle" font-size="9" font-weight="700" fill="#3c2f00">Certification &middot; certified</text>
+        <circle cx="322" cy="42" r="9" fill="#1a73e8"/>
+        <text x="322" y="46" text-anchor="middle" font-size="10" font-weight="700" fill="#fff">4</text>
+        <text x="230" y="240" text-anchor="middle" font-size="10.5" fill="#5f6368">Term &rarr; link &rarr; column; the aspect rides on the table. Four objects, one answer.</text>
+      </svg>
+      <div class="figcap">The numbers match the steps &mdash; walk them in order.</div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout good" style="font-size:13px;padding:8px 13px">Priya's search works because all four cooperate: her query matches the term <strong>(1)</strong>, links walk to the column <strong>(2&ndash;3)</strong>, and the aspect says which of the 14 candidates finance stands behind <strong>(4)</strong>.</div>
+</section>
+<details class="notes" data-title="Glossary and enrichment">
+  <summary>Speaker notes &mdash; Glossary and enrichment</summary>
+  <div class="n-body"><ul>
+    <li><strong>The Socratic move:</strong> ask two students to define "active customer." When their answers differ, you've demonstrated the glossary's job better than any slide.</li>
+    <li><strong>Name the primitives as you walk the steps</strong> &mdash; this slide is slide 5's vocabulary paying off: the term is an <em>entry</em>, both attachments are <em>entry links</em>, certification is an <em>aspect</em>. Nothing new was invented; three existing objects were composed.</li>
+    <li>Column-level term linking is the differentiator over Data Catalog's glossary &mdash; a term like <em>Net Revenue</em> points at the exact column, not just the table. That's what step 2's link does.</li>
+    <li>If asked what the Certification aspect type looks like: a small JSON template &mdash; <code>status</code> enum (<code>certified</code>/<code>deprecated</code>) plus an <code>owner</code> string &mdash; defined once, stamped on every certified asset, searchable forever. Real schema in the <a href="https://docs.cloud.google.com/dataplex/docs/catalog-overview">catalog docs</a>.</li>
+    <li><strong>The social truth (was on the slide, still true):</strong> glossaries succeed socially, not technically &mdash; domain owners must write the definitions. A glossary authored by central IT alone is just another wiki. Field experience, not docs; own it as opinion, hold it firmly.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 13. GEMINI CURATION ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Gemini writes the <span class="accent">first draft</span> of your documentation</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">2,400 tables will never be hand-documented. Curation at that scale is an inference job &mdash; and inference is now cheap.</p>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Automated metadata generation</strong> &mdash; Gemini drafts descriptions for tables and columns at scale; stewards review and accept</li>
+        <li>Business intent is inferred from <strong>schemas, query logs, and semantic models</strong> &mdash; how data is <em>used</em> reveals what it <em>means</em></li>
+        <li>The result accumulates into the <strong>context graph</strong>: a live map of how assets relate to business concepts</li>
+        <li><strong>Example queries</strong> &mdash; verified SQL patterns capturing real business logic ("quarterly net revenue, the approved way"), reusable by people and agents alike</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="430" height="240" viewBox="0 0 430 240">
+        <defs>
+          <marker id="arrS13" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker>
+        </defs>
+        <rect x="10" y="16" width="118" height="40" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.4"/>
+        <text x="69" y="40" text-anchor="middle" font-size="10.5" fill="#3c4043">schemas</text>
+        <rect x="10" y="64" width="118" height="40" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.4"/>
+        <text x="69" y="88" text-anchor="middle" font-size="10.5" fill="#3c4043">query logs</text>
+        <rect x="10" y="112" width="118" height="40" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.4"/>
+        <text x="69" y="136" text-anchor="middle" font-size="10.5" fill="#3c4043">semantic models</text>
+        <line x1="132" y1="84" x2="168" y2="84" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS13)"/>
+        <rect x="174" y="56" width="104" height="56" rx="9" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.6"/>
+        <text x="226" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#1a73e8">Gemini</text>
+        <text x="226" y="98" text-anchor="middle" font-size="9.5" fill="#3c4043">inference</text>
+        <line x1="282" y1="84" x2="318" y2="84" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS13)"/>
+        <rect x="324" y="14" width="98" height="44" rx="7" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+        <text x="373" y="32" text-anchor="middle" font-size="10" font-weight="700" fill="#188038">descriptions</text>
+        <text x="373" y="48" text-anchor="middle" font-size="9" fill="#3c4043">drafts, reviewed</text>
+        <rect x="324" y="66" width="98" height="44" rx="7" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+        <text x="373" y="84" text-anchor="middle" font-size="10" font-weight="700" fill="#188038">context graph</text>
+        <text x="373" y="100" text-anchor="middle" font-size="9" fill="#3c4043">relationships</text>
+        <rect x="324" y="118" width="98" height="44" rx="7" fill="#e6f4ea" stroke="#34A853" stroke-width="1.4"/>
+        <text x="373" y="136" text-anchor="middle" font-size="10" font-weight="700" fill="#188038">example queries</text>
+        <text x="373" y="152" text-anchor="middle" font-size="9" fill="#3c4043">verified SQL</text>
+        <line x1="324" y1="36" x2="298" y2="60" stroke="#dadce0" stroke-width="1.2"/>
+        <line x1="324" y1="140" x2="298" y2="110" stroke="#dadce0" stroke-width="1.2"/>
+        <text x="216" y="212" text-anchor="middle" font-size="11" fill="#5f6368">Usage in, context out &mdash; a steward approves; the catalog remembers</text>
+      </svg>
+      <div class="figcap">Curation as inference: the "Knowledge" in the product name is earned here.</div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13.5px;padding:8px 13px">Billing note: Gemini-powered features (data insights, automated metadata) bill through <strong>Gemini in BigQuery</strong> &mdash; not the Dataplex SKUs on the cost slide.</div>
+</section>
+<details class="notes" data-title="Gemini curation">
+  <summary>Speaker notes &mdash; Gemini curation</summary>
+  <div class="n-body"><ul>
+    <li><strong>Set expectations precisely:</strong> generated descriptions are drafts for steward review, not truth. The failure mode is auto-accepting plausible-but-wrong descriptions &mdash; which poisons search <em>and</em> any agent grounded on the catalog. Human review is the quality gate.</li>
+    <li>"Query logs reveal meaning" deserves a concrete example: if every finance query joins <code>orders</code> to <code>refunds</code> before summing, that join <em>is</em> the de facto definition of net revenue &mdash; and it becomes the example query.</li>
+    <li>Example queries reappear on the MCP slide: they're what keeps agent-generated SQL on the approved path. Plant that connection now.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataplex/docs/introduction">overview</a> &mdash; context graph and example queries are named concepts there.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 14. LINEAGE 1 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Lineage answers: <span class="accent">where did this number come from?</span></h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The auditor asks Marcus about <code>customer_ltv</code>. Instead of a week of archaeology, he opens a graph.</p>
+  <div class="figure">
+    <svg width="830" height="150" viewBox="0 0 830 150">
+      <defs>
+        <marker id="arrL1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1a73e8"/></marker>
+      </defs>
+      <rect x="10" y="40" width="118" height="56" rx="8" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.5"/>
+      <text x="69" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#3c4043">Cloud Storage</text>
+      <text x="69" y="82" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">orders_*.csv</text>
+      <line x1="132" y1="68" x2="166" y2="68" stroke="#1a73e8" stroke-width="1.7" marker-end="url(#arrL1)"/>
+      <rect x="172" y="40" width="118" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="231" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#1a73e8">Dataflow job</text>
+      <text x="231" y="82" text-anchor="middle" font-size="9.5" fill="#5f6368">process &middot; nightly run</text>
+      <line x1="294" y1="68" x2="328" y2="68" stroke="#1a73e8" stroke-width="1.7" marker-end="url(#arrL1)"/>
+      <rect x="334" y="40" width="118" height="56" rx="8" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.5"/>
+      <text x="393" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#3c4043">staging table</text>
+      <text x="393" y="82" text-anchor="middle" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">stg.orders_clean</text>
+      <line x1="456" y1="68" x2="490" y2="68" stroke="#1a73e8" stroke-width="1.7" marker-end="url(#arrL1)"/>
+      <rect x="496" y="40" width="118" height="56" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="555" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#1a73e8">scheduled query</text>
+      <text x="555" y="82" text-anchor="middle" font-size="9.5" fill="#5f6368">process &middot; MERGE</text>
+      <line x1="618" y1="68" x2="652" y2="68" stroke="#1a73e8" stroke-width="1.7" marker-end="url(#arrL1)"/>
+      <rect x="658" y="40" width="118" height="56" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.7"/>
+      <text x="717" y="64" text-anchor="middle" font-size="11" font-weight="700" fill="#188038">customer_ltv</text>
+      <text x="717" y="82" text-anchor="middle" font-size="9.5" fill="#5f6368">&rarr; Looker dashboard</text>
+      <text x="415" y="132" text-anchor="middle" font-size="11" fill="#5f6368">Every hop recorded automatically as the jobs ran &mdash; nobody documented this; the services reported it</text>
+    </svg>
+    <div class="figcap">Upstream of the audited table, reconstructed from what actually executed.</div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li>The model: a <strong>process</strong> has <strong>runs</strong>; runs emit <strong>events</strong> whose <strong>links</strong> connect source to target &mdash; <em>observed</em> links, not slide 5's curated entry links</li>
+        <li><strong>Reported automatically</strong> by BigQuery, Dataflow, Cloud Data Fusion, Composer/Airflow, managed Spark, Vertex AI Pipelines, Looker, and more &mdash; once the Data Lineage API is on</li>
+        <li>Enabled per <strong>project</strong>, not per service &mdash; one switch covers every supported engine in it</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 34%">
+      <div class="callout good" style="font-size:13.5px;padding:9px 13px">Lineage records metadata <em>about</em> movement &mdash; never row contents. That's why Marcus can hand the graph itself to the auditor.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Lineage: the graph">
+  <summary>Speaker notes &mdash; Lineage: the graph</summary>
+  <div class="n-body"><ul>
+    <li><strong>Be precise about direction, because impact analysis reverses it:</strong> the auditor walks <em>upstream</em> (where did this come from); the engineer deleting a column walks <em>downstream</em> (who breaks). Same graph, both directions &mdash; next slide.</li>
+    <li>The "automatic" claim has a boundary: it covers the listed Google Cloud services. A Python script that rewrites a table via the client library appears as a BigQuery job (captured); movement done entirely outside Google Cloud does not &mdash; that's what OpenLineage import is for.</li>
+    <li>Process/run/event mirrors how students already think about Dataflow: pipeline/job/step. Use that analogy. These are the Data Lineage API's official resource names (<code>processes</code>, <code>processes.runs</code>, <code>runs.lineageEvents</code>; <code>searchLinks</code> returns the links).</li>
+    <li><strong>Operational facts for the questions that always come:</strong> processing bills as <em>premium</em> DCU-hours (billing label <code>goog-dataplex-workload-type: LINEAGE</code>) and stored lineage counts as metadata storage; reads &mdash; console graphs and API &mdash; are free. It's opt-in per project because enabling starts metered background collection, and recording who-transforms-what is itself a governance decision (VPC-SC supported; CMEK not). Storage is the lineage service's own Google-managed regional storage &mdash; you can't query it directly; for history beyond 30 days, export via the API into your own BigQuery dataset on a schedule.</li>
+    <li>Reference: <a href="https://docs.cloud.google.com/dataplex/docs/about-data-lineage">about data lineage</a> &mdash; the supported-services list drifts; re-check it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 15. LINEAGE 2 ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Column-level lineage &mdash; and the fine print</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:15px">Table-level answers "which tables feed this?" Column-level answers the auditor's real question: "which <em>fields</em> contain derived PII?"</p>
+  <div class="figure">
+    <svg width="830" height="150" viewBox="0 0 830 150">
+      <defs>
+        <marker id="arrL2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#1a73e8"/></marker>
+      </defs>
+      <rect x="10" y="24" width="152" height="94" rx="8" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+      <text x="86" y="42" text-anchor="middle" font-size="10" font-family="Roboto Mono, monospace" fill="#202124">raw.orders</text>
+      <rect x="20" y="52" width="132" height="24" rx="4" fill="#fce8e6" stroke="#EA4335" stroke-width="1.2"/>
+      <text x="28" y="68" font-size="9.5" font-family="Roboto Mono, monospace" fill="#c5221f">email</text>
+      <text x="144" y="68" text-anchor="end" font-size="8.5" font-weight="700" fill="#c5221f">PII</text>
+      <rect x="20" y="84" width="132" height="24" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1"/>
+      <text x="28" y="100" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">order_id</text>
+      <line x1="156" y1="64" x2="222" y2="68" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrL2)"/>
+      <rect x="228" y="46" width="146" height="50" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+      <text x="301" y="66" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1a73e8">Dataflow job</text>
+      <text x="301" y="84" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#3c4043">SHA256(email)</text>
+      <line x1="378" y1="68" x2="444" y2="64" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrL2)"/>
+      <rect x="450" y="24" width="160" height="94" rx="8" fill="#fff" stroke="#dadce0" stroke-width="1.5"/>
+      <text x="530" y="42" text-anchor="middle" font-size="10" font-family="Roboto Mono, monospace" fill="#202124">stg.orders_clean</text>
+      <rect x="460" y="52" width="140" height="24" rx="4" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.2"/>
+      <text x="468" y="68" font-size="9.5" font-family="Roboto Mono, monospace" fill="#3c2f00">email_hash</text>
+      <rect x="460" y="84" width="140" height="24" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1"/>
+      <text x="468" y="100" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">order_id</text>
+      <line x1="604" y1="64" x2="656" y2="64" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#arrL2)"/>
+      <text x="630" y="54" text-anchor="middle" font-size="8.5" fill="#5f6368">MERGE</text>
+      <rect x="662" y="24" width="158" height="94" rx="8" fill="#fff" stroke="#34A853" stroke-width="1.7"/>
+      <text x="741" y="42" text-anchor="middle" font-size="10" font-family="Roboto Mono, monospace" fill="#202124">mart.customer_ltv</text>
+      <rect x="672" y="52" width="138" height="24" rx="4" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.2"/>
+      <text x="680" y="68" font-size="9.5" font-family="Roboto Mono, monospace" fill="#3c2f00">email_hash</text>
+      <rect x="672" y="84" width="138" height="24" rx="4" fill="#f8f9fa" stroke="#dadce0" stroke-width="1"/>
+      <text x="680" y="100" font-size="9.5" font-family="Roboto Mono, monospace" fill="#5f6368">ltv</text>
+      <text x="415" y="140" text-anchor="middle" font-size="11" fill="#5f6368">Column arrows, not table arrows &mdash; the hash travels, and the graph knows it came from PII</text>
+    </svg>
+    <div class="figcap">The auditor's answer, drawn: <code>email_hash</code> <em>is</em> derived PII &mdash; and the graph proves where it came from.</div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="cols">
+    <div style="flex:0 0 55%">
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>Capability</th><th>Limit</th></tr>
+        <tr><td>Column links (BigQuery jobs)</td><td>top-level columns only &mdash; no nested <code>STRUCT</code>/<code>JSON</code></td></tr>
+        <tr><td>Load jobs &amp; routines</td><td>no column-level links</td></tr>
+        <tr><td>Links per job</td><td>capped at 1,500</td></tr>
+        <tr><td>Console traversal</td><td>20 levels &middot; 10,000 links; deeper is an API job</td></tr>
+      </table>
+    </div>
+    <div>
+      <ul class="body" style="font-size:13px">
+        <li><strong>OpenLineage import</strong> &mdash; the inbound door: jobs outside Google Cloud publish events into the same graph</li>
+      </ul>
+      <div class="vgap-s"></div>
+      <div class="callout warn" style="font-size:13px;padding:8px 13px"><strong>Retention is 30 days.</strong> A year of provenance means exporting on a schedule &mdash; the graph is not an archive.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Lineage: fine print">
+  <summary>Speaker notes &mdash; Lineage: fine print</summary>
+  <div class="n-body"><ul>
+    <li><strong>Lead with the impact-analysis scenario:</strong> Meridian wants to drop <code>orders.legacy_sku</code>. Downstream column-level lineage lists every consuming query and dashboard <em>before</em> the breakage, not after the pager goes off.</li>
+    <li>The limits are the honest part of the slide &mdash; teach them, don't bury them: nested fields invisible, load jobs untracked at column level, partitioning pseudo-columns unrecognized. Column lineage is strong evidence, not a complete proof.</li>
+    <li>Read APIs, if asked: <code>searchLinks</code> returns one hop per call (POST with the target's <code>fullyQualifiedName</code>, e.g. <code>bigquery:meridian-prod.mart.customer_ltv</code>); loop it, or use the streaming search to walk up to 100 levels for a full graph. Both are free to call.</li>
+    <li>The 30-day retention callout is the single most-missed fact in this deck. Compliance teams assume catalogs are archives; this one is a rolling window. Repeat it during the knowledge check.</li>
+    <li>Cost hook for the next section: lineage bills under <em>premium</em> processing, labeled <code>goog-dataplex-workload-type: LINEAGE</code> in billing exports.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 16. QUALITY + PRODUCTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Trust needs numbers: profiling, quality scans, data products</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">"Certified" is a claim. A scan score is evidence &mdash; published into the catalog where every searcher sees it.</p>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <ul class="body" style="font-size:14.5px">
+        <li><strong>Data profiling</strong> &mdash; automated stats per column: null rates, distinct counts, distributions. The "what's actually in here?" answer</li>
+        <li><strong>Auto data quality scans</strong> &mdash; declared rules (freshness, ranges, uniqueness) run on schedule; results publish to the entry as aspects</li>
+        <li><strong>Data products</strong> &mdash; curated bundles of assets with shared governance and SLAs; Meridian ships <em>Certified Revenue</em> as one product, not 14 tables</li>
+        <li>Priya's search now returns one obvious answer: the product &mdash; term-linked, certified, quality-scored, lineage-backed</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="430" height="252" viewBox="0 0 430 252">
+        <defs>
+          <marker id="arrS16" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker>
+        </defs>
+        <rect x="12" y="30" width="122" height="58" rx="8" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="73" y="54" text-anchor="middle" font-size="11" font-weight="700" fill="#1a73e8">quality scan</text>
+        <text x="73" y="72" text-anchor="middle" font-size="9.5" fill="#3c4043">nightly &middot; 6 rules</text>
+        <line x1="138" y1="59" x2="174" y2="59" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS16)"/>
+        <rect x="180" y="20" width="160" height="78" rx="9" fill="#fff" stroke="#34A853" stroke-width="1.7"/>
+        <text x="260" y="42" text-anchor="middle" font-size="10.5" font-family="Roboto Mono, monospace" fill="#202124">fin.revenue_daily</text>
+        <rect x="194" y="52" width="60" height="22" rx="11" fill="#e6f4ea" stroke="#34A853" stroke-width="1.2"/>
+        <text x="224" y="67" text-anchor="middle" font-size="9.5" font-weight="700" fill="#188038">98.6%</text>
+        <rect x="260" y="52" width="68" height="22" rx="11" fill="#fef7e0" stroke="#FBBC04" stroke-width="1.2"/>
+        <text x="294" y="67" text-anchor="middle" font-size="9.5" font-weight="700" fill="#3c2f00">certified</text>
+        <text x="260" y="90" text-anchor="middle" font-size="8.5" fill="#5f6368">scores &amp; status are aspects on the entry</text>
+        <rect x="60" y="132" width="330" height="94" rx="10" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.6"/>
+        <text x="225" y="154" text-anchor="middle" font-size="11.5" font-weight="700" fill="#202124">DATA PRODUCT &middot; Certified Revenue</text>
+        <rect x="76" y="166" width="90" height="40" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.2"/>
+        <text x="121" y="190" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#1a73e8">revenue_daily</text>
+        <rect x="172" y="166" width="90" height="40" rx="6" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.2"/>
+        <text x="217" y="190" text-anchor="middle" font-size="9" font-family="Roboto Mono, monospace" fill="#1a73e8">revenue_qtd</text>
+        <rect x="268" y="166" width="106" height="40" rx="6" fill="#fff" stroke="#dadce0" stroke-width="1.2"/>
+        <text x="321" y="184" text-anchor="middle" font-size="9" fill="#3c4043">SLA + owner +</text>
+        <text x="321" y="197" text-anchor="middle" font-size="9" fill="#3c4043">glossary terms</text>
+        <line x1="260" y1="102" x2="240" y2="128" stroke="#5f6368" stroke-width="1.5" marker-end="url(#arrS16)"/>
+        <text x="225" y="244" text-anchor="middle" font-size="10.5" fill="#5f6368">Evidence attaches to entries; entries bundle into a governed product</text>
+      </svg>
+      <div class="figcap">From claim to evidence to product &mdash; the certified answer Priya searches for.</div>
+    </div>
+  </div>
+  <div class="vgap-s"></div>
+  <div class="callout" style="font-size:13.5px;padding:8px 13px"><strong>Cost levers, planted for the next section:</strong> scans support <em>sampling</em> and <em>incremental</em> runs &mdash; scan the new partition nightly, not 5 years of history.</div>
+</section>
+<details class="notes" data-title="Quality and data products">
+  <summary>Speaker notes &mdash; Quality and data products</summary>
+  <div class="n-body"><ul>
+    <li><strong>The through-line:</strong> quality results are just aspects (slide 5's vocabulary paying off) &mdash; which is why they're searchable and why a failing scan can change what discovery ranks first.</li>
+    <li>Profiling vs quality, crisply: profiling <em>describes</em> (no opinion), quality <em>judges</em> (against your rules). Run profiling first &mdash; it tells you which rules are worth writing.</li>
+    <li>Scans run on schedules against BigQuery data and bill premium DCUs; anomaly-detection scans instead bill as BigQuery/BQML. Details next slide &mdash; keep this one conceptual.</li>
+    <li>Data products close Priya's arc. Deliberately echo slide 3's question and answer it: "which of the 14 is real?" &mdash; the one inside the product.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 17. DIVIDER: COST & ROLLOUT ============ -->
+<section class="slide divider">
+  <div class="div-inner">
+    <div class="kicker"></div>
+    <div class="sec-no">Section 4 of 4</div>
+    <h1>Agents, cost, rollout</h1>
+    <div class="sub">The catalog as an AI grounding layer, what the meter actually charges &mdash; Marcus finally decodes his bill &mdash; and Meridian's six-step runbook from sprawl to certified.</div>
+    <div class="progress">
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step done"><span class="p-dot"></span></div><div class="p-bar done"></div>
+      <div class="p-step current"><span class="p-dot"></span></div>
+    </div>
+    <div class="progress-labels">
+      <span>The map</span><span>Metadata in</span><span>Meaning</span><span class="current">Cost &amp; rollout</span>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Agents, cost, rollout">
+  <summary>Speaker notes &mdash; Section 4: Agents, cost, rollout</summary>
+  <div class="n-body"><ul>
+    <li><strong>The transition sentence:</strong> "Everything so far served people. The newest reader of your catalog doesn't have eyes &mdash; and it's the reason this product got a new name."</li>
+    <li>Three slides plus the check: agents, money, runbook. The cost slide is dense &mdash; budget time for it.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 18. MCP / AGENTS ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>The catalog is how AI agents learn what your data <span class="accent">means</span></h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">An agent asked "what was net revenue last quarter?" will confidently query the wrong table &mdash; unless something tells it which one is right. That something is the catalog.</p>
+  <div class="cols">
+    <div style="flex:0 0 46%">
+      <ul class="body" style="font-size:14.5px">
+        <li>Knowledge Catalog ships an <strong>MCP server</strong> (local and remote) &mdash; Model Context Protocol, the open standard agents use to discover and call tools</li>
+        <li>Agents get the same map people do: <strong>search, glossary, lineage, example queries</strong> &mdash; IAM-filtered, like every other reader</li>
+        <li>The <strong>context graph + verified example queries</strong> keep generated SQL on approved sources and approved logic &mdash; grounding, not vibes</li>
+        <li>Same catalog work, double payoff: everything Meridian curated for Priya now grounds its agents</li>
+      </ul>
+    </div>
+    <div class="figure" style="align-self:center">
+      <svg width="450" height="248" viewBox="0 0 450 248">
+        <defs>
+          <marker id="arrS18" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker>
+        </defs>
+        <rect x="10" y="86" width="112" height="60" rx="9" fill="#fce8e6" stroke="#EA4335" stroke-width="1.5"/>
+        <text x="66" y="112" text-anchor="middle" font-size="11.5" font-weight="700" fill="#c5221f">AI agent</text>
+        <text x="66" y="130" text-anchor="middle" font-size="9.5" fill="#3c4043">"net revenue?"</text>
+        <line x1="126" y1="116" x2="162" y2="116" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS18)"/>
+        <rect x="168" y="86" width="104" height="60" rx="9" fill="#e8f0fe" stroke="#4285F4" stroke-width="1.5"/>
+        <text x="220" y="112" text-anchor="middle" font-size="11.5" font-weight="700" fill="#1a73e8">MCP server</text>
+        <text x="220" y="130" text-anchor="middle" font-size="9.5" fill="#3c4043">catalog tools</text>
+        <line x1="276" y1="116" x2="312" y2="116" stroke="#5f6368" stroke-width="1.6" marker-end="url(#arrS18)"/>
+        <rect x="318" y="14" width="122" height="42" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.3"/>
+        <text x="379" y="40" text-anchor="middle" font-size="10" fill="#3c4043">semantic search</text>
+        <rect x="318" y="64" width="122" height="42" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.3"/>
+        <text x="379" y="90" text-anchor="middle" font-size="10" fill="#3c4043">context graph</text>
+        <rect x="318" y="114" width="122" height="42" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.3"/>
+        <text x="379" y="140" text-anchor="middle" font-size="10" fill="#3c4043">example queries</text>
+        <rect x="318" y="164" width="122" height="42" rx="7" fill="#f8f9fa" stroke="#dadce0" stroke-width="1.3"/>
+        <text x="379" y="190" text-anchor="middle" font-size="10" fill="#3c4043">lineage &amp; quality</text>
+        <line x1="318" y1="35" x2="286" y2="86" stroke="#dadce0" stroke-width="1.2"/>
+        <line x1="318" y1="185" x2="286" y2="146" stroke="#dadce0" stroke-width="1.2"/>
+        <rect x="96" y="182" width="176" height="44" rx="8" fill="#e6f4ea" stroke="#34A853" stroke-width="1.5"/>
+        <text x="184" y="200" text-anchor="middle" font-size="10.5" font-weight="700" fill="#188038">governed answer</text>
+        <text x="184" y="216" text-anchor="middle" font-size="9" fill="#3c4043">certified table &middot; approved SQL</text>
+        <line x1="184" y1="150" x2="184" y2="176" stroke="#34A853" stroke-width="1.6" marker-end="url(#arrS18)"/>
+        <text x="150" y="166" text-anchor="middle" font-size="9" fill="#188038">grounded</text>
+      </svg>
+      <div class="figcap">Grounding an agent = giving it the map, not more confidence.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agents and MCP">
+  <summary>Speaker notes &mdash; Agents and MCP</summary>
+  <div class="n-body"><ul>
+    <li><strong>The argument in one line:</strong> hallucination in enterprise NL-to-SQL is mostly a <em>context</em> failure, not a model failure &mdash; the model never knew which of the 14 revenue tables was real either. The catalog is where that knowledge lives; MCP is the plug.</li>
+    <li>Students who've built agents will recognize MCP immediately; for the rest: an open protocol for exposing tools to any agent framework &mdash; not a Google-proprietary interface.</li>
+    <li>Governance point worth pausing on: agents authenticate and get IAM-filtered results like any user. No side door.</li>
+    <li>Demo idea: data insights in BigQuery Studio (Gemini-generated questions/queries about a table) shows catalog-grounded generation without any agent setup.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 19. COST ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>What it costs &mdash; and where the meter actually runs</h1>
+  <p class="lede" style="margin-bottom:8px;font-size:15px">Marcus decodes the bill: metadata is nearly free; <em>processing</em> &mdash; lineage, scans &mdash; is what you tune. Prices: us-central1, August 2026.</p>
+  <table class="tbl" style="font-size:13px">
+    <tr><th>What</th><th>Billing tier</th><th>Price</th><th>Notes</th></tr>
+    <tr><td>Discovery scans</td><td>Standard processing</td><td>$0.06 / DCU-hr</td><td class="yes">first 100 DCU-hr/mo free</td></tr>
+    <tr class="hl"><td>Lineage &middot; data quality &middot; profiling</td><td>Premium processing</td><td>$0.089 / DCU-hr</td><td>no free tier</td></tr>
+    <tr><td>Metadata storage (your aspects)</td><td>Storage</td><td>&asymp; $2 / GiB-month</td><td>auto-ingested GC technical metadata: <span class="yes">free</span></td></tr>
+    <tr><td>API calls, search, lineage reads</td><td>&mdash;</td><td class="yes">free</td><td>manage, search, traverse at will</td></tr>
+    <tr><td>Connector &amp; scan job infrastructure</td><td>Spark / BigQuery / Dataflow&hellip;</td><td>their prices</td><td>bills under <em>those</em> services, not Dataplex</td></tr>
+  </table>
+  <div class="vgap-s"></div>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:13.5px">
+        <li><strong>DCU = Data Compute Unit</strong> &mdash; Dataplex's slot: metered managed compute</li>
+        <li>Napkin: 5M aspects &times; 1&nbsp;KB &asymp; 5&nbsp;GiB &asymp; <strong>$10/month</strong> &mdash; documenting everything is lunch money</li>
+        <li>Billing labels attribute spend: <code>goog-dataplex-workload-type</code> = <code>LINEAGE</code> / <code>DATA_QUALITY</code> &mdash; how Marcus found the scans</li>
+      </ul>
+    </div>
+    <div style="flex:0 0 38%">
+      <div class="callout warn" style="font-size:13px;padding:8px 13px"><strong>The tuning levers:</strong> sample instead of full-scan, scan incrementally (new partitions only), and schedule to match how often the data actually changes.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Cost">
+  <summary>Speaker notes &mdash; Cost</summary>
+  <div class="n-body"><ul>
+    <li><strong>The pattern to teach:</strong> storage-cheap, processing-metered. Nobody has ever been surprised by a metadata storage bill; plenty have been surprised by an unsampled daily quality scan over five years of history. That was Marcus's bill.</li>
+    <li>DCU-hour is an abstract unit (billed per second, one-minute minimum) &mdash; consumption scales with rows, columns, rule complexity, and scan frequency. You can't precompute it exactly; you <em>can</em> bound it with sampling and incremental scans, then read actuals off the billing label.</li>
+    <li><strong>Standard vs premium is a billing split, not a performance one</strong> &mdash; the tier is decided by which feature family consumed the compute (discovery = standard; lineage, quality, profiling = premium). Nothing runs faster on premium.</li>
+    <li><strong>What lineage does that burns DCUs:</strong> every finished job's events get processed &mdash; the SQL/job graph parsed into inputs&rarr;outputs, up to 1,500 column mappings resolved, process/run/event records written into the graph. It scales with job volume: 50,000 queries a day generates far more lineage processing than 500. No published formula &mdash; watch the <code>LINEAGE</code> billing label for a week and extrapolate.</li>
+    <li>Quirk worth naming: a custom execution identity on a scan bills compute to <em>your BigQuery project</em> instead of premium DCUs &mdash; changes which budget owns the cost.</li>
+    <li>Free-tier nuance: the 100 DCU-hr/month applies to <em>standard</em> only; premium (lineage, quality) has no free tier &mdash; but lineage's premium usage for typical estates is small.</li>
+    <li>Prices drift; SKUs still say "Dataplex." Re-check <a href="https://cloud.google.com/dataplex/pricing">the pricing page</a> the week you teach this.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 20. ROLLOUT ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Meridian's rollout: six steps from sprawl to certified</h1>
+  <p class="lede" style="margin-bottom:10px;font-size:15.5px">The whole deck as one runbook &mdash; each step small, each one shipping value before the next begins.</p>
+  <div class="cols">
+    <div style="flex:0 0 50%">
+      <ol class="steps" style="font-size:13.5px">
+        <li>Enable the catalog and lineage APIs across data projects</li>
+        <li>Let auto-ingestion inventory Google Cloud &mdash; free, immediate</li>
+        <li>Patch legacy Cloud SQL instances; pipeline Snowflake via managed connectivity</li>
+        <li>Stand up the glossary + required aspect types on an entry type; let Gemini draft, stewards approve</li>
+        <li>Schedule sampled, incremental quality scans on tier-1 tables; publish scores to the catalog</li>
+        <li>Package <em>Certified Revenue</em> as a data product; expose the catalog to agents over MCP</li>
+      </ol>
+    </div>
+    <div style="align-self:center">
+      <table class="tbl" style="font-size:12.5px">
+        <tr><th>Symptom</th><th>Feature that fixes it</th></tr>
+        <tr><td>14 tables named revenue</td><td>glossary + certified data product</td></tr>
+        <tr><td>"Ask Dave" as discovery</td><td>semantic search over aspects</td></tr>
+        <tr><td>Auditor asks for provenance</td><td>lineage graph, exported &gt; 30 days</td></tr>
+        <tr><td>Docs never written</td><td>Gemini drafts, steward review</td></tr>
+        <tr><td>Surprise scan bill</td><td>labels + sampling + incremental</td></tr>
+        <tr><td>Agent queries wrong table</td><td>MCP + context graph grounding</td></tr>
+      </table>
+      <div class="figcap" style="margin-top:8px">Every symptom from slide 3, paired with its lever.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Rollout runbook">
+  <summary>Speaker notes &mdash; Rollout runbook</summary>
+  <div class="n-body"><ul>
+    <li><strong>Close the loop explicitly:</strong> put slide 3 back up in your head &mdash; every red question mark now has a row in this table. That symmetry is the retention device; don't rush it.</li>
+    <li>Sequencing rationale: steps 1&ndash;3 are inventory (cheap, no meetings); 4&ndash;5 are meaning (needs domain owners &mdash; the socially hard part); 6 is packaging. Teams that start at step 4 without 1&ndash;3 burn out curating an incomplete map.</li>
+    <li>Rough timing for the whole deck to here: 50&ndash;55 minutes. If running long, the knowledge check can go async.</li>
+    <li>If asked "how long does this take in real life": steps 1&ndash;3 in a week; 4&ndash;5 are ongoing programs, not projects. Set that expectation honestly.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 21. KNOWLEDGE CHECK ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Knowledge check</h1>
+  <p class="lede" style="margin-bottom:12px">Four questions &mdash; answers in the speaker notes.</p>
+  <ol class="steps" style="font-size:15px">
+    <li>A steward wants every production table to carry an owner and a sensitivity rating. Which two catalog concepts implement that requirement?</li>
+    <li>Marcus needs 14 months of provenance for an annual audit. Lineage retention is 30 days &mdash; what's the correct design?</li>
+    <li>Which parts of Meridian's catalog bill are <em>free</em>: auto-ingested BigQuery technical metadata, custom aspects, search API calls, nightly quality scans?</li>
+    <li>An agent keeps generating SQL against a deprecated revenue table. Name two catalog mechanisms that steer it to the certified one.</li>
+  </ol>
+  <div class="vgap"></div>
+  <div class="callout" style="font-size:14px;padding:9px 14px">If you can answer all four with slide-5 vocabulary &mdash; entries, aspects, entry types, links &mdash; the model stuck.</div>
+</section>
+<details class="notes" data-title="Knowledge check">
+  <summary>Speaker notes &mdash; Knowledge check (answers)</summary>
+  <div class="n-body"><ul>
+    <li><strong>Q1:</strong> an <em>aspect type</em> (defining owner + sensitivity fields) made mandatory by an <em>entry type</em> (e.g. <code>StandardOperationalTable</code> requires it). Bonus credit for noting aspects can also attach per column.</li>
+    <li><strong>Q2:</strong> scheduled export of lineage (via the Lineage API) into the team's own storage &mdash; e.g. monthly <code>SearchLinks</code>/streaming pulls into BigQuery. The catalog's graph is a 30-day rolling window, not an archive.</li>
+    <li><strong>Q3:</strong> free: auto-ingested technical metadata storage and API/search calls. Paid: custom aspect storage (&asymp;$2/GiB-month &mdash; tiny) and quality scans (premium DCUs &mdash; the one to tune with sampling/incremental).</li>
+    <li><strong>Q4:</strong> any two of: <code>certified</code>/<code>deprecated</code> aspects surfaced through search ranking; verified <em>example queries</em> encoding the approved SQL; the <em>context graph</em> relating the business term to the certified asset; glossary term linked to the right table. All reach the agent through the MCP server.</li>
+    <li>Run it as pair discussion, 3&ndash;4 minutes, then cold-call. Q2 is the one most groups miss &mdash; revisit the retention callout if so.</li>
+  </ul></div>
+</details>
+
+<!-- ============ 22. RESOURCES ============ -->
+<section class="slide">
+  <div class="kicker"></div>
+  <h1>Additional material</h1>
+  <p class="lede" style="margin-bottom:14px">Everything factual in this deck, at its source &mdash; current as of August 2026.</p>
+  <div class="cols">
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><a href="https://docs.cloud.google.com/dataplex/docs/introduction">Knowledge Catalog overview</a> &mdash; the three pillars, context graph, example queries</li>
+        <li><a href="https://docs.cloud.google.com/dataplex/docs/catalog-overview">Metadata management</a> &mdash; entries, aspects, entry types, links</li>
+        <li><a href="https://docs.cloud.google.com/bigquery/docs/use-knowledge-catalog">Use with BigQuery</a> &mdash; auto-ingestion, change feeds, data products</li>
+        <li><a href="https://docs.cloud.google.com/dataplex/docs/discover-data">Discover data</a> &mdash; search modes and syntax</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="body" style="font-size:14px">
+        <li><a href="https://docs.cloud.google.com/dataplex/docs/about-data-lineage">About data lineage</a> &mdash; model, supported services, limits, retention</li>
+        <li><a href="https://docs.cloud.google.com/dataplex/docs/managed-connectivity-overview">Managed connectivity</a> &mdash; pipelines and connectors</li>
+        <li><a href="https://docs.cloud.google.com/dataplex/docs/develop-custom-connector">Develop a custom connector</a> &mdash; the <code>ImportItem</code> contract</li>
+        <li><a href="https://cloud.google.com/dataplex/pricing">Pricing</a> &mdash; SKUs, free tier, billing labels, examples</li>
+      </ul>
+    </div>
+  </div>
+  <div class="vgap"></div>
+  <div class="callout good" style="font-size:14px;padding:9px 14px">Naming reminder for your own searches: docs URLs, <code>gcloud</code> commands, and SKUs still say <strong>dataplex</strong>. Same product.</div>
+</section>
+<details class="notes" data-title="Additional material">
+  <summary>Speaker notes &mdash; Additional material</summary>
+  <div class="n-body"><ul>
+    <li>Leave this up during Q&amp;A. The lineage and pricing pages are the two students most often want on screen again.</li>
+    <li>If the course includes lab time, a natural exercise: enable the APIs on a sandbox project, search the auto-created entries, define one aspect type, and stamp it on a table &mdash; the first four rollout steps in miniature.</li>
+  </ul></div>
+</details>
+
+</div></div>
+
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Speaker notes &mdash; <span id="notes-title"></span>
+    <button id="notes-close" title="Close notes (N or Esc)">✕</button>
+  </div>
+  <div id="notes-body"></div>
+</aside>
+</div>
+
+<div id="hint">← → navigate &nbsp;·&nbsp; <b>N</b> notes &nbsp;·&nbsp; <b>F</b> fullscreen &nbsp;·&nbsp; <b>Home/End</b> first/last</div>
+<div id="hud">
+  <button id="prev" title="Previous">‹</button>
+  <span id="counter">1 / 1</span>
+  <button id="next" title="Next">›</button>
+  <button id="notes-btn" class="pill" title="Speaker notes (N)" aria-controls="notes-panel" aria-expanded="false">Notes</button>
+  <button id="fs-btn" class="pill" title="Fullscreen (F)">⛶</button>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('#deck > section.slide'));
+  var noteSrcs = Array.prototype.slice.call(document.querySelectorAll('#deck > details.notes'));
+  var deck = document.getElementById('deck');
+  var viewport = document.getElementById('viewport');
+  var panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title');
+  var notesBody = document.getElementById('notes-body');
+  var counter = document.getElementById('counter');
+  var i = 0;
+
+  function clamp(n) { return Math.max(0, Math.min(slides.length - 1, n)); }
+
+  /* ---- per-slide auto-fit: enlarge content (CSS zoom reflows text and
+     figures) until it fills the slide height, backing off if anything
+     would clip. Dense slides stay at 1; sparse ones grow up to 1.35. ---- */
+  function contentBottom(el, slideRect) {
+    var m = 0;
+    Array.prototype.forEach.call(el.children, function (c) {
+      var cs = getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') return;
+      var r = c.getBoundingClientRect();
+      /* a child that spans (nearly) the whole slide is a layout container,
+         e.g. a divider's centering flexbox — measure its children instead */
+      if (r.height >= slideRect.height * 0.9) { m = Math.max(m, contentBottom(c, slideRect)); return; }
+      m = Math.max(m, r.bottom);
+    });
+    return m;
+  }
+
+  function langOverlaps(pre) {
+    /* the floated filename label (.lang) can collide with a long first code
+       line as zoom narrows the pre — floats overlap, they don't overflow */
+    var lang = pre.querySelector('.lang');
+    if (!lang) return false;
+    var lr = lang.getBoundingClientRect();
+    if (!lr.width) return false;
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var rects = range.getClientRects();
+    for (var k = 0; k < rects.length; k++) {
+      var r = rects[k];
+      /* skip the label's own element and text rects (containment, not
+         position equality -- the text rect sits a few px inside the box) */
+      if (r.left >= lr.left - 2 && r.right <= lr.right + 2 && r.top >= lr.top - 2 && r.bottom <= lr.bottom + 2) continue;
+      var ox = Math.min(r.right, lr.right) - Math.max(r.left, lr.left);
+      var oy = Math.min(r.bottom, lr.bottom) - Math.max(r.top, lr.top);
+      if (ox > 2 && oy > 2) return true;
+    }
+    return false;
+  }
+
+  function overflows(slide, pad) {
+    var rect = slide.getBoundingClientRect();
+    var limit = rect.top + rect.height * ((slide.clientHeight - pad) / slide.clientHeight);
+    if (contentBottom(slide, rect) > limit) return true;
+    /* pre blocks clip horizontally (white-space: pre; overflow: hidden).
+       In the strict (comfort) pass allow no creep; in the last-resort pass
+       let text run into the pre's right padding — cramped, not clipped. */
+    var hTol = pad > 20 ? 10 : 14;
+    var pres = slide.querySelectorAll('pre');
+    for (var k = 0; k < pres.length; k++) {
+      if (pres[k].scrollWidth > pres[k].clientWidth + hTol) return true;
+      if (langOverlaps(pres[k])) return true;
+    }
+    return false;
+  }
+
+  function fitSlide(slide) {
+    if (slide.classList.contains('title-slide')) return; /* full-bleed art */
+    /* Phase 1: grow while content keeps comfortable bottom margin (never
+       below the design's natural 1.0). Phase 2: only if content would
+       actually clip at 1.0, shrink a little further as a last resort.
+       Content slides cap at 1.2 to keep type size consistent deck-wide;
+       dividers are display type and may grow further. */
+    var z = slide.classList.contains('divider') ? 1.35 : 1.2;
+    slide.style.zoom = z;
+    while (z > 1.001 && overflows(slide, 40)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+    while (z > 0.851 && overflows(slide, 8)) {
+      z = Math.round((z - 0.05) * 100) / 100;
+      slide.style.zoom = z;
+    }
+  }
+
+  function show(n) {
+    i = clamp(n);
+    slides.forEach(function (s, k) { s.classList.toggle('active', k === i); });
+    fitSlide(slides[i]);
+    counter.textContent = (i + 1) + ' / ' + slides.length;
+    var src = noteSrcs[i];
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) {
+        /* Mirror the (author-controlled, same-document) notes via node cloning. */
+        Array.prototype.forEach.call(body.children, function (child) {
+          notesBody.appendChild(child.cloneNode(true));
+        });
+      }
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#' + (i + 1));
+  }
+
+  function fit() {
+    /* Fill the full width; the slide's logical height stretches to reach
+       from the top of the window to just above the nav pill (extra room
+       becomes slide whitespace, not gray letterbox). 540 logical px is the
+       design minimum — on very wide/short windows we height-fit instead. */
+    var reserve = 54;
+    var availH = window.innerHeight - reserve;
+    var s = window.innerWidth / 960;
+    var logicalH = availH / s;
+    if (logicalH < 540) {
+      s = availH / 540;
+      logicalH = 540;
+    }
+    deck.style.height = logicalH + 'px';
+    viewport.style.width = (960 * s) + 'px';
+    viewport.style.height = (logicalH * s) + 'px';
+    deck.style.transform = 'scale(' + s + ')';
+  }
+
+  var notesBtn = document.getElementById('notes-btn');
+  function toggleNotes(force) {
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function toggleFullscreen() {
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { show(i + 1); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { show(i - 1); e.preventDefault(); }
+    else if (e.key === 'Home') { show(0); }
+    else if (e.key === 'End') { show(slides.length - 1); }
+    else if (e.key === 'n' || e.key === 'N') { toggleNotes(); }
+    else if (e.key === 'f' || e.key === 'F') { toggleFullscreen(); }
+    else if (e.key === 'Escape') { toggleNotes(false); }
+  });
+
+  document.getElementById('prev').addEventListener('click', function () { show(i - 1); });
+  document.getElementById('next').addEventListener('click', function () { show(i + 1); });
+  notesBtn.addEventListener('click', function () { toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function () { toggleNotes(false); });
+  document.getElementById('fs-btn').addEventListener('click', function () { toggleFullscreen(); });
+  window.addEventListener('resize', function () { fit(); fitSlide(slides[i]); });
+
+  /* Fade the shortcut hint after a few seconds so it doesn't sit on the slide. */
+  var hint = document.getElementById('hint');
+  setTimeout(function () { hint.classList.add('faded'); }, 6000);
+
+  /* Print: reveal every slide's notes inline; restore state afterwards. */
+  window.addEventListener('beforeprint', function () {
+    noteSrcs.forEach(function (d) { d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function () {
+    noteSrcs.forEach(function (d) { d.removeAttribute('open'); });
+  });
+
+  var start = parseInt((location.hash || '').slice(1), 10);
+  fit();
+  show(isNaN(start) ? 0 : start - 1);
+})();
+</script>
+
+</body>
+</html>
