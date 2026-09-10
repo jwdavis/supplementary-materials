@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Response caching in ADK (companion)</title>
+<style>
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+  .stage{overflow-x:hidden;}
+  .page{max-width:1120px;margin:22px auto;padding:40px 48px 56px;background:var(--bg);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);}
+
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .lede{margin:12px 0 0;font-size:18.5px;color:var(--ink-2);line-height:1.5;}
+  .lede b{color:var(--ink);}
+  h2{font-size:22px;margin:34px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  .bdg{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:4px;text-transform:uppercase;}
+  .bdg.ref{color:var(--g-blue-deep);background:var(--fill-blue);}
+
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:16px 0;font-size:18px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.red .kk{color:var(--g-red-deep);} .note .kk{color:var(--g-yellow-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;} .note code.i{background:rgba(120,120,120,.16);}
+
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:19px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway em{font-style:italic;}
+
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:flex-start;}
+  .numrow .n{font-family:var(--mono);font-size:19px;color:var(--g-blue-deep);width:44px;flex:0 0 44px;font-weight:500;padding-top:9px;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:17.5px;line-height:1.45;}
+
+  table.cmp{border-collapse:collapse;width:100%;font-size:17px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td.num{font-family:var(--mono);color:var(--g-blue-deep);width:34px;font-weight:500;}
+  table.cmp code{font-family:var(--mono);font-size:15px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  table.cmp thead th.good{color:var(--g-green-deep);} table.cmp thead th.poor{color:var(--g-red-deep);}
+  .tscroll{overflow-x:auto;}
+
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:16px 0 -4px;}
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:14.5px;line-height:1.6;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .fn{color:var(--g-yellow-deep);}
+
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+
+  .src{margin-top:30px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+  .back{font-size:15px;color:var(--ink-2);margin:0 0 6px;}
+  hr.div{border:0;border-top:1px solid var(--line);margin:34px 0 0;}
+  @media (max-width:820px){ .page{padding:26px 22px 48px;} body{font-size:18.5px;} }
+  @media print{ body{background:#fff;} .page{box-shadow:none;margin:0 auto;}
+    .note,.takeaway,.numrow .body{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
+</style>
+</head>
+<body>
+<div class="stage">
+<article class="page">
+  <p class="back"><a href="m6.html">← M6 · Applying FinOps to Agent Costs</a> · slide 6</p>
+  <h1>Response caching in ADK <span class="bdg ref">Companion</span></h1>
+  <p class="lede"><b>Response caching</b> = a lookup keyed on the request. On a <em>hit</em>, a stored answer is returned and <b>the model is never called</b> — $0 model cost, near-zero latency. On a <em>miss</em>, the model runs and the answer is stored for next time.</p>
+  <p class="lede">ADK has <b>no out-of-the-box response cache</b> (context caching is a different feature — it discounts the re-sent prefix but still runs the model every turn). What ADK <em>does</em> give you is the <b>callback hook</b> to build one: <code class="i">before_model_callback</code> can return an <code class="i">LlmResponse</code> to short-circuit the call, and <code class="i">after_model_callback</code> fires on the way back to store it.</p>
+
+  <h2><span class="k"></span>The mechanism</h2>
+  <figure>
+    <svg viewBox="0 0 900 220" width="900" height="220" role="img" aria-label="Response caching flow: cache hit skips the model, miss calls it and stores the result">
+      <defs><marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <rect x="16" y="88" width="120" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="76" y="115" font-family="var(--sans)" font-size="14" fill="var(--ink)" text-anchor="middle">request</text>
+      <rect x="176" y="82" width="180" height="56" rx="6" fill="var(--fill-yellow)" stroke="var(--g-yellow)"/><text x="266" y="105" font-family="var(--sans)" font-size="14" fill="var(--ink)" text-anchor="middle">before_model_callback</text><text x="266" y="123" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">key in cache?</text>
+      <rect x="416" y="22" width="300" height="52" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="566" y="43" font-family="var(--sans)" font-size="13.5" fill="var(--ink)" text-anchor="middle">HIT: return stored LlmResponse</text><text x="566" y="61" font-family="var(--sans)" font-size="12.5" fill="var(--g-green-deep)" text-anchor="middle">model skipped · $0 model cost</text>
+      <rect x="416" y="94" width="220" height="52" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="526" y="115" font-family="var(--sans)" font-size="13.5" fill="var(--ink)" text-anchor="middle">MISS: model runs</text><text x="526" y="133" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">full model cost</text>
+      <rect x="676" y="94" width="208" height="52" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="780" y="115" font-family="var(--sans)" font-size="13.5" fill="var(--ink)" text-anchor="middle">after_model_callback</text><text x="780" y="133" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">store answer under key</text>
+      <line x1="136" y1="110" x2="174" y2="110" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="356" y1="100" x2="414" y2="60" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="356" y1="120" x2="414" y2="120" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar)"/>
+      <line x1="636" y1="120" x2="674" y2="120" stroke="#5f6368" stroke-width="1.5" marker-end="url(#ar)"/>
+      <text x="384" y="80" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">yes</text>
+      <text x="366" y="138" font-family="var(--mono)" font-size="12" fill="var(--ink-2)">no</text>
+      <text x="780" y="180" font-family="var(--sans)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">next identical request → HIT</text>
+    </svg>
+    <figcaption><code class="i">before_model_callback</code> returning a non-<code class="i">None</code> value is the short-circuit: ADK takes it as the model's result and does not call the LLM.</figcaption>
+  </figure>
+
+  <h2><span class="k"></span>Example 1 — the roll-your-own pattern everyone starts with</h2>
+  <p>The callbacks page documents the <em>pattern</em>, not a finished cache. Below is the shape everyone writes first: a store keyed on the request, checked in <code class="i">before_model_callback</code>, filled in <code class="i">after_model_callback</code>. Start here to see the mechanism, then read the best-practices section — the naive version has a low hit rate and several sharp edges.</p>
+  <pre class="code"><span class="kw">import</span> hashlib
+<span class="kw">from</span> google.adk.agents <span class="kw">import</span> LlmAgent
+<span class="kw">from</span> google.adk.agents.callback_context <span class="kw">import</span> CallbackContext
+<span class="kw">from</span> google.adk.models <span class="kw">import</span> LlmRequest, LlmResponse
+
+<span class="cm"># A dict shows the idea; it is in-process and lost on restart. Swap for Redis (Ex. 2).</span>
+_CACHE: dict[str, LlmResponse] = {}
+
+
+<span class="kw">def</span> <span class="fn">_key</span>(req: LlmRequest) -> str:
+    <span class="st">"""Build the key from EVERYTHING that changes the answer, not just the text.
+
+    Best practice #3: same question + different model / instruction / tools /
+    retrieved docs = a different answer, so all of it belongs in the key.
+    """</span>
+    text = <span class="st">""</span>.join(p.text <span class="kw">or</span> <span class="st">""</span> <span class="kw">for</span> c <span class="kw">in</span> req.contents <span class="kw">for</span> p <span class="kw">in</span> c.parts)
+    text = <span class="st">" "</span>.join(text.split()).strip().lower()          <span class="cm"># normalize whitespace/case</span>
+    parts = [
+        text,
+        req.model <span class="kw">or</span> <span class="st">""</span>,                                    <span class="cm"># model id</span>
+        req.config.system_instruction <span class="kw">or</span> <span class="st">""</span>,               <span class="cm"># instruction version</span>
+        <span class="st">","</span>.join(t.name <span class="kw">for</span> t <span class="kw">in</span> (req.config.tools <span class="kw">or</span> [])), <span class="cm"># tool list</span>
+        <span class="cm"># for RAG, also fold in a hash of the retrieved doc IDs</span>
+    ]
+    <span class="kw">return</span> hashlib.sha256(<span class="st">"|"</span>.join(parts).encode()).hexdigest()
+
+
+<span class="kw">def</span> <span class="fn">check_cache</span>(ctx: CallbackContext, req: LlmRequest) -> LlmResponse | None:
+    <span class="cm"># Returning an LlmResponse short-circuits the model. Stash the key on state so</span>
+    <span class="cm"># after_model_callback can reuse it (see the ParallelAgent caveat below).</span>
+    key = _key(req)
+    ctx.state[<span class="st">"_cache_key"</span>] = key
+    <span class="kw">return</span> _CACHE.get(key)
+
+
+<span class="kw">def</span> <span class="fn">store_cache</span>(ctx: CallbackContext, resp: LlmResponse) -> None:
+    <span class="cm"># Reached only on a miss. Don't cache errors/empties (best practice #7).</span>
+    <span class="kw">if</span> resp.partial <span class="kw">or</span> <span class="kw">not</span> resp.content:
+        <span class="kw">return</span>
+    _CACHE[ctx.state[<span class="st">"_cache_key"</span>]] = resp
+
+
+agent = LlmAgent(
+    model=<span class="st">"gemini-flash-latest"</span>,
+    name=<span class="st">"cached_agent"</span>,
+    instruction=<span class="st">"You are a helpful assistant."</span>,
+    before_model_callback=check_cache,
+    after_model_callback=store_cache,
+)</pre>
+  <p>This still only matches <b>exact (normalized) text</b> — "What is Pub/Sub?" hits itself but not "Explain Pub/Sub." Real hit rates come from semantic matching (Example 2). The practices below are what turn this skeleton into something shippable.</p>
+  <div class="note red"><span class="kk">No canonical ADK example exists</span>The ADK repo discussions on this (<a href="https://github.com/google/adk-python/discussions/4286">#4286</a>, <a href="https://github.com/google/adk-python/discussions/2811">#2811</a>) get a <em>"use Plugins with <code class="i">before_model_callback</code>"</em> pointer from maintainers but <b>no worked best-practice implementation</b> — it's a <a href="https://github.com/google/adk-python/issues/2133">known gap</a>. The only maintained implementation is <code class="i">adk-redis</code> (Example 2).</div>
+
+  <h2><span class="k"></span>Best practices for a roll-your-own cache</h2>
+  <p class="lede">Framework-agnostic; drawn from GPTCache and the semantic-cache literature.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th class="num">#</th><th>Practice</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td><b>Match on meaning, not the raw string</b></td><td>Exact match misses every rephrase. Two-stage: normalized exact layer first, then embedding similarity.</td></tr>
+      <tr><td class="num">2</td><td><b>Normalize before keying</b></td><td>Lowercase, collapse whitespace, strip trailing punctuation — free hits, no embedding cost.</td></tr>
+      <tr><td class="num">3</td><td><b>Key on all answer-affecting inputs</b></td><td>Model + gen params, instruction version, tool list, and for RAG a hash of retrieved doc IDs; add <code>user_id</code> for personalized replies or you leak answers across users.</td></tr>
+      <tr><td class="num">4</td><td><b>Tune the similarity threshold empirically</b></td><td>GPTCache's default 0.7 is too loose (false hits). Start ~0.92 cosine, watch the false-positive rate ~48 h, adjust in 0.01 steps; optimum depends on the embedding model.</td></tr>
+      <tr><td class="num">5</td><td><b>TTL by volatility</b></td><td>~24 h news/live, ~72 h stable facts, ~7 d static FAQ. Vary per category, not one global value.</td></tr>
+      <tr><td class="num">6</td><td><b>Version the cache</b></td><td>Fold a version tag into the key/namespace so a prompt/tool/model change doesn't serve pre-change answers.</td></tr>
+      <tr><td class="num">7</td><td><b>Never cache failures</b></td><td>Skip rate-limit, 5xx, timeouts, empty/refusal responses — caching those poisons the cache.</td></tr>
+      <tr><td class="num">8</td><td><b>Bypass when caching is wrong</b></td><td>High-temperature creative turns, tool-calling turns (the "answer" is an action), anything reading live state.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><span class="kk">ADK gotcha · from #4286</span>Under <code class="i">ParallelAgent</code> fan-out, concurrent branches racing on shared <code class="i">state</code> can clobber a stored cache key. Build the key from request content (as <code class="i">_key</code> above does) so it's reproducible, and treat the <code class="i">state["_cache_key"]</code> stash as a convenience, not the source of truth.</div>
+
+  <h2><span class="k"></span>Example 2 — the realistic version: <code class="i">adk-redis</code> semantic cache</h2>
+  <p>Rather than hand-code the practices above, ADK's documented integration bakes them in: <b>semantic</b> matching (#1), a <b>shared Redis</b> store, a <b>TTL</b> (#5), and a tunable <code class="i">distance_threshold</code> (#4). You don't write the callbacks — <code class="i">create_llm_cache_callbacks()</code> returns them.</p>
+  <div class="codelabel">install</div>
+  <pre class="code">pip install <span class="st">'adk-redis[all]'</span>   <span class="cm"># needs Redis 8.4+ with RediSearch for self-hosting</span></pre>
+  <pre class="code"><span class="kw">from</span> adk_redis <span class="kw">import</span> (
+    RedisVLCacheProvider,
+    RedisVLCacheProviderConfig,
+    LLMResponseCache,
+    create_llm_cache_callbacks,
+)
+<span class="kw">from</span> redisvl.utils.vectorize <span class="kw">import</span> HFTextVectorizer
+<span class="kw">from</span> google.adk.agents <span class="kw">import</span> Agent
+
+provider = RedisVLCacheProvider(
+    config=RedisVLCacheProviderConfig(
+        redis_url=<span class="st">"redis://localhost:6379"</span>,
+        ttl=3600,               <span class="cm"># answers expire after 1 h</span>
+        distance_threshold=0.1, <span class="cm"># how close a paraphrase must be to count as a hit</span>
+    ),
+    vectorizer=HFTextVectorizer(model=<span class="st">"redis/langcache-embed-v2"</span>),
+)
+
+llm_cache = LLMResponseCache(provider=provider)
+before_cb, after_cb = create_llm_cache_callbacks(llm_cache)
+
+agent = Agent(
+    model=<span class="st">"gemini-flash-latest"</span>,
+    name=<span class="st">"cached_agent"</span>,
+    instruction=<span class="st">"You are a helpful assistant with semantic caching enabled."</span>,
+    before_model_callback=before_cb,
+    after_model_callback=after_cb,
+)</pre>
+  <p>Now "What is Pub/Sub?" and "Explain Pub/Sub" land within <code class="i">distance_threshold</code> of each other and share one cached answer. It's the <b>same two-callback pattern</b> as Example 1 — the provider just supplies a smarter key (an embedding) and a durable store.</p>
+  <div class="note blue"><span class="kk">Managed alternative</span><code class="i">LangCacheProvider</code> does the embedding server-side, so you skip the local vectorizer and Redis-with-RediSearch. Same <code class="i">create_llm_cache_callbacks()</code> wiring.</div>
+
+  <h2><span class="k"></span>When to use it (and when not to)</h2>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th class="good">Good fit</th><th class="poor">Poor fit</th></tr></thead>
+    <tbody>
+      <tr><td>Repeated / paraphrased FAQ-style prompts</td><td>Every prompt unique (no repeats to hit)</td></tr>
+      <tr><td>Answers stable over the TTL window</td><td>Answers must reflect live data each call</td></tr>
+      <tr><td>Stateless or safely-shareable responses</td><td>Per-user personalized answers (unless key includes user)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="takeaway"><b>Response caching vs. context caching</b> — don't conflate them (the deck's slide 6 correction): response caching <em>skips the model</em> on a hit; context caching <em>still runs the model</em> but discounts the re-sent prefix. They compose — cache the whole answer when you can, discount the prefix when you can't.</div>
+
+  <div class="src">Sources: <a href="https://adk.dev/callbacks/design-patterns-and-best-practices/#caching">caching design pattern</a> · <a href="https://adk.dev/integrations/redis/#semantic-caching">adk-redis semantic caching</a> · <a href="https://github.com/google/adk-python/discussions/4286">discussion #4286</a> · <a href="https://github.com/zilliztech/gptcache">GPTCache</a> (verified 2026-09-09).</div>
+</article>
+</div>
+</body>
+</html>
