@@ -227,3 +227,6 @@ slides/
 
 # Local render test output
 .decktest/
+
+# macOS
+.DS_Store

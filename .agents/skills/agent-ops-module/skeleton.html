@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M0 — Skeleton (agent_ops)</title>
+<style>
+  /* ===== agent_ops deck skeleton. Copy this <style>, the .bar/.notes chrome and the
+     <script> verbatim into every deck. Do not restyle per deck. ===== */
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed; --term-bg:#202124; --term-ink:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+
+  /* ---- stage: one page visible at a time; the page scrolls when taller than the viewport ---- */
+  .stage{position:fixed;inset:0 0 54px 0;overflow-y:auto;overflow-x:hidden;}
+  .page{display:none;position:relative;max-width:1120px;margin:0 auto;padding:44px 56px 76px;background:var(--bg);min-height:100%;}
+  .page.on{display:block;}
+  @media (min-width:1200px){ .page{margin:22px auto;min-height:calc(100% - 44px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);} }
+  .page .conf{position:absolute;top:14px;right:22px;font-size:11px;color:var(--ink-3);letter-spacing:.02em;}
+  .page .gcloud{position:absolute;bottom:18px;right:26px;font-size:15px;color:var(--ink-2);font-weight:500;}
+  .gcloud .g1{color:#4285f4}.gcloud .g2{color:#ea4335}.gcloud .g3{color:#fbbc04}.gcloud .g4{color:#4285f4}.gcloud .g5{color:#34a853}.gcloud .g6{color:#ea4335}
+
+  /* ---- type ---- */
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .lede{margin:12px 0 0;font-size:20px;color:var(--ink-2);line-height:1.5;border-left:3px solid var(--g-blue);padding-left:14px;}
+  h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  /* ---- epistemic tags: put one on every number or rule on the page face ---- */
+  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:3px;text-transform:uppercase;white-space:nowrap;}
+  .tag.limit{color:var(--g-red-deep);background:var(--fill-red);}       /* service limit: hard, documented, enforced */
+  .tag.guide{color:var(--g-blue-deep);background:var(--fill-blue);}     /* documentation guidance: recommended, not enforced */
+  .tag.heur{color:var(--g-yellow-deep);background:var(--fill-yellow);}  /* heuristic: workload-dependent rule of thumb */
+  .tag.illus{color:var(--g-green-deep);background:var(--fill-green);}   /* illustrative measurement: one scenario */
+  .tag.model{color:var(--ink-2);background:var(--fill-gray);}           /* mental model: a simplification */
+
+  /* ---- callouts ---- */
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.green{background:var(--fill-green);border-left-color:var(--g-green);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;color:var(--g-yellow-deep);}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.green .kk{color:var(--g-green-deep);} .note.red .kk{color:var(--g-red-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;}
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:20px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway code.i{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* ---- example card: actor, input, mechanism, result ---- */
+  .ex{background:var(--fill-green);border-left:4px solid var(--g-green);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .ex .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-green-deep);margin-bottom:4px;}
+  .ex p{margin:5px 0;} .ex .lbl{font-weight:700;color:var(--g-green-deep);} .ex .lbl.bad{color:var(--g-red-deep);}
+
+  /* ---- check rows ---- */
+  .checks{display:flex;flex-direction:column;margin:8px 0;position:relative;}
+  .checkrow{display:flex;gap:14px;align-items:flex-start;position:relative;padding:7px 0;}
+  .checkrow::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;} .checkrow:only-child::before{display:none;}
+  .cdot{width:24px;height:24px;border-radius:50%;background:var(--g-blue);flex:0 0 24px;position:relative;z-index:1;margin-top:3px;}
+  .cdot::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:4px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .cdot.red{background:var(--g-red);} .cdot.green{background:var(--g-green);} .cdot.gray{background:var(--ink-3);}
+  .checkrow p{margin:2px 0 0;line-height:1.45;}
+
+  /* ---- numbered rows ---- */
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:center;}
+  .numrow .n{font-family:var(--mono);font-size:20px;color:var(--g-blue-deep);width:52px;flex:0 0 52px;font-weight:500;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:18.5px;}
+  .numrow.bad .n{color:var(--g-red-deep);} .numrow.bad .body{border-left-color:var(--g-red);background:var(--fill-red);}
+  .numrow.good .n{color:var(--g-green-deep);} .numrow.good .body{border-left-color:var(--g-green);background:var(--fill-green);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  /* ---- card grid ---- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+  .grid.c2{grid-template-columns:repeat(2,1fr);} .grid.c4{grid-template-columns:repeat(4,1fr);}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:12px 15px;border-top:3px solid var(--g-blue);}
+  .cell.green{border-top-color:var(--g-green);} .cell.red{border-top-color:var(--g-red);} .cell.yellow{border-top-color:var(--g-yellow);} .cell.gray{border-top-color:var(--ink-3);}
+  .cell h4{margin:0 0 4px;font-size:17px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:16px;line-height:1.45;color:var(--ink-2);} .cell p b{color:var(--ink);}
+  @media (max-width:900px){ .grid,.grid.c4{grid-template-columns:1fr 1fr;} }
+
+  /* ---- comparison / decision table ---- */
+  table.cmp{border-collapse:collapse;width:100%;font-size:17.5px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp td.m,table.cmp code{font-family:var(--mono);font-size:15.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  .tscroll{overflow-x:auto;}
+
+  /* ---- code ---- */
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .fn{color:var(--g-yellow-deep);} pre.code .chg{background:var(--fill-yellow);border-radius:3px;padding:0 3px;}
+  pre.term{background:var(--term-bg);color:var(--term-ink);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;}
+  pre.term .flag{color:#8ab4f8;} pre.term .lbl{color:#9aa0a6;}
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 -4px;}
+  .codelabel.bad{color:var(--g-red-deep);} .codelabel.good{color:var(--g-green-deep);}
+
+  /* ---- figures and columns ---- */
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+  .cols{display:flex;gap:28px;align-items:flex-start;margin:10px 0;} .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+  @media (max-width:900px){ .cols{flex-direction:column;} }
+  .src{margin-top:26px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+
+  /* ---- divider (module opener and section dividers) ---- */
+  .page.divider{display:none;align-items:center;justify-content:center;}
+  .page.divider.on{display:flex;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;display:block;}
+  .divider .kicker{font-family:var(--mono);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--g-blue-deep);margin-bottom:12px;}
+  .divider .dsub{font-size:19px;color:var(--ink-2);margin-top:16px;max-width:520px;line-height:1.5;}
+  .divider .agenda{margin-top:22px;max-width:520px;}
+  .divider .agenda .numrow .body{font-size:17.5px;} .divider .agenda .numrow.hot .body{font-weight:600;color:var(--ink);} .divider .agenda .numrow.dim .body{color:var(--ink-3);}
+
+  /* ---- speaker notes: <details class="notes"> follows every page; hidden on screen,
+          mirrored into the flyout (Notes button or N), printed under its page ---- */
+  .stage > details.notes{display:none;}
+  #notes-panel{position:fixed;top:0;right:0;bottom:54px;width:min(480px,92vw);background:var(--bg);color:var(--ink);border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.16);display:flex;flex-direction:column;transform:translateX(calc(100% + 40px));transition:transform .22s ease;z-index:60;}
+  #notes-panel.open{transform:none;}
+  #notes-head{display:flex;align-items:center;gap:8px;padding:14px 18px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);flex:none;}
+  #notes-close{margin-left:auto;border:none;background:none;font-size:18px;line-height:1;padding:2px 4px;color:var(--ink-2);cursor:pointer;} #notes-close:hover{color:var(--ink);}
+  #notes-body{flex:1;overflow-y:auto;padding:4px 18px 40px;}
+  #notes-body > ul, .n-body > ul{margin:12px 0 2px;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:17px;color:var(--ink-2);line-height:1.5;}
+  #notes-body ul ul, .n-body ul ul{margin-top:8px;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:16px;}
+  #notes-body li::marker, .n-body li::marker{color:var(--ink-3);}
+  #notes-body code, .n-body code{font-family:var(--mono);font-size:.9em;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  .stage > details.notes summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);list-style:none;user-select:none;}
+  .stage > details.notes summary::-webkit-details-marker{display:none;}
+
+  /* ---- bottom bar ---- */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);color:var(--ink-2);font-size:15px;white-space:nowrap;z-index:70;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;font-weight:500;} .bar .name a{color:var(--ink-2);}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--ink);border-radius:6px;width:38px;height:32px;font-size:17px;cursor:pointer;line-height:1;}
+  .bar button.pill{width:auto;padding:0 12px;font-size:14px;} .bar button.pill[aria-expanded="true"]{background:var(--fill-blue);border-color:var(--g-blue);color:var(--g-blue-deep);}
+  .bar button:hover{background:var(--panel);} .bar .cnt{font-family:var(--mono);font-size:15px;min-width:9ch;text-align:center;} .bar .hint{font-size:14px;color:var(--ink-3);}
+  @media (max-width:820px){ .bar .hint{display:none;} .page{padding:26px 22px 70px;} body{font-size:18.5px;} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;animation:none !important;} }
+
+  /* ---- print: each page followed by its notes ---- */
+  @media print{
+    body{overflow:visible;background:#fff;} .stage{position:static;overflow:visible;}
+    .page{display:block;box-shadow:none;margin:0 auto;min-height:0;page-break-inside:avoid;}
+    .page.divider{display:flex;min-height:600px;}
+    .stage > details.notes{display:block;max-width:1120px;margin:0 auto 28px;border:1px solid var(--line);border-radius:8px;padding:14px 22px;page-break-after:always;page-break-inside:avoid;}
+    .stage > details.notes summary{display:block;margin-bottom:6px;}
+    .bar,#notes-panel{display:none;}
+    .note,.ex,.takeaway,.cell,.tag,pre.term,table.cmp tr.hl td,table.cmp tr.bad td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="deck">
+
+<!-- ==== 1. MODULE OPENER (divider) ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">02</div><div class="sh red"></div></div>
+    <div>
+      <h1>Module title goes here</h1>
+      <div class="dsub">One or two sentences on what this module delivers. Name the baseline it was verified against (e.g. <b>google-adk 2.7.1</b>, September 2026).</div>
+      <div class="agenda numrows">
+        <div class="numrow plain hot"><div class="n">01</div><div class="body">First section</div></div>
+        <div class="numrow plain"><div class="n">02</div><div class="body">Second section</div></div>
+        <div class="numrow plain"><div class="n">03</div><div class="body">Third section</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Module opener">
+  <summary>Speaker notes &mdash; Module opener</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: set the boundary of the module in one breath.</li>
+    <li>Delivery beat: read the three sections aloud, then ask what the room already runs in production.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 2. OBJECTIVES ==== -->
+<section class="page">
+  <h1>Module objectives</h1>
+  <div class="numrows" style="margin-top:18px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Verb + capability the student leaves with, not a topic name.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Second capability.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Third capability.</div></div>
+  </div>
+</section>
+<details class="notes" data-title="Module objectives">
+  <summary>Speaker notes &mdash; Module objectives</summary>
+  <div class="n-body"><ul><li>Three to five objectives, each a capability.</li></ul></div>
+</details>
+
+<!-- ==== 3. SECTION DIVIDER ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">1</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 1 of 3</div>
+      <h1>Section title</h1>
+      <div class="dsub">What this section delivers, in one sentence.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1">
+  <summary>Speaker notes &mdash; Section 1</summary>
+  <div class="n-body"><ul><li>Hand-off from the previous section; the question this section answers.</li></ul></div>
+</details>
+
+<!-- ==== 4. CONCEPT (the workhorse) ==== -->
+<section class="page">
+  <h1>Concept page: check rows, example, takeaway</h1>
+  <p class="lede">Opening sentence that sets a situation or a decision, not a definition.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Bold the claim</b>, then the mechanism in one line. Who acts, what changes, what happens if it does not.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>Three to five rows. Each row is one idea; nested detail goes to the notes.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p>A red dot marks the problem or anti-pattern; green marks the recommended pattern.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> a named agent or person. <span class="lbl">Input:</span> the literal request or value. <span class="lbl">Mechanism:</span> what the system does with it. <span class="lbl">Result:</span> the observable outcome, with a number if there is one <span class="tag illus">illustrative</span>.</p></div>
+  <div class="note"><span class="kk">Caveat</span>Yellow for "it depends". Blue for the rule. Red for the correction. Green for the recommended pattern.</div>
+  <div class="takeaway"><b>Takeaway:</b> the one sentence the student should remember back at work.</div>
+  <div class="src">Sources: <a href="https://adk.dev/">doc title</a> &middot; <a href="https://github.com/google/adk-python">repo permalink at a tag</a> (verified YYYY-MM-DD).</div>
+</section>
+<details class="notes" data-title="Concept page">
+  <summary>Speaker notes &mdash; Concept page</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists.</li>
+    <li>Delivery beat: ask before revealing.</li>
+    <li>Gotchas and variants kept off the face.</li>
+    <li>Citation for each load-bearing claim.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 5. MECHANISM (full-width diagram tracing literal values) ==== -->
+<section class="page">
+  <h1>Mechanism page: a diagram with literal values</h1>
+  <p class="lede">The situation: a named actor, a real number, what must be decided.</p>
+  <figure>
+    <svg viewBox="0 0 1000 220" width="1000" height="220" role="img" aria-label="Describe the mechanism">
+      <defs><marker id="m5" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <rect x="20" y="70" width="180" height="60" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="110" y="96" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">input</text>
+      <text x="110" y="117" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">literal value</text>
+      <line x1="200" y1="100" x2="278" y2="100" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m5)"/>
+      <text x="239" y="90" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">what moves</text>
+      <rect x="280" y="70" width="220" height="60" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="390" y="96" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">the thing being taught</text>
+      <text x="390" y="117" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">blue = active concept</text>
+      <line x1="500" y1="100" x2="578" y2="100" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m5)"/>
+      <rect x="580" y="30" width="200" height="60" rx="8" fill="var(--fill-green)" stroke="var(--g-green)"/>
+      <text x="680" y="56" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">good outcome</text>
+      <text x="680" y="77" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">green = recommended</text>
+      <rect x="580" y="110" width="200" height="60" rx="8" fill="var(--fill-red)" stroke="var(--g-red)"/>
+      <text x="680" y="136" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">the problem path</text>
+      <text x="680" y="157" font-family="var(--mono)" font-size="13" fill="var(--g-red-deep)" text-anchor="middle">red = anti-pattern</text>
+      <text x="500" y="205" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Caption line inside the SVG if the diagram is a mental model rather than the physical implementation.</text>
+    </svg>
+    <figcaption>Figure caption: what the arrows mean.</figcaption>
+  </figure>
+  <div class="takeaway"><b>Takeaway:</b> could the student say what happens if they ran this with these values?</div>
+</section>
+<details class="notes" data-title="Mechanism page">
+  <summary>Speaker notes &mdash; Mechanism page</summary>
+  <div class="n-body"><ul><li>Walk the literal value left to right. Then ask what changes under a different input.</li></ul></div>
+</details>
+
+<!-- ==== 6. CODE ==== -->
+<section class="page">
+  <h1>Code page: one block, labeled</h1>
+  <p class="lede">What this code decides for the student, in one sentence.</p>
+  <p class="codelabel good">Current (google-adk 2.7)</p>
+  <pre class="code"><span class="kw">from</span> google.adk.agents.llm_agent <span class="kw">import</span> Agent
+
+<span class="cm"># comment explaining the non-obvious line</span>
+agent = Agent(
+    name=<span class="st">"support_agent"</span>,
+    model=<span class="st">"gemini-2.5-flash"</span>,
+    tools=[lookup_order],
+)</pre>
+  <p class="codelabel">Shell</p>
+  <pre class="term">$ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="flag">--region</span> us-central1 ./support_agent
+<span class="lbl">Deploying…</span></pre>
+  <div class="note blue"><span class="kk">Rule</span>Label a snippet when it shows an override rather than the default. Longer variants and other languages go to the notes.</div>
+</section>
+<details class="notes" data-title="Code page">
+  <summary>Speaker notes &mdash; Code page</summary>
+  <div class="n-body"><ul><li>Repo permalink for the API shape, pinned to the tag.</li></ul></div>
+</details>
+
+<!-- ==== 7. COMPARISON ==== -->
+<section class="page">
+  <h1>Comparison page: a decision table</h1>
+  <p class="lede">The decision the table settles.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Option</th><th>What you get</th><th>What you write</th><th>Pick it when</th></tr></thead>
+    <tbody>
+      <tr><td>Option A</td><td>fact <span class="tag limit">service limit</span></td><td><code>flag --value</code></td><td>condition</td></tr>
+      <tr class="hl"><td>Option B</td><td>fact <span class="tag guide">guidance</span></td><td><code>other --flag</code></td><td class="yes">the default choice</td></tr>
+      <tr><td>Option C</td><td>fact <span class="tag heur">heuristic</span></td><td>code change</td><td>condition</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid c3" style="margin-top:18px;">
+    <div class="cell"><h4>Card</h4><p>Cards for three or four parallel things that are not a comparison.</p></div>
+    <div class="cell green"><h4>Recommended</h4><p>Green top rule.</p></div>
+    <div class="cell red"><h4>Problem</h4><p>Red top rule.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Comparison page">
+  <summary>Speaker notes &mdash; Comparison page</summary>
+  <div class="n-body"><ul><li>Highlighted row is the recommended pattern; say why the others exist.</li></ul></div>
+</details>
+
+<!-- ==== 8. RECAP ==== -->
+<section class="page">
+  <h1>Section recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p>One row per concept the section taught, each restated as the action it implies.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Second concept.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section recap">
+  <summary>Speaker notes &mdash; Section recap</summary>
+  <div class="n-body"><ul><li>Hand-off to the next section.</li></ul></div>
+</details>
+
+<!-- ==== 9. CONSEQUENCES ==== -->
+<section class="page">
+  <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
+  <div class="tscroll"><table class="cmp" style="margin-top:14px;">
+    <thead><tr><th>You observed</th><th>Because</th><th>So you&hellip;</th></tr></thead>
+    <tbody>
+      <tr><td>symptom with a literal value</td><td>mechanism from page N</td><td>the action</td></tr>
+      <tr><td>symptom</td><td>mechanism</td><td>action</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<details class="notes" data-title="Consequences">
+  <summary>Speaker notes &mdash; Consequences</summary>
+  <div class="n-body"><ul><li>This converts the module into actions. Read the third column aloud.</li></ul></div>
+</details>
+
+<!-- ==== 10. REFERENCES ==== -->
+<section class="page">
+  <h1>References</h1>
+  <ul style="margin-top:14px;">
+    <li><a href="https://adk.dev/">adk.dev</a> &mdash; what it was used for</li>
+    <li><a href="https://github.com/google/adk-python">google/adk-python</a> at tag <code class="i">vX.Y.Z</code></li>
+    <li><a href="https://docs.cloud.google.com/">docs.cloud.google.com</a> &mdash; page titles</li>
+  </ul>
+  <div class="note"><span class="kk">Re-verify before delivery</span>Limits, pricing, product names, and default values on these pages were checked on YYYY-MM-DD against the sources above and change without notice.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul><li>Verification date and baseline version.</li></ul></div>
+</details>
+
+</div>
+
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Notes &middot; <span id="notes-title"></span><button id="notes-close" aria-label="Close notes">&times;</button></div>
+  <div id="notes-body"></div>
+</aside>
+
+<div class="bar">
+  <div class="name"><a href="index.html">Agent Operations</a> &middot; Module 0 &middot; Skeleton</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous page">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next page">&#8594;</button>
+    <button id="notes-btn" class="pill" aria-expanded="false">Notes</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; N notes &middot; F fullscreen</div>
+</div>
+
+<script>
+(function(){
+  var deck = document.getElementById('deck');
+  var pages = Array.prototype.slice.call(deck.querySelectorAll(':scope > section.page'));
+  var notes = Array.prototype.slice.call(deck.querySelectorAll(':scope > details.notes'));
+  var cnt = document.getElementById('cnt'), panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title'), notesBody = document.getElementById('notes-body');
+  var notesBtn = document.getElementById('notes-btn');
+  var i = 0;
+  if (notes.length !== pages.length) console.warn('agent_ops: ' + pages.length + ' pages but ' + notes.length + ' notes blocks; notes will pair by index.');
+
+  /* chrome on every page, page number on every non-divider h1 */
+  pages.forEach(function(p, k){
+    var conf = document.createElement('div'); conf.className = 'conf'; conf.textContent = 'Proprietary + Confidential'; p.appendChild(conf);
+    var g = document.createElement('div'); g.className = 'gcloud';
+    g.innerHTML = '<span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud'; p.appendChild(g);
+    p.id = 's' + String(k+1).padStart(2,'0');
+    var h = p.querySelector('h1');
+    if (h && !p.classList.contains('divider') && !h.querySelector('.n')) {
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = String(k+1).padStart(2,'0'); h.insertBefore(n, h.firstChild);
+    }
+  });
+
+  function clamp(n){ return Math.max(0, Math.min(pages.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    pages.forEach(function(p,k){ p.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + pages.length;
+    deck.scrollTop = 0;
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    var src = notes[i];
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) Array.prototype.forEach.call(body.children, function(c){ notesBody.appendChild(c.cloneNode(true)); });
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#s' + String(i+1).padStart(2,'0'));
+  }
+  function toggleNotes(force){
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function toggleFullscreen(){
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  notesBtn.addEventListener('click', function(){ toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function(){ toggleNotes(false); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') { show(0); e.preventDefault(); }
+    else if (e.key==='End') { show(pages.length-1); e.preventDefault(); }
+    else if (e.key==='n'||e.key==='N') { toggleNotes(); }
+    else if (e.key==='f'||e.key==='F') { toggleFullscreen(); }
+    else if (e.key==='Escape') { toggleNotes(false); }
+  });
+  function fromHash(){
+    var h = location.hash || '', m = h.match(/s?(\d+)/);
+    show(m ? parseInt(m[1],10)-1 : 0);
+    if (/notes/.test(h)) toggleNotes(true);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>

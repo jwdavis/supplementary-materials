@@ -1,0 +1,1605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M3 — Observability for Debugging and Improvement</title>
+<style>
+  /* ===== agent_ops deck skeleton. Copy this <style>, the .bar/.notes chrome and the
+     <script> verbatim into every deck. Do not restyle per deck. ===== */
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed; --term-bg:#202124; --term-ink:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+
+  /* ---- stage: one page visible at a time; the page scrolls when taller than the viewport ---- */
+  .stage{position:fixed;inset:0 0 54px 0;overflow-y:auto;overflow-x:hidden;}
+  .page{display:none;position:relative;max-width:1120px;margin:0 auto;padding:44px 56px 76px;background:var(--bg);min-height:100%;}
+  .page.on{display:block;}
+  @media (min-width:1200px){ .page{margin:22px auto;min-height:calc(100% - 44px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);} }
+  .page .conf{position:absolute;top:14px;right:22px;font-size:11px;color:var(--ink-3);letter-spacing:.02em;}
+  .page .gcloud{position:absolute;bottom:18px;right:26px;font-size:15px;color:var(--ink-2);font-weight:500;}
+  .gcloud .g1{color:#4285f4}.gcloud .g2{color:#ea4335}.gcloud .g3{color:#fbbc04}.gcloud .g4{color:#4285f4}.gcloud .g5{color:#34a853}.gcloud .g6{color:#ea4335}
+
+  /* ---- type ---- */
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .lede{margin:12px 0 0;font-size:20px;color:var(--ink-2);line-height:1.5;border-left:3px solid var(--g-blue);padding-left:14px;}
+  h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  /* ---- epistemic tags: put one on every number or rule on the page face ---- */
+  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:3px;text-transform:uppercase;white-space:nowrap;}
+  .tag.limit{color:var(--g-red-deep);background:var(--fill-red);}       /* service limit: hard, documented, enforced */
+  .tag.guide{color:var(--g-blue-deep);background:var(--fill-blue);}     /* documentation guidance: recommended, not enforced */
+  .tag.heur{color:var(--g-yellow-deep);background:var(--fill-yellow);}  /* heuristic: workload-dependent rule of thumb */
+  .tag.illus{color:var(--g-green-deep);background:var(--fill-green);}   /* illustrative measurement: one scenario */
+  .tag.model{color:var(--ink-2);background:var(--fill-gray);}           /* mental model: a simplification */
+
+  /* ---- callouts ---- */
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.green{background:var(--fill-green);border-left-color:var(--g-green);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;color:var(--g-yellow-deep);}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.green .kk{color:var(--g-green-deep);} .note.red .kk{color:var(--g-red-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;}
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:20px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway code.i{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* ---- example card: actor, input, mechanism, result ---- */
+  .ex{background:var(--fill-green);border-left:4px solid var(--g-green);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .ex .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-green-deep);margin-bottom:4px;}
+  .ex p{margin:5px 0;} .ex .lbl{font-weight:700;color:var(--g-green-deep);} .ex .lbl.bad{color:var(--g-red-deep);}
+
+  /* ---- check rows ---- */
+  .checks{display:flex;flex-direction:column;margin:8px 0;position:relative;}
+  .checkrow{display:flex;gap:14px;align-items:flex-start;position:relative;padding:7px 0;}
+  .checkrow::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;} .checkrow:only-child::before{display:none;}
+  .cdot{width:24px;height:24px;border-radius:50%;background:var(--g-blue);flex:0 0 24px;position:relative;z-index:1;margin-top:3px;}
+  .cdot::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:4px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .cdot.red{background:var(--g-red);} .cdot.green{background:var(--g-green);} .cdot.gray{background:var(--ink-3);}
+  .checkrow p{margin:2px 0 0;line-height:1.45;}
+
+  /* ---- numbered rows ---- */
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:center;}
+  .numrow .n{font-family:var(--mono);font-size:20px;color:var(--g-blue-deep);width:52px;flex:0 0 52px;font-weight:500;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:18.5px;}
+  .numrow.bad .n{color:var(--g-red-deep);} .numrow.bad .body{border-left-color:var(--g-red);background:var(--fill-red);}
+  .numrow.good .n{color:var(--g-green-deep);} .numrow.good .body{border-left-color:var(--g-green);background:var(--fill-green);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  /* ---- card grid ---- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+  .grid.c2{grid-template-columns:repeat(2,1fr);} .grid.c4{grid-template-columns:repeat(4,1fr);}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:12px 15px;border-top:3px solid var(--g-blue);}
+  .cell.green{border-top-color:var(--g-green);} .cell.red{border-top-color:var(--g-red);} .cell.yellow{border-top-color:var(--g-yellow);} .cell.gray{border-top-color:var(--ink-3);}
+  .cell h4{margin:0 0 4px;font-size:17px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:16px;line-height:1.45;color:var(--ink-2);} .cell p b{color:var(--ink);}
+  @media (max-width:900px){ .grid,.grid.c4{grid-template-columns:1fr 1fr;} }
+
+  /* ---- comparison / decision table ---- */
+  table.cmp{border-collapse:collapse;width:100%;font-size:17.5px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp td.m,table.cmp code{font-family:var(--mono);font-size:15.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  .tscroll{overflow-x:auto;}
+
+  /* ---- code ---- */
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .fn{color:var(--g-yellow-deep);} pre.code .chg{background:var(--fill-yellow);border-radius:3px;padding:0 3px;}
+  pre.term{background:var(--term-bg);color:var(--term-ink);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;}
+  pre.term .flag{color:#8ab4f8;} pre.term .lbl{color:#9aa0a6;}
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 -4px;}
+  .codelabel.bad{color:var(--g-red-deep);} .codelabel.good{color:var(--g-green-deep);}
+
+  /* ---- figures and columns ---- */
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+  .cols{display:flex;gap:28px;align-items:flex-start;margin:10px 0;} .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+  @media (max-width:900px){ .cols{flex-direction:column;} }
+  .src{margin-top:26px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+
+  /* ---- divider (module opener and section dividers) ---- */
+  .page.divider{display:none;align-items:center;justify-content:center;}
+  .page.divider.on{display:flex;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;display:block;}
+  .divider .kicker{font-family:var(--mono);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--g-blue-deep);margin-bottom:12px;}
+  .divider .dsub{font-size:19px;color:var(--ink-2);margin-top:16px;max-width:520px;line-height:1.5;}
+  .divider .agenda{margin-top:22px;max-width:520px;}
+  .divider .agenda .numrow .body{font-size:17.5px;} .divider .agenda .numrow.hot .body{font-weight:600;color:var(--ink);} .divider .agenda .numrow.dim .body{color:var(--ink-3);}
+
+  /* ---- speaker notes: <details class="notes"> follows every page; hidden on screen,
+          mirrored into the flyout (Notes button or N), printed under its page ---- */
+  .stage > details.notes{display:none;}
+  #notes-panel{position:fixed;top:0;right:0;bottom:54px;width:min(480px,92vw);background:var(--bg);color:var(--ink);border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.16);display:flex;flex-direction:column;transform:translateX(calc(100% + 40px));transition:transform .22s ease;z-index:60;}
+  #notes-panel.open{transform:none;}
+  #notes-head{display:flex;align-items:center;gap:8px;padding:14px 18px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);flex:none;}
+  #notes-close{margin-left:auto;border:none;background:none;font-size:18px;line-height:1;padding:2px 4px;color:var(--ink-2);cursor:pointer;} #notes-close:hover{color:var(--ink);}
+  #notes-body{flex:1;overflow-y:auto;padding:4px 18px 40px;}
+  #notes-body > ul, .n-body > ul{margin:12px 0 2px;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:17px;color:var(--ink-2);line-height:1.5;}
+  #notes-body ul ul, .n-body ul ul{margin-top:8px;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:16px;}
+  #notes-body li::marker, .n-body li::marker{color:var(--ink-3);}
+  #notes-body code, .n-body code{font-family:var(--mono);font-size:.9em;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  .stage > details.notes summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);list-style:none;user-select:none;}
+  .stage > details.notes summary::-webkit-details-marker{display:none;}
+
+  /* ---- bottom bar ---- */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);color:var(--ink-2);font-size:15px;white-space:nowrap;z-index:70;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;font-weight:500;} .bar .name a{color:var(--ink-2);}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--ink);border-radius:6px;width:38px;height:32px;font-size:17px;cursor:pointer;line-height:1;}
+  .bar button.pill{width:auto;padding:0 12px;font-size:14px;} .bar button.pill[aria-expanded="true"]{background:var(--fill-blue);border-color:var(--g-blue);color:var(--g-blue-deep);}
+  .bar button:hover{background:var(--panel);} .bar .cnt{font-family:var(--mono);font-size:15px;min-width:9ch;text-align:center;} .bar .hint{font-size:14px;color:var(--ink-3);}
+  @media (max-width:820px){ .bar .hint{display:none;} .page{padding:26px 22px 70px;} body{font-size:18.5px;} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;animation:none !important;} }
+
+  /* ---- print: each page followed by its notes ---- */
+  @media print{
+    body{overflow:visible;background:#fff;} .stage{position:static;overflow:visible;}
+    .page{display:block;box-shadow:none;margin:0 auto;min-height:0;page-break-inside:avoid;}
+    .page.divider{display:flex;min-height:600px;}
+    .stage > details.notes{display:block;max-width:1120px;margin:0 auto 28px;border:1px solid var(--line);border-radius:8px;padding:14px 22px;page-break-after:always;page-break-inside:avoid;}
+    .stage > details.notes summary{display:block;margin-bottom:6px;}
+    .bar,#notes-panel{display:none;}
+    .note,.ex,.takeaway,.cell,.tag,pre.term,table.cmp tr.hl td,table.cmp tr.bad td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="deck">
+<!-- ==== 1. MODULE OPENER ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">03</div><div class="sh red"></div></div>
+    <div>
+      <h1>Observability for Debugging and Improvement</h1>
+      <div class="dsub">Logs, traces and metrics from a process whose output is a sequence of decisions. Verified against <b>google-adk 2.9.0</b> and <b>google-cloud-aiplatform 2.1.0</b>, September 2026.</div>
+      <div class="agenda numrows">
+        <div class="numrow plain hot"><div class="n">01</div><div class="body">Logs &mdash; the four streams, and the one you write</div></div>
+        <div class="numrow plain"><div class="n">02</div><div class="body">Traces &mdash; the shape of a turn, and who turns it on</div></div>
+        <div class="numrow plain"><div class="n">03</div><div class="body">Metrics &mdash; what to chart, and what a chart cannot tell you</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Module opener">
+  <summary>Speaker notes &mdash; Observability for Debugging and Improvement</summary>
+  <div class="n-body"><ul>
+    <li>Frame against Module 2: that one shipped the agent, this one asks what it tells you once it is running.</li>
+    <li>The through-line: an agent&rsquo;s output is a <i>decision sequence</i>, so the observability question is &ldquo;what did it decide, and why,&rdquo; not just &ldquo;is it up.&rdquo;</li>
+    <li>Delivery beat: read the three sections aloud, then ask who in the room has ever set a log level and still seen the output they were trying to silence. That is page 4.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 2. OBJECTIVES ==== -->
+<section class="page">
+  <h1>What you will be able to do</h1>
+  <div class="numrows" style="margin-top:18px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Name the four log streams in an ADK process and say which configuration reaches each.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Choose between an arbitrary log line, a per-agent callback and a plugin &mdash; and emit JSON rather than a sentence.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Turn export on for the target you actually deploy to, and say what breaks if you do not.</div></div>
+    <div class="numrow"><div class="n">04</div><div class="body">Read a trace for the slow step and the failed step, and tell a failed tool from a failed turn.</div></div>
+    <div class="numrow"><div class="n">05</div><div class="body">Keep prompt text out of telemetry &mdash; which takes <b>two</b> variables, not one.</div></div>
+    <div class="numrow"><div class="n">06</div><div class="body">Chart the stable metrics, and know which questions need BigQuery rows instead.</div></div>
+  </div>
+</section>
+<details class="notes" data-title="What you will be able to do">
+  <summary>Speaker notes &mdash; What you will be able to do</summary>
+  <div class="n-body"><ul>
+    <li>Objective 5 is the one with a compliance consequence: one variable off is not content off, and the default for ADK&rsquo;s own spans is <i>on</i>.</li>
+    <li>Objective 6 is the one most often got wrong in week one, because the useful ids &mdash; session, user &mdash; are exactly the ones a metric may not carry.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 3. SECTION DIVIDER: LOGS ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">1</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 1 of 3</div>
+      <h1>Logs</h1>
+      <div class="dsub">Four streams, two destinations, and the one line you wrote.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1 &mdash; Logs">
+  <summary>Speaker notes &mdash; Section 1: Logs</summary>
+  <div class="n-body"><ul>
+    <li>The question this section answers: what comes out of the process on its own, and what do I add to make it useful?</li>
+    <li>Section 1 ends by planting <code>session_id</code>, which section 3 reuses as the canonical unbounded id.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 4. FOUR LOG STREAMS ==== -->
+<section class="page">
+  <h1>Four log streams in one process</h1>
+  <p class="lede">An ADK process writes logs from four independent sources. Each is configured somewhere different, and three of the four are not yours.</p>
+  <figure>
+    <svg viewBox="0 0 1000 320" width="1000" height="320" role="img" aria-label="Four log producers: three write to stdout and stderr, OpenTelemetry exports over OTLP">
+      <defs><marker id="ar04" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+
+      <rect x="14" y="14" width="226" height="34" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/>
+      <text x="127" y="36" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">adk web --log_level</text>
+      <rect x="260" y="14" width="226" height="34" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/>
+      <text x="373" y="36" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">logging.config.dictConfig</text>
+      <rect x="506" y="14" width="226" height="34" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/>
+      <text x="619" y="36" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">uvicorn, at startup</text>
+      <rect x="752" y="14" width="234" height="34" rx="6" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/>
+      <text x="869" y="36" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">a LoggerProvider</text>
+
+      <line x1="127" y1="48" x2="127" y2="84" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar04)"/>
+      <line x1="373" y1="48" x2="373" y2="84" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar04)"/>
+      <line x1="619" y1="48" x2="619" y2="84" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar04)"/>
+      <line x1="869" y1="48" x2="869" y2="84" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ar04)"/>
+
+      <rect x="14" y="86" width="226" height="62" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="127" y="110" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">1. the framework</text>
+      <text x="127" y="132" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">google_adk</text>
+
+      <rect x="260" y="86" width="226" height="62" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="373" y="110" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">2. your code</text>
+      <text x="373" y="132" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">getLogger("my_agent")</text>
+
+      <rect x="506" y="86" width="226" height="62" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="619" y="110" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">3. the web server</text>
+      <text x="619" y="132" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">uvicorn.access</text>
+
+      <rect x="752" y="86" width="234" height="62" rx="8" fill="var(--fill-yellow)" stroke="var(--g-yellow)" stroke-width="1.6"/>
+      <text x="869" y="110" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">4. OpenTelemetry</text>
+      <text x="869" y="132" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">gen_ai.* log events</text>
+
+      <line x1="127" y1="148" x2="330" y2="196" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar04)"/>
+      <line x1="373" y1="148" x2="380" y2="196" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar04)"/>
+      <line x1="619" y1="148" x2="440" y2="196" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar04)"/>
+      <line x1="869" y1="148" x2="790" y2="196" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar04)"/>
+
+      <rect x="250" y="198" width="270" height="50" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="385" y="228" font-family="var(--mono)" font-size="15" fill="var(--ink-2)" text-anchor="middle">stdout / stderr</text>
+
+      <rect x="660" y="198" width="270" height="50" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="795" y="221" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">OTLP exporter</text>
+      <text x="795" y="240" font-family="var(--sans)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">separate path &mdash; section 2</text>
+
+      <line x1="385" y1="248" x2="385" y2="272" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar04)"/>
+      <line x1="795" y1="248" x2="640" y2="272" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar04)"/>
+      <rect x="390" y="274" width="250" height="40" rx="8" fill="var(--fill-green)" stroke="var(--g-green)"/>
+      <text x="515" y="300" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">Cloud Logging</text>
+    </svg>
+    <figcaption>Streams 1&ndash;3 are Python <code>logging</code> and land on stdout. Stream 4 is OpenTelemetry: it never touches stdout, and reaches Cloud Logging through its own exporter.</figcaption>
+  </figure>
+  <div class="note blue"><span class="kk">dictConfig</span><code class="i">logging.config.dictConfig</code> is the Python standard-library call that configures every logger, handler and formatter in the process from one dictionary. It is how you reach streams 1&ndash;3 at once; page 9 uses it.</div>
+  <div class="ex"><span class="kk">Example &mdash; one request, four sources</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><code class="i">google_adk</code>: <code class="i">Sending out request, model: gemini-3.7-flash</code></p></div>
+      <div class="checkrow"><div class="cdot"></div><p>your tool: <code class="i">tool get_weather called for city='London'</code></p></div>
+      <div class="checkrow"><div class="cdot"></div><p><code class="i">uvicorn.access</code>: <code class="i">INFO: "POST /run HTTP/1.1" 200 OK</code></p></div>
+      <div class="checkrow"><div class="cdot"></div><p>OpenTelemetry: a <code class="i">gen_ai.client.inference.operation.details</code> event &mdash; only if a <code class="i">LoggerProvider</code> is installed</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> configuring one stream does not configure the others. Know which of the four a line came from before you try to change it.</div>
+  <div class="src">Sources: <code class="i">cli/utils/logs.py</code> (configures the root logger and <code class="i">google_adk</code>) &middot; <code class="i">telemetry/google_cloud.py:357-374</code> (OTel logs go to <code class="i">OTLPLogExporter</code>, not stdout) &middot; <a href="https://adk.dev/observability/logging/">ADK: Logging</a>, google-adk 2.9.0 (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Four log streams in one process">
+  <summary>Speaker notes &mdash; Four log streams in one process</summary>
+  <div class="n-body"><ul>
+    <li>Why this page is first: every later question in this section &mdash; what level, what format, why is that line still printing &mdash; depends on knowing which stream produced the line.</li>
+    <li><b>Generic.</b> Any Python process with a web server has streams 1&ndash;3. Stream 4 is the agent-specific one: it carries the trajectory, and section 2 is about it.</li>
+    <li><b>Stream 4 does not go to stdout.</b> <code>get_gcp_exporters</code> wires OTel log records to an OTLP exporter aimed at <code>telemetry.googleapis.com</code>. On a native Agent Engine deploy they historically went to <code>reasoning_engine_stdout</code>, which is why the code still carries a comment about it &mdash; but on 2.9.0 the OTLP path is what runs.</li>
+    <li>The <code>--log_level</code> flag reaches streams 1 and 2 (it sets the root logger and <code>google_adk</code>) and not stream 3, because uvicorn configures its own access logger at startup. That is page 10&rsquo;s subject; here it is only an example of &ldquo;configured somewhere different.&rdquo;</li>
+    <li>Delivery beat: ask which of the four they have ever deliberately configured. Usually only stream 2.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 5. WHAT ADK LOGS ON ITS OWN ==== -->
+<section class="page">
+  <h1>What ADK logs on its own</h1>
+  <p class="lede">The framework writes log lines before you add any. They are plain text, and Cloud Logging stores them with no severity attached.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Text, not JSON.</b> <code class="i">2026-09-03 21:51:45,037 - INFO - agent.py:53 - tool get_weather called for city='London'</code></p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Captured with no setup</b> on Cloud Run, GKE and Agent Engine &mdash; all three collect container stdout and stderr.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Stored as <code class="i">textPayload</code> with severity <code class="i">DEFAULT</code>.</b> The word <code class="i">INFO</code> in that line is text ADK printed. Cloud Logging does not read a level out of it.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Stderr does not change that.</b> Cloud Run and Agent Engine both map stderr to <code class="i">DEFAULT</code> as well, so a Python traceback is stored at the same severity as a startup message.</p></div>
+  </div>
+  <div class="note blue"><span class="kk">DEFAULT severity, and what an alert does with it</span>Cloud Logging severities run <code class="i">DEFAULT</code> (0), <code class="i">DEBUG</code>, <code class="i">INFO</code>, <code class="i">NOTICE</code>, <code class="i">WARNING</code>, <code class="i">ERROR</code>, <code class="i">CRITICAL</code>, <code class="i">ALERT</code>, <code class="i">EMERGENCY</code> (800). <code class="i">DEFAULT</code> means &ldquo;unspecified&rdquo; and sits below all of them. A log-based alert is built from a filter, and the filter <code class="i">severity&gt;=ERROR</code> matches no ADK line, because none of them carry a severity at all.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, on call for a weather agent on Cloud Run.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> be paged when the forecast tool starts throwing.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">What he did first:</span> a log-based alert on <code class="i">resource.type="cloud_run_revision" AND severity&gt;=ERROR</code>. The tool threw for six hours; the alert never fired, because the traceback is stored at <code class="i">DEFAULT</code>.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">What worked:</span> a counter log-based metric on <code class="i">textPayload:"Traceback"</code>, with an alert when it exceeds zero over five minutes.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> ADK&rsquo;s own lines carry no severity, so alert on their content &mdash; or emit your own <code class="i">severity</code> field and alert on that instead.</div>
+  <div class="src">Sources: logging tutorial 1.4, 1.5, 1.6 (Cloud Run Job, Cloud Run service, Agent Engine; captured 2026-09-03) &middot; <a href="https://docs.cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity">Cloud Logging: LogSeverity</a> &middot; <a href="https://docs.cloud.google.com/logging/docs/logs-based-metrics">Cloud Logging: log-based metrics</a> (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="What ADK logs on its own">
+  <summary>Speaker notes &mdash; What ADK logs on its own</summary>
+  <div class="n-body"><ul>
+    <li><b>Generic.</b> This is container stdout capture, not something ADK does &mdash; but it is the first thing people trip over when they try to alert on an agent.</li>
+    <li>The confusion to defuse: students see <code>INFO</code> in the line and assume Cloud Logging knows the level. It does not. The whole line, timestamp and level word included, is one <code>textPayload</code> string.</li>
+    <li><b>The counter-metric route in detail</b>, since Marco&rsquo;s fix is the one people copy: Logging &rarr; Log-based Metrics &rarr; Create, type Counter, filter <code>textPayload:"Traceback"</code>, then an alert policy on that metric with a threshold above 0. It works today and needs no code change, and it breaks when the text changes &mdash; which is the argument for page 9.</li>
+    <li>GKE behaves the same when the cluster has Cloud Logging enabled, which is the default on Autopilot and Standard. A cluster with logging turned off collects nothing at all.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 6. THREE PLACES TO PUT YOUR OWN LOG LINE ==== -->
+<section class="page">
+  <h1>Three places to put your own log line</h1>
+  <p class="lede">You want to record what each turn cost. The three options differ in what they can see and how many places you have to register them.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:22%">Where</th><th style="width:30%">What it can see</th><th style="width:24%">Registered</th><th>Covers</th></tr></thead>
+    <tbody>
+      <tr><td>Inside a tool function</td><td>only that tool&rsquo;s own arguments and result</td><td>nothing to register &mdash; it is your code</td><td>that one tool</td></tr>
+      <tr><td>Agent callbacks<br><span class="small">8 of them: before/after agent, model, tool, plus 2 error</span></td><td>the model request and response, and the tool call, <b>as objects</b></td><td>on <b>each agent</b>, one argument per hook</td><td>that one agent</td></tr>
+      <tr class="hl"><td><b>A plugin on the <code>App</code></b><br><span class="small">14 hooks, a superset of the 8</span></td><td>the same objects, <b>plus</b> user message, every event, run start/end, and agent- and run-level errors</td><td class="yes"><b>once</b>, on the app</td><td class="yes">every agent and tool</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">Both hook mechanisms hand you objects</span>An <code class="i">after_model_callback</code> receives an <code class="i">LlmResponse</code>, so <code class="i">usage_metadata.prompt_token_count</code> is already an integer. That is true whether you register it as an agent callback or as a plugin hook &mdash; the difference between them is scope and coverage, not data.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, who owns a support app with four agents &mdash; triage, billing, shipping, escalation.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> record input and output tokens for every model call, so finance can see cost per conversation.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">As agent callbacks:</span> one <code class="i">after_model_callback</code> function, passed to all four <code class="i">Agent(&hellip;)</code> constructors. It works &mdash; and when a fifth agent is added next quarter, its calls are missing from the report until someone notices.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">As a plugin:</span> the same function as a hook on one <code class="i">App(&hellip;, plugins=[CostPlugin()])</code>. Every agent is covered, including the fifth.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> use agent callbacks to change how one agent behaves; use a plugin to observe the whole app in one place.</div>
+  <div class="src">Sources: <code class="i">plugins/base_plugin.py</code> (14 hooks) and <code class="i">agents/llm_agent.py</code> (8 callback fields), counted from the classes on google-adk 2.9.0 &middot; <a href="https://adk.dev/plugins/">ADK: Plugins</a> &middot; logging tutorial 4.1, 4.4 (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Three places to put your own log line">
+  <summary>Speaker notes &mdash; Three places to put your own log line</summary>
+  <div class="n-body"><ul>
+    <li>The 8 agent callbacks: <code>before_agent</code>, <code>after_agent</code>, <code>before_model</code>, <code>after_model</code>, <code>before_tool</code>, <code>after_tool</code>, <code>on_model_error</code>, <code>on_tool_error</code>. Plugins have all eight plus <code>on_user_message</code>, <code>before_run</code>, <code>on_event</code>, <code>after_run</code>, <code>on_agent_error</code>, <code>on_run_error</code>.</li>
+    <li>So error handling is <b>not</b> the difference &mdash; agents get model and tool errors too. What only a plugin sees is the run-level and agent-level lifecycle: the user&rsquo;s message before any agent runs, each event as it is emitted, and errors that happen outside a model or tool call.</li>
+    <li><b>Agent-specific</b> by the trajectory mechanism: the thing worth logging is a step the model chose, and both hook mechanisms expose that step as an object rather than a formatted string.</li>
+    <li>Worth saying: hooks can also <i>change</i> behavior &mdash; return a value from <code>before_model_callback</code> and you have replaced the model call. OpenTelemetry only records. If you only want to observe, return <code>None</code> and nothing changes.</li>
+    <li>Delivery beat: ask how they would add cost logging to an app they did not write. The plugin answer requires touching one line.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 7. LOG FIELDS, NOT SENTENCES ==== -->
+<section class="page">
+  <h1>Log fields, not sentences</h1>
+  <p class="lede">The hook gives you four numbers. Whether they arrive in Cloud Logging as queryable fields or as one string depends on how you call the logger.</p>
+  <p class="codelabel">Formatted into the message</p>
+  <pre class="code">logger.info(<span class="st">f"tokens: {n}, latency: {ms}ms"</span>)
+<span class="cm"># jsonPayload.message = "tokens: 141, latency: 1617ms"</span>
+<span class="cm"># to chart latency you must first parse it back out of the string</span></pre>
+  <p class="codelabel good">Passed as fields</p>
+  <pre class="code">logger.info(
+    <span class="st">"llm_response"</span>,
+    extra={<span class="st">"event"</span>: <span class="st">"llm_response"</span>, <span class="st">"input_tokens"</span>: <span class="fn">141</span>,
+           <span class="st">"output_tokens"</span>: <span class="fn">6</span>, <span class="st">"latency_ms"</span>: <span class="fn">1617</span>},
+)
+<span class="cm"># jsonPayload.latency_ms = 1617 &mdash; a number, chartable directly</span></pre>
+  <div class="note"><span class="kk">extra= alone is not enough</span>Python&rsquo;s <code class="i">extra=</code> merges those keys into the <code class="i">LogRecord</code>, but the default formatter ignores them. They reach Cloud Logging only once a JSON formatter writes them out &mdash; page 9.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya again, a week after shipping the cost logging from page 6.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> answer &ldquo;what did p95 model latency do this week?&rdquo; for the weekly review.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">If she logged the message form:</span> a log-based metric with a regex extractor pulling digits out of the message text. It works, and it breaks the day someone rewords the string.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">If she logged fields:</span> a distribution metric on <code class="i">jsonPayload.latency_ms</code> directly &mdash; or <code class="i">APPROX_QUANTILES(latency_ms, 100)</code> once a sink lands the logs in BigQuery.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the hook already gives you typed values. Pass them through as fields rather than formatting them into a sentence you will have to parse later.</div>
+  <div class="src">Sources: Python <code class="i">logging</code> &mdash; <code class="i">extra=</code> (stdlib) &middot; <a href="https://docs.cloud.google.com/logging/docs/structured-logging">Cloud Logging: structured logging</a> &middot; <a href="https://docs.cloud.google.com/logging/docs/logs-based-metrics/distribution-metrics">Cloud Logging: distribution metrics</a> &middot; logging tutorial 4.1 (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Log fields, not sentences">
+  <summary>Speaker notes &mdash; Log fields, not sentences</summary>
+  <div class="n-body"><ul>
+    <li>Both forms record the same information &mdash; the difference is whether the structure survives to the destination. The first form keeps the numbers only inside a human-readable string; the second keeps them as separate typed values.</li>
+    <li><b>How <code>extra=</code>, the LogRecord and the formatter fit together.</b> Three steps, and each one can drop your fields:
+      <ul>
+        <li><b>1. You call <code>logger.info(msg, extra={&hellip;})</code>.</b> Python builds a <code>LogRecord</code> object for this one line and copies every key from your dict onto it as an attribute, alongside its own built-ins (<code>levelname</code>, <code>pathname</code>, <code>lineno</code>, and about twenty more). Your keys are now on the record, but nothing has been rendered yet.</li>
+        <li><b>2. The handler passes the record to its formatter.</b> The default formatter renders <code>"%(levelname)s:%(name)s:%(message)s"</code> &mdash; it reads three attributes and ignores everything else, which is why <code>extra=</code> appears to do nothing out of the box.</li>
+        <li><b>3. A JSON formatter reads the rest.</b> Page 9&rsquo;s <code>format()</code> walks <code>record.__dict__</code>, skips the known built-ins, and writes what is left into the JSON object. That is the step that turns your <code>extra=</code> keys into <code>jsonPayload</code> fields.</li>
+      </ul>
+      So <code>extra=</code> is where the data enters, the LogRecord is where it waits, and the formatter decides whether it survives. Page 9 supplies step 3.</li>
+    <li>The regex-extractor route is real and supported, so do not tell people it is impossible. Tell them it couples their alerting to their message wording.</li>
+    <li>Field naming matters: avoid <code>message</code>, <code>severity</code>, and anything starting <code>logging.googleapis.com/</code> as your own field names &mdash; Cloud Logging reserves those and will lift them out of the payload. Page 9 uses them deliberately.</li>
+    <li>The numbers in the block are from a captured turn, not invented.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 8. THE TWO SHIPPED PLUGINS ==== -->
+<section class="page">
+  <h1>The two shipped plugins</h1>
+  <p class="lede">ADK ships two logging plugins. Both are written as worked examples of the hook API &mdash; read them to see the shape, then write your own.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:20%">Plugin</th><th style="width:32%">What it does</th><th>Why it is not what you deploy</th></tr></thead>
+    <tbody>
+      <tr><td><code>LoggingPlugin</code></td><td>prints a line at every hook, with ANSI color, to the console</td><td>it calls <code>print()</code>, so your log level, handlers and JSON formatter never see it &mdash; and its color codes end up as literal escape bytes in the payload</td></tr>
+      <tr><td><code>DebugLoggingPlugin</code></td><td>writes one YAML document per turn to a file on local disk</td><td>a file inside a container is gone when the container is, and it holds whole prompts and responses &mdash; so ADK creates it at mode <code>0600</code>, readable only by the process owner</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">Written to be copied</span><code class="i">LoggingPlugin</code>&rsquo;s own docstring: &ldquo;It is not a replacement of existing logging in ADK &hellip; serves as a simple demo for everyone to leverage when developing new plugins.&rdquo; The value is the hook-by-hook implementation, not the output.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, writing the <code class="i">CostPlugin</code> from page 6 and looking for a template.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> a plugin that records tokens per model call without reinventing the hook signatures.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Takes from <code class="i">LoggingPlugin</code>:</span> the hook signatures and which object each one receives &mdash; <code class="i">after_model_callback(self, *, callback_context, llm_response)</code> and the rest.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Takes from <code class="i">DebugLoggingPlugin</code>:</span> its redaction pass, so prompt text is scrubbed before anything is written.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Changes:</span> the destination &mdash; <code class="i">logger.info(&hellip;, extra={&hellip;})</code> instead of <code class="i">print()</code> or a YAML file.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> keep the hook signatures and the redaction; replace the destination with the logger you configured.</div>
+  <div class="src">Sources: <code class="i">plugins/logging_plugin.py:38-44</code> (intent), <code class="i">:289-293</code> (<code class="i">_log</code> calls <code class="i">print</code>) &middot; <code class="i">plugins/debug_logging_plugin.py:148</code> (<code class="i">_OUTPUT_FILE_MODE = 0o600</code>), <code class="i">:244-258</code> (redaction scope), google-adk 2.9.0 &middot; logging tutorial 3.2, 3.4 (captured 2026-09-03).</div>
+</section>
+<details class="notes" data-title="The two shipped plugins">
+  <summary>Speaker notes &mdash; The two shipped plugins</summary>
+  <div class="n-body"><ul>
+    <li><b>Mode 0600</b> is a Unix file permission: read and write for the file&rsquo;s owner only, nothing for the group or anyone else. ADK sets it because the YAML still contains complete prompts and responses after redaction &mdash; the docstring says the file &ldquo;is not safe to hand around.&rdquo;</li>
+    <li><b>Why <code>print()</code> is disqualifying, concretely.</b> <code>print()</code> writes straight to stdout without creating a <code>LogRecord</code>. So <code>--log_level WARNING</code> does not silence it, the JSON formatter from page 9 never sees it, and in a structured setup its ANSI escape sequences show up as <code>^[[90m</code> inside the message field. It is not that the output is ugly &mdash; it is that it bypasses the entire logging configuration you just set up.</li>
+    <li><b>What you get from a plugin that a callback does not give you</b> (revisiting page 6 with a concrete case): one registration covering every agent, plus <code>on_user_message_callback</code> to capture what was asked before any agent runs, <code>on_event_callback</code> to see each event as it is emitted, and <code>on_run_error_callback</code> for failures that happen outside any model or tool call. A per-agent callback cannot see any of those, because by the time it runs an agent has already been selected.</li>
+    <li>The redaction detail worth repeating: the <code>temp:</code> rule blanks <i>all</i> temporary state, not only credentials. An intermediate value passed between agents under a <code>temp:</code> key reads as <code>[REDACTED]</code>, which surprises people debugging multi-agent handoffs.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 9. ONE FORMATTER FOR EVERY STREAM ==== -->
+<section class="page">
+  <h1>One formatter for every stream</h1>
+  <p class="lede">A JSON formatter on the root handler applies to streams 1&ndash;3 at once, so the framework&rsquo;s lines and the server&rsquo;s come out in the same shape as yours.</p>
+  <p class="codelabel good">Configure once at startup &mdash; tested against google-adk 2.9.0</p>
+  <pre class="code"><span class="kw">import</span> logging, logging.config, json, contextvars
+
+trace_id = contextvars.ContextVar(<span class="st">"trace_id"</span>, default=<span class="st">""</span>)
+_STD = <span class="fn">set</span>(logging.LogRecord(<span class="st">"n"</span>,<span class="fn">0</span>,<span class="st">"p"</span>,<span class="fn">0</span>,<span class="st">""</span>,(),<span class="kw">None</span>).__dict__) | {<span class="st">"message"</span>, <span class="st">"asctime"</span>, <span class="st">"taskName"</span>}
+
+<span class="kw">class</span> <span class="fn">JsonFormatter</span>(logging.Formatter):
+    <span class="kw">def</span> <span class="fn">format</span>(self, record):
+        payload = {<span class="st">"severity"</span>: record.levelname, <span class="st">"message"</span>: record.getMessage()}
+        <span class="kw">if</span> trace_id.get():
+            payload[<span class="st">"logging.googleapis.com/trace"</span>] = trace_id.get()
+        <span class="kw">for</span> k, v <span class="kw">in</span> record.__dict__.items():   <span class="cm"># the keys you passed via extra=</span>
+            <span class="kw">if</span> k <span class="kw">not</span> <span class="kw">in</span> _STD:
+                payload[k] = v
+        <span class="kw">return</span> json.dumps(payload, default=<span class="fn">str</span>)
+
+logging.config.dictConfig({
+    <span class="st">"version"</span>: <span class="fn">1</span>, <span class="st">"disable_existing_loggers"</span>: <span class="kw">False</span>,
+    <span class="st">"formatters"</span>: {<span class="st">"json"</span>: {<span class="st">"()"</span>: JsonFormatter}},
+    <span class="st">"handlers"</span>: {<span class="st">"out"</span>: {<span class="st">"class"</span>: <span class="st">"logging.StreamHandler"</span>, <span class="st">"formatter"</span>: <span class="st">"json"</span>}},
+    <span class="st">"root"</span>: {<span class="st">"handlers"</span>: [<span class="st">"out"</span>], <span class="st">"level"</span>: <span class="st">"INFO"</span>},
+})</pre>
+  <p class="codelabel">The line that produces the entry below &mdash; Priya&rsquo;s cost plugin</p>
+  <pre class="code">logger = logging.getLogger(<span class="st">"support_app"</span>)
+
+<span class="kw">async def</span> <span class="fn">after_model_callback</span>(self, *, callback_context, llm_response):
+    u = llm_response.usage_metadata
+    logger.info(<span class="st">"llm_response"</span>, extra={
+        <span class="st">"event"</span>: <span class="st">"llm_response"</span>,
+        <span class="st">"agent"</span>: callback_context.agent_name,
+        <span class="st">"input_tokens"</span>: u.prompt_token_count,
+        <span class="st">"output_tokens"</span>: u.candidates_token_count,
+    })</pre>
+  <p class="codelabel">What Cloud Logging stores</p>
+  <pre class="term"><span class="lbl">severity:</span> <span class="st">"INFO"</span>
+<span class="lbl">trace:</span> <span class="st">"projects/jwd-gcp-demos/traces/9a29939b52d878045b718959a082ea64"</span>
+<span class="lbl">jsonPayload:</span> {
+  <span class="st">"message"</span>: <span class="st">"llm_response"</span>, <span class="st">"event"</span>: <span class="st">"llm_response"</span>,
+  <span class="st">"agent"</span>: <span class="st">"billing_agent"</span>, <span class="st">"input_tokens"</span>: 141, <span class="st">"output_tokens"</span>: 6
+}</pre>
+  <div class="note blue"><span class="kk">Two reserved keys do the lifting</span><code class="i">severity</code> and <code class="i">logging.googleapis.com/trace</code> are pulled out of the JSON into the entry&rsquo;s own fields. Everything else lands under <code class="i">jsonPayload</code>, where <code class="i">jsonPayload.input_tokens</code> is a number you can chart or sum.</div>
+  <div class="takeaway"><b>Takeaway:</b> one <code class="i">dictConfig</code> call turns every Python log line in the process into a queryable record, including the ones you did not write.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/logging/docs/structured-logging">Cloud Logging: structured logging</a> (reserved fields) &middot; <code class="i">logging.config</code>, <code class="i">contextvars</code> (Python stdlib) &middot; logging tutorial 4.2, 4.3 (captured 2026-09-04); formatter re-tested 2026-09-12.</div>
+</section>
+<details class="notes" data-title="One formatter for every stream">
+  <summary>Speaker notes &mdash; One formatter for every stream</summary>
+  <div class="n-body"><ul>
+    <li><b>This page is step 3 of the chain from page 7.</b> There, <code>extra=</code> put the keys on the <code>LogRecord</code> and the default formatter ignored them. Here the <code>JsonFormatter</code> walks <code>record.__dict__</code>, subtracts the built-in attributes, and writes the remainder into the JSON &mdash; which is the step that makes <code>extra=</code> actually reach Cloud Logging. The second code block is the producer; the first is what renders it.</li>
+    <li><b>Why <code>_STD</code> exists:</b> <code>extra=</code> merges your keys into <code>record.__dict__</code> alongside roughly twenty built-ins. Subtracting a throwaway record&rsquo;s attribute names is what isolates yours. A formatter that forgets this either emits nothing extra or dumps <code>pathname</code>, <code>lineno</code> and the rest into every entry.</li>
+    <li><b><code>ContextVar</code></b> is a standard-library variable scoped to the current task rather than the process, so concurrent requests each see their own value. Set the trace id into it once when a request starts and every line logged during that request picks it up &mdash; including <code>google_adk</code>&rsquo;s own lines, which is the point.</li>
+    <li>The trace value must be the full resource name, <code>projects/&lt;project&gt;/traces/&lt;32-hex&gt;</code>. A bare trace id is silently ignored.</li>
+    <li>To place a log line <i>under a span</i> in Trace you also need <code>logging.googleapis.com/spanId</code>. Page 23 covers the handler that fills both in for you.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 10. SETTING LEVEL AND FORMAT, PER TARGET ==== -->
+<section class="page">
+  <h1>Setting level and format, per target</h1>
+  <p class="lede">Two separate questions with different answers: which lines get written, and what shape they are written in.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:24%">Where it runs</th><th style="width:40%">Setting the level</th><th>Setting the format</th></tr></thead>
+    <tbody>
+      <tr><td><code>adk web</code> / <code>adk api_server</code></td><td><code>--log_level DEBUG</code>. It calls <code>basicConfig</code> on the <b>root</b> logger and sets <code>google_adk</code>, so it reaches streams 1 and 2 &mdash; not <code>uvicorn.access</code>, which uvicorn configured already</td><td class="yes">yours, via <code>dictConfig</code></td></tr>
+      <tr><td><code>adk deploy cloud_run</code></td><td>the container runs <code>adk api_server</code> with no level flag, so <b>INFO</b>. To change it, call <code>setup_adk_logger()</code> or <code>dictConfig</code> in your own module &mdash; it is imported before the server starts. <code>--log_level</code> on the deploy command sets <i>gcloud&rsquo;s</i> output verbosity, not the container&rsquo;s</td><td class="yes">yours</td></tr>
+      <tr><td>Agent Engine, <b>native</b><br><span class="small">you hand over the agent; the platform runs the server</span></td><td class="yes">yours, in your module</td><td class="no"><b>the platform&rsquo;s.</b> It installs a logging handler before importing your module, and a second <code>basicConfig</code> is a no-op when handlers already exist &mdash; so your formatter never takes effect</td></tr>
+      <tr><td>Agent Engine, <b>BYOC</b>, GKE, or any container you built</td><td class="yes">yours</td><td class="yes">yours &mdash; your code installs the first handler</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><span class="kk">There is no ADK log-level environment variable</span><code class="i">LOG_LEVEL</code> works only if your own code reads it and acts on it. Nothing in ADK does.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, moving the support app from a BYOC container to a native Agent Engine deploy.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> keep the JSON logging she set up on page 9, so the cost dashboard keeps working.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Before, on BYOC:</span> <code class="i">{"severity":"INFO","message":"llm_response","input_tokens":141}</code> &mdash; her formatter, because her code installed the first handler.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">After, on native:</span> <code class="i">2026-09-03 21:51:45,037 - INFO - agent.py:53 - llm_response</code> &mdash; the platform&rsquo;s format. Her <code class="i">basicConfig</code> ran second and did nothing, and the dashboard has no fields to read.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Fix:</span> use <code class="i">dictConfig</code>, which replaces existing handlers, rather than <code class="i">basicConfig</code>, which gives up when handlers are already present.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> whichever code installs a logging handler first decides the format. On a native Agent Engine deploy that is the platform; everywhere else it is you.</div>
+  <div class="src">Sources: <code class="i">cli/utils/logs.py:30-35</code> (<code class="i">basicConfig</code> on root plus <code class="i">google_adk</code>) &middot; <code class="i">cli/cli_tools_click.py:2529-2530</code> (deploy <code class="i">--log_level</code> maps to gcloud <code class="i">verbosity</code>), google-adk 2.9.0 &middot; logging tutorial 1.6, two deploys (captured 2026-09-03).</div>
+</section>
+<details class="notes" data-title="Setting level and format, per target">
+  <summary>Speaker notes &mdash; Setting level and format, per target</summary>
+  <div class="n-body"><ul>
+    <li><b>Why the native deploy loses your format:</b> <code>logging.basicConfig</code> does nothing if the root logger already has handlers. The platform&rsquo;s server starts, configures logging, then imports your agent module &mdash; so your <code>basicConfig</code> call arrives second and returns silently. <code>dictConfig</code> with <code>"disable_existing_loggers": False</code> <i>does</i> replace handlers, which is the workaround if you need it, but you are then fighting the platform&rsquo;s configuration.</li>
+    <li>Row 2 in practice: put <code>dictConfig</code> at module import time in <code>agent.py</code> (or anything it imports). The container&rsquo;s <code>CMD</code> runs <code>adk api_server</code>, which imports your agent, so your configuration runs during startup and before any request.</li>
+    <li>The gcloud trap is worth ten seconds: <code>adk deploy cloud_run --log_level DEBUG</code> is accepted, does something real, and that something is making the deploy command itself chatty. The deployed container is unaffected.</li>
+    <li>Delivery beat: ask what happens if two libraries both call <code>basicConfig</code>. The answer &mdash; the second one loses &mdash; is the whole rule on this page.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 11. READING LOGS BACK ==== -->
+<section class="page">
+  <h1>Reading logs back</h1>
+  <p class="lede">The logs are landing and they are structured. Now answer a support ticket with them.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Log Explorer</b>, filtered by <code class="i">jsonPayload.session_id</code> or <code class="i">trace</code> &mdash; one conversation, in order.</p></div>
+    <div class="checkrow"><div class="cdot gray"></div><p><b>A sink to BigQuery</b> &mdash; one table per log name; the sink&rsquo;s writer identity needs <code class="i">roles/bigquery.dataEditor</code>. Generic infrastructure.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b><code class="i">BigQueryAgentAnalyticsPlugin</code></b> &mdash; the agent-shaped option: one row per lifecycle event with ids, tokens, latency and content, into <code class="i">agent_events</code>, with <code class="i">create_views=True</code>.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, holding a ticket that says &ldquo;the agent failed for my order.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> see everything that happened in that one conversation.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Action:</span> Log Explorer, filter <code class="i">jsonPayload.session_id="s-8841"</code>.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the session&rsquo;s lines in order, with the malformed tool input visible. Ticket answered.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">What this cannot do:</span> Priya asks &ldquo;<i>which</i> session cost the most.&rdquo; No log filter answers that &mdash; it is <code class="i">SUM(usage_total_tokens) GROUP BY session_id</code> over <code class="i">v_llm_response</code>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> filters answer &ldquo;what happened in this session&rdquo;; rows answer &ldquo;which session&rdquo; &mdash; and only one of those is a log query.</div>
+  <div class="src">Sources: <code class="i">plugins/bigquery_agent_analytics_plugin.py</code> (table <code class="i">agent_events</code>, <code class="i">create_views=True</code>, <code class="i">enable_otel_correlation</code>), google-adk 2.9.0 &middot; <a href="https://adk.dev/observability/bigquery-agent-analytics/">ADK: BigQuery Agent Analytics</a> &middot; <a href="https://docs.cloud.google.com/logging/docs/export/configure_export_v2">Cloud Logging: sinks</a> (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Reading logs back">
+  <summary>Speaker notes &mdash; Reading logs back</summary>
+  <div class="n-body"><ul>
+    <li>The plugin is <b>agent-specific</b>: sessions and per-event rows are managed data with their own retention and access story, and the content column holds prompt text. The sink itself is generic &mdash; one line, then move on.</li>
+    <li>This page plants <code>session_id</code> as the id you filter and group by. <b>It is also the id a metric may never carry:</b> session and user ids are unbounded, and a metric label with unbounded values multiplies the time series until the bill notices. ADK records none of them on any instrument, by design. So when section 3 says &ldquo;that is a row question, not a metric question,&rdquo; this is the row it means.</li>
+    <li>Delivery beat: ask the room which of the two questions in the example they get asked more often. It is usually the second, and it is the one logs cannot answer.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 12. SECTION 1 RECAP ==== -->
+<section class="page">
+  <h1>Section 1 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p><b>Four streams, configured in four places.</b> Three are Python <code class="i">logging</code> and land on stdout; OpenTelemetry has its own exporter.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>ADK&rsquo;s own logs are plain text stored at <code class="i">DEFAULT</code> severity.</b> Match on content, or emit a <code class="i">severity</code> field.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Agent callbacks cover one agent; a plugin covers the app.</b> Both hand you objects, so pass the values through as fields.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>One <code class="i">dictConfig</code> makes every Python stream JSON</b>, with <code class="i">severity</code> and the trace id lifted into the entry.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Whoever installs a handler first owns the format</b> &mdash; the platform on a native Agent Engine deploy, you everywhere else.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1 recap">
+  <summary>Speaker notes &mdash; Section 1 recap</summary>
+  <div class="n-body"><ul>
+    <li>Hand-off: everything so far is one line at a time. Section 2 is about the <i>shape</i> of a turn &mdash; which lines belong to which decision, and in what order.</li>
+    <li>If the room is behind schedule, this is a 30-second page: read the bold clauses only.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 13. SECTION DIVIDER: TRACES ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">2</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 2 of 3</div>
+      <h1>Traces</h1>
+      <div class="dsub">The shape of one turn, and the three switches between your code and Cloud Trace.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2 &mdash; Traces">
+  <summary>Speaker notes &mdash; Section 2: Traces</summary>
+  <div class="n-body"><ul>
+    <li>Hand-off from section 1: logs are one line at a time. A trace is the <i>sequence</i>, which is the thing a flat log cannot give you.</li>
+    <li>The section&rsquo;s spine: what exists (14, 15) &rarr; how to read it (16, 17) &rarr; how to turn it on (18, 19, 20) &rarr; what it carries (21, 22) &rarr; joining back to section 1 (23).</li>
+  </ul></div>
+</details>
+
+<!-- ==== 14. WHAT HAS TO BE TRUE TO SEE A TRACE ==== -->
+<section class="page">
+  <h1>What has to be true to see a trace</h1>
+  <p class="lede">ADK opens spans on every turn regardless of configuration. Whether they are kept, and where they go, are two further switches you do not write any agent code for.</p>
+  <figure>
+    <svg viewBox="0 0 1000 360" width="1000" height="360" role="img" aria-label="Three configurations: adk web records in memory, otel_to_cloud exports to Cloud Trace, nothing installed discards spans">
+      <defs><marker id="ar14" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker>
+      <marker id="ar14g" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#9aa0a6"/></marker></defs>
+
+      <text x="163" y="24" font-family="var(--mono)" font-size="14.5" fill="var(--ink)" text-anchor="middle" font-weight="600">adk web</text>
+      <text x="500" y="24" font-family="var(--mono)" font-size="14.5" fill="var(--ink)" text-anchor="middle" font-weight="600">--otel_to_cloud</text>
+      <text x="838" y="24" font-family="var(--sans)" font-size="14.5" fill="var(--ink-2)" text-anchor="middle" font-weight="600">a plain script</text>
+
+      <rect x="30" y="42" width="266" height="46" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="163" y="70" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">ADK opens spans</text>
+      <rect x="367" y="42" width="266" height="46" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="500" y="70" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">ADK opens spans</text>
+      <rect x="704" y="42" width="266" height="46" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="838" y="70" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">ADK opens spans</text>
+
+      <line x1="163" y1="88" x2="163" y2="120" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar14)"/>
+      <line x1="500" y1="88" x2="500" y2="120" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar14)"/>
+      <line x1="838" y1="88" x2="838" y2="120" stroke="#9aa0a6" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#ar14g)"/>
+
+      <rect x="30" y="122" width="266" height="56" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="163" y="145" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">kept: a tracer provider</text>
+      <text x="163" y="166" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">installed automatically</text>
+      <rect x="367" y="122" width="266" height="56" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="500" y="145" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">kept: a tracer provider</text>
+      <text x="500" y="166" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">installed by the flag</text>
+      <rect x="704" y="122" width="266" height="56" rx="8" fill="var(--panel)" stroke="var(--line)" stroke-dasharray="4 3"/>
+      <text x="838" y="145" font-family="var(--sans)" font-size="15" fill="var(--ink-3)" text-anchor="middle">no tracer provider</text>
+      <text x="838" y="166" font-family="var(--mono)" font-size="13" fill="var(--ink-3)" text-anchor="middle">spans discarded</text>
+
+      <line x1="163" y1="178" x2="163" y2="210" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar14)"/>
+      <line x1="500" y1="178" x2="500" y2="210" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar14)"/>
+
+      <rect x="30" y="212" width="266" height="56" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="163" y="235" font-family="var(--sans)" font-size="15" fill="var(--ink-2)" text-anchor="middle">held in memory</text>
+      <text x="163" y="256" font-family="var(--sans)" font-size="13" fill="var(--ink-3)" text-anchor="middle">lost when the server stops</text>
+
+      <rect x="367" y="212" width="266" height="56" rx="8" fill="var(--fill-green)" stroke="var(--g-green)"/>
+      <text x="500" y="235" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">sent over the network</text>
+      <text x="500" y="256" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">telemetry.googleapis.com</text>
+
+      <line x1="163" y1="268" x2="163" y2="294" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar14)"/>
+      <line x1="500" y1="268" x2="500" y2="294" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar14)"/>
+      <rect x="30" y="296" width="266" height="40" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="163" y="322" font-family="var(--sans)" font-size="15" fill="var(--ink-2)" text-anchor="middle">the Trace tab in adk web</text>
+      <rect x="367" y="296" width="266" height="40" rx="8" fill="var(--fill-green)" stroke="var(--g-green)"/>
+      <text x="500" y="322" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">Cloud Trace</text>
+
+      <text x="838" y="300" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Same agent code in all three.</text>
+      <text x="838" y="322" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Only the configuration differs.</text>
+    </svg>
+    <figcaption>Nothing on this page is code you add to the agent. <code>adk web</code> sets up the first column for you; the flag sets up the second.</figcaption>
+  </figure>
+  <div class="ex"><span class="kk">Example &mdash; where the traces are</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot green"></div><p><b>Running <code class="i">adk web</code>:</b> open the Trace tab and the tree is there, with no flag. Restart the server and the history is gone.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><b>Deployed with <code class="i">--otel_to_cloud</code>:</b> the same tree in Cloud Trace, and it persists.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><b>Running a script that calls <code class="i">Runner</code> directly:</b> no trace anywhere. The agent answers normally; the spans are created and thrown away.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> if you see no trace, the usual cause is that nothing installed a tracer provider &mdash; not that the agent is missing instrumentation.</div>
+  <div class="src">Sources: <code class="i">cli/api_server.py:1188-1196</code> (<code class="i">adk web</code> installs a provider and two in-memory exporters), <code class="i">:650-666</code> (the flag&rsquo;s branch) &middot; no-provider check on google-adk 2.9.0 (2026-09-12) &middot; <a href="https://adk.dev/integrations/cloud-trace/">ADK: Cloud Trace</a>.</div>
+</section>
+<details class="notes" data-title="What has to be true to see a trace">
+  <summary>Speaker notes &mdash; What has to be true to see a trace</summary>
+  <div class="n-body"><ul>
+    <li><b>Tracer provider</b> is the OpenTelemetry object that decides whether a span is recorded and what happens to it afterwards. Without one installed globally, the OTel API hands back a no-op span: the calls succeed, nothing is stored. Verified on 2.9.0 &mdash; a real turn with no provider yields a <code>NonRecordingSpan</code> with an all-zero trace id.</li>
+    <li><b>How the exporter gets configured:</b> <code>--otel_to_cloud</code> makes <code>adk api_server</code> call <code>get_gcp_exporters()</code>, which builds OTLP exporters for traces, metrics and logs pointed at <code>telemetry.googleapis.com</code>, then <code>maybe_set_otel_providers()</code> installs them as the global providers. In a runtime you wrote, those are the two calls you make yourself &mdash; page 18.</li>
+    <li><b>Why <code>adk web</code> works with no flag:</b> it unconditionally installs a provider with two in-memory exporters, one of which backs the Trace tab. That is a development convenience, and it is why &ldquo;it traced on my laptop&rdquo; does not predict what a deployment does.</li>
+    <li>Connect to Module 2 page 14 if both are delivered: its &ldquo;turn export on&rdquo; column is the third row of this diagram, not the first.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 15. THE SPAN TREE ==== -->
+<section class="page">
+  <h1>The span tree</h1>
+  <p class="lede">Five span names. Indentation shows parentage; the bars show when each one actually ran.</p>
+  <figure>
+    <svg viewBox="0 0 1000 300" width="1000" height="300" role="img" aria-label="Timeline of one turn: invocation, invoke_agent, two call_llm spans, generate_content and execute_tool">
+      <line x1="330" y1="26" x2="330" y2="236" stroke="var(--line)" stroke-width="1"/>
+      <line x1="330" y1="236" x2="970" y2="236" stroke="var(--line)" stroke-width="1"/>
+      <text x="330" y="256" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">0s</text>
+      <text x="490" y="256" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">3.8s</text>
+      <text x="650" y="256" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">7.6s</text>
+      <text x="810" y="256" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">11.3s</text>
+      <text x="967" y="256" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">15.1s</text>
+
+      <text x="16" y="48" font-family="var(--mono)" font-size="13.5" fill="var(--ink)">invocation</text>
+      <rect x="330" y="34" width="640" height="22" rx="4" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.3"/>
+      <text x="962" y="50" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="end">15.131s</text>
+
+      <text x="34" y="80" font-family="var(--mono)" font-size="13.5" fill="var(--ink)">invoke_agent weather_agent</text>
+      <rect x="330" y="66" width="640" height="22" rx="4" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.3"/>
+      <text x="962" y="82" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="end">15.128s</text>
+
+      <text x="52" y="112" font-family="var(--mono)" font-size="13.5" fill="var(--ink)">call_llm</text>
+      <rect x="330" y="98" width="45" height="22" rx="4" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.3"/>
+      <text x="383" y="114" font-family="var(--mono)" font-size="12" fill="var(--ink-2)">1.068s</text>
+
+      <text x="70" y="144" font-family="var(--mono)" font-size="13.5" fill="var(--ink-2)">generate_content</text>
+      <rect x="330" y="130" width="44" height="22" rx="4" fill="var(--fill-yellow)" stroke="var(--g-yellow)" stroke-width="1.3"/>
+      <text x="382" y="146" font-family="var(--mono)" font-size="12" fill="var(--ink-2)">1.056s</text>
+
+      <text x="70" y="176" font-family="var(--mono)" font-size="13.5" fill="var(--ink)">execute_tool get_weather</text>
+      <rect x="374" y="162" width="3" height="22" rx="1.5" fill="var(--g-green)"/>
+      <text x="385" y="178" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">749&micro;s</text>
+
+      <text x="52" y="208" font-family="var(--mono)" font-size="13.5" fill="var(--ink)">call_llm</text>
+      <rect x="376" y="194" width="594" height="22" rx="4" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.3"/>
+      <text x="962" y="210" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="end">14.056s</text>
+
+      <text x="650" y="288" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Within a step: the model call finishes, <tspan font-weight="600">then</tspan> the tool runs. They never overlap.</text>
+    </svg>
+    <figcaption>A real turn from Cloud Trace, 15.1s end to end. Bar positions and widths are to scale.</figcaption>
+  </figure>
+  <div class="note blue"><span class="kk">The root span has two names</span><code class="i">invocation</code> on Cloud Run, GKE and anything you host yourself. <code class="i">invoke_workflow {name}</code> on Agent Engine, which sets <code class="i">GOOGLE_CLOUD_AGENT_ENGINE_ID</code> and so selects telemetry schema v2. Force either with <code class="i">ADK_TELEMETRY_SCHEMA_VERSION_OPT_IN=1</code> or <code class="i">=2</code>.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, opening this trace in Cloud Trace for the first time.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> understand what the agent did with the 15 seconds.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">What he reads:</span> two <code class="i">call_llm</code> spans, so the model was consulted twice &mdash; once to choose a tool, once to write the answer. The tool itself took 749&micro;s.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">What he flags:</span> the second <code class="i">call_llm</code> is 14.056s against the first at 1.068s. Same model, same agent &mdash; that gap is the thing to investigate.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> <code class="i">call_llm</code> covers a whole step &mdash; the model call plus anything the model asked for &mdash; which is why tool spans sit underneath it.</div>
+  <div class="src">Sources: Cloud Trace timeline for trace <code class="i">bdf741cb11dfa7b5161646036f41ebf2</code>, service <code class="i">adk-metrics</code> (captured 2026-09-12) &middot; <code class="i">telemetry/_schema_version.py:60-91</code> (root naming, schema opt-in), google-adk 2.9.0.</div>
+</section>
+<details class="notes" data-title="The span tree">
+  <summary>Speaker notes &mdash; The span tree</summary>
+  <div class="n-body"><ul>
+    <li>The five names: <code>invocation</code> or <code>invoke_workflow</code>, <code>invoke_agent</code>, <code>call_llm</code>, <code>generate_content</code>, <code>execute_tool</code>.</li>
+    <li><b>Read the bars, not just the indentation.</b> <code>generate_content</code> and <code>execute_tool</code> are siblings under the same <code>call_llm</code>, and they run one after the other &mdash; the model returns a tool request, then ADK runs the tool. Verified across every tool call in the capture: zero overlap.</li>
+    <li>Why <code>call_llm</code> is wider than <code>generate_content</code>: it stays open until the step is complete, which includes the tool it requested.</li>
+    <li>If asked about the 14s second call: that is a real recorded turn on a cold path. It is the kind of asymmetry page 16 is about &mdash; two spans with the same name and a 13-second difference is a question, not noise.</li>
+    <li>Multi-agent apps add nested <code>invoke_agent</code> spans under the root; the shape below each one is the same.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 16. FINDING WHERE THE TIME WENT ==== -->
+<section class="page">
+  <h1>Finding where the time went</h1>
+  <p class="lede">A turn took 11 seconds. The waterfall shows which part of it to look at &mdash; and the answer here is not the model.</p>
+  <figure>
+    <svg viewBox="0 0 1000 290" width="1000" height="290" role="img" aria-label="Waterfall of a slow turn: one tool call takes 7.2 seconds of an 11 second turn">
+      <line x1="210" y1="28" x2="210" y2="232" stroke="var(--line)" stroke-width="1"/>
+      <line x1="210" y1="232" x2="960" y2="232" stroke="var(--line)" stroke-width="1"/>
+      <text x="210" y="252" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">0s</text>
+      <text x="397" y="252" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">2.75s</text>
+      <text x="585" y="252" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">5.5s</text>
+      <text x="772" y="252" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">8.25s</text>
+      <text x="957" y="252" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">11s</text>
+
+      <text x="202" y="50" font-family="var(--mono)" font-size="13.5" fill="var(--ink)" text-anchor="end">invoke_agent</text>
+      <rect x="210" y="36" width="750" height="24" rx="5" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.4"/>
+      <text x="952" y="53" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="end">11.0s</text>
+
+      <text x="202" y="86" font-family="var(--mono)" font-size="13.5" fill="var(--ink)" text-anchor="end">call_llm</text>
+      <rect x="210" y="72" width="628" height="24" rx="5" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.4"/>
+      <text x="830" y="89" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="end">9.2s</text>
+
+      <text x="202" y="122" font-family="var(--mono)" font-size="13.5" fill="var(--ink-2)" text-anchor="end">generate_content</text>
+      <rect x="210" y="108" width="123" height="24" rx="5" fill="var(--fill-yellow)" stroke="var(--g-yellow)" stroke-width="1.4"/>
+      <text x="343" y="125" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)">1.8s</text>
+
+      <text x="202" y="158" font-family="var(--mono)" font-size="13.5" fill="var(--ink)" text-anchor="end">execute_tool get_forecast</text>
+      <rect x="343" y="144" width="491" height="24" rx="5" fill="var(--fill-red)" stroke="var(--g-red)" stroke-width="1.4"/>
+      <text x="826" y="161" font-family="var(--mono)" font-size="12.5" fill="var(--g-red-deep)" text-anchor="end">7.2s</text>
+
+      <text x="202" y="194" font-family="var(--mono)" font-size="13.5" fill="var(--ink)" text-anchor="end">call_llm</text>
+      <rect x="838" y="180" width="122" height="24" rx="5" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.4"/>
+      <text x="952" y="197" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="end">1.8s</text>
+
+      <text x="585" y="282" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Bars start where the work starts. The tool begins only after <tspan font-family="var(--mono)" font-size="13">generate_content</tspan> returns &mdash; they never overlap.</text>
+    </svg>
+    <figcaption>The same nesting as page 15, drawn on a time axis. <code>call_llm</code> spans the model call and the tool it requested, which is why it is wider than either.</figcaption>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Compare each span to its siblings, not to the total.</b> Here 7.2 of 11 seconds is one tool.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two model calls per tool-using turn is normal</b> &mdash; ask, then phrase. That is not the anomaly to hunt for.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Count the tool spans.</b> The same tool appearing three times in one turn usually means the model is retrying something that returned an unhelpful result.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example &mdash; a p95 that moved overnight</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><b>Symptom:</b> p95 turn latency went from 4s to 11s. No deploy, no prompt change.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>In the waterfall:</b> both <code class="i">generate_content</code> spans are unchanged at 1.8s. <code class="i">execute_tool get_forecast</code> is 7.2s, up from 0.4s.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><b>Conclusion:</b> the upstream weather API got slow. Nothing about the agent changed, and no model-side optimization would have helped.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the waterfall separates time spent waiting on the model from time spent waiting on your dependencies &mdash; which are different problems with different owners.</div>
+  <div class="src">Sources: tracing tutorial 1.1, 1.4 (captured 2026-09-07) &middot; span parentage and non-overlap verified across five tool calls in the live 2.9.0 capture (2026-09-12).</div>
+</section>
+<details class="notes" data-title="Finding where the time went">
+  <summary>Speaker notes &mdash; Finding where the time went</summary>
+  <div class="n-body"><ul>
+    <li><b>The numbers on this page are constructed to show a slow-dependency case</b>, using the real span shape from the capture. The captured turns were all fast; a 7.2s tool is the scenario worth teaching, not one that happened to be recorded.</li>
+    <li>Why <code>call_llm</code> is wider than <code>generate_content</code>: it covers the whole step. In the capture, <code>generate_content</code> ran 18.182&rarr;19.729 and the tool ran 19.909&rarr;19.911 inside a <code>call_llm</code> that ran 18.149&rarr;20.080. Sequential, never concurrent.</li>
+    <li>The second useful pattern, if asked: the same <code>execute_tool</code> name appearing several times under one <code>invoke_agent</code>. The model got a result it could not use and tried again &mdash; usually a tool returning an error string the model reads as &ldquo;try different arguments.&rdquo; Page 17 is about making that visible.</li>
+    <li>Delivery beat: show the waterfall, ask who owns the fix. It is the team that runs the weather API, not the team that wrote the agent.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 17. A FAILED TOOL IN A GREEN TRACE ==== -->
+<section class="page">
+  <h1>A failed tool in a green trace</h1>
+  <p class="lede">A tool that returns <code class="i">{"status": "error"}</code> leaves no mark on the trace. Every span is green, and the user was told there is no data.</p>
+  <figure>
+    <svg viewBox="0 0 1000 320" width="1000" height="320" role="img" aria-label="The same turn with a plain FunctionTool showing every span OK, and with error detection showing the tool span red">
+      <text x="20" y="20" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" font-weight="600">Plain <tspan font-family="var(--mono)" font-size="13">FunctionTool</tspan> &mdash; the default</text>
+      <line x1="300" y1="28" x2="300" y2="140" stroke="var(--line)" stroke-width="1"/>
+      <text x="20" y="48" font-family="var(--mono)" font-size="13" fill="var(--ink)">invoke_agent weather_agent</text>
+      <rect x="300" y="34" width="560" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="49" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <text x="38" y="74" font-family="var(--mono)" font-size="13" fill="var(--ink)">call_llm</text>
+      <rect x="300" y="60" width="300" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="75" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <text x="56" y="100" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">generate_content</text>
+      <rect x="300" y="86" width="250" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="101" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <text x="56" y="126" font-family="var(--mono)" font-size="13" fill="var(--ink)">execute_tool get_weather</text>
+      <rect x="552" y="112" width="46" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="127" font-family="var(--mono)" font-size="12" fill="var(--ink-3)">UNSET</text>
+      <text x="300" y="156" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)">Nothing is red. There is no <tspan font-family="var(--mono)" font-size="12">error.type</tspan> anywhere in this trace to search for.</text>
+
+      <line x1="20" y1="176" x2="980" y2="176" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+
+      <text x="20" y="204" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" font-weight="600">With <tspan font-family="var(--mono)" font-size="13">_detect_error_in_response</tspan> overridden</text>
+      <line x1="300" y1="212" x2="300" y2="324" stroke="var(--line)" stroke-width="1"/>
+      <text x="20" y="232" font-family="var(--mono)" font-size="13" fill="var(--ink)">invoke_agent weather_agent</text>
+      <rect x="300" y="218" width="560" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="233" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <text x="38" y="258" font-family="var(--mono)" font-size="13" fill="var(--ink)">call_llm</text>
+      <rect x="300" y="244" width="300" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="259" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <text x="56" y="284" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">generate_content</text>
+      <rect x="300" y="270" width="250" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
+      <text x="880" y="285" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <text x="56" y="310" font-family="var(--mono)" font-size="13" fill="var(--ink)">execute_tool get_weather</text>
+      <rect x="552" y="296" width="46" height="20" rx="4" fill="var(--fill-red)" stroke="var(--g-red)" stroke-width="1.5"/>
+      <text x="880" y="311" font-family="var(--mono)" font-size="12" fill="var(--g-red-deep)">ERROR</text>
+      <text x="612" y="311" font-family="var(--mono)" font-size="12" fill="var(--g-red-deep)">error.type="lookup_failed"</text>
+    </svg>
+    <figcaption>Same turn, same tool result. Only the tool span changes &mdash; the parents stay green in both, because the turn really did complete and the user really did get a reply.</figcaption>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>ADK cannot tell that your dict means failure.</b> <code class="i">{"status": "error"}</code> is an ordinary return value; the convention is yours, not the framework&rsquo;s.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>So it asks the tool class.</b> Every tool has a <code class="i">_detect_error_in_response</code> method; <code class="i">FunctionTool</code>&rsquo;s returns <code class="i">None</code>, meaning &ldquo;not an error,&rdquo; for every response.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Override it</b> to return a short string for your failure shape. That string becomes <code class="i">error.type</code> and turns the span red.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, after a support ticket saying the agent does not know about a newly launched region.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> find out how often the lookup is failing and for which cities.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">With the default:</span> Cloud Trace shows no failed spans at all, so there is no filter that finds these turns. He is reduced to reading traces one at a time.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">After overriding:</span> filter on <code class="i">error.type="lookup_failed"</code>, group by hour, and read the failing city off each tool span.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> tell ADK what failure looks like in your tools, or the failures stay invisible to every trace query you write.</div>
+  <div class="src">Sources: <code class="i">tools/functions.py:88</code> (<code class="i">_detect_error_in_response</code> returns <code class="i">None</code> on <code class="i">FunctionTool</code>), google-adk 2.9.0 &middot; tracing tutorial 1.4, three failure modes (captured 2026-09-07).</div>
+</section>
+<details class="notes" data-title="A failed tool in a green trace">
+  <summary>Speaker notes &mdash; A failed tool in a green trace</summary>
+  <div class="n-body"><ul>
+    <li><b>The three bullets in one sentence:</b> a returned error dict is just data, so ADK asks the tool class whether it counts as a failure, and the default answer is always no.</li>
+    <li><b>Bullet 1</b> &mdash; there is no universal failure convention. Your tool might return <code>{"status": "error"}</code>, another might return <code>{"ok": false}</code>, a third might return an empty list. ADK cannot guess, so it does not try.</li>
+    <li><b>Bullet 2</b> &mdash; the hook is the escape hatch. <code>BaseTool._detect_error_in_response(response)</code> is called after every tool returns; a string return marks the span ERROR with that string as <code>error.type</code>, and <code>None</code> leaves it alone. <code>FunctionTool</code> inherits the do-nothing version.</li>
+    <li><b>Bullet 3</b> &mdash; the override is a subclass with one method, about ten lines: check the shape your tools use, return a short stable identifier like <code>"lookup_failed"</code>, else <code>None</code>. Use identifiers you would group by, not sentences.</li>
+    <li><b>Why the parents stay green</b> even after the override: the turn completed and the user got a reply. &ldquo;I do not have data for that city&rdquo; is a successful invocation containing a failed step. That is correct, and it is exactly why page 28 needs a separate counter for whether the task was accomplished.</li>
+    <li>If asked about raising instead: an exception propagates and fails the whole turn, so the user gets an error rather than a graceful answer. Most teams want the graceful answer <i>and</i> the red span, which is what the override gives.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 18. TURNING EXPORT ON, PER TARGET ==== -->
+<section class="page">
+  <h1>Turning export on, per target</h1>
+  <p class="lede">Four ways to run the same agent, four places the export switch lives.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:25%">How it runs</th><th style="width:40%">The switch</th><th>Who sets it</th></tr></thead>
+    <tbody>
+      <tr><td><code>adk deploy agent_engine</code></td><td><code>GOOGLE_CLOUD_AGENT_ENGINE_<wbr>ENABLE_TELEMETRY=true</code> in the deployment environment</td><td>the <code>--otel_to_cloud</code> flag on the deploy command</td></tr>
+      <tr><td><code>adk deploy cloud_run</code> / <code>gke</code></td><td><code>--otel_to_cloud</code> appended to the container&rsquo;s <code>adk api_server</code> command</td><td>the <code>--otel_to_cloud</code> flag on the deploy command</td></tr>
+      <tr><td><code>agents-cli deploy</code></td><td><code>ENABLE_TELEMETRY</code>, which the scaffolded server reads and turns into <code>otel_to_cloud=True</code></td><td>the deploy, or Terraform if the project is managed</td></tr>
+      <tr class="hl"><td><b>A container you built</b></td><td><code>get_fast_api_app(&hellip;, otel_to_cloud=True)</code>, or the two calls below</td><td class="yes">you, in your own startup code</td></tr>
+    </tbody>
+  </table></div>
+  <p class="codelabel good">The two calls the flag makes on your behalf</p>
+  <pre class="code"><span class="kw">from</span> google.adk.telemetry <span class="kw">import</span> google_cloud
+<span class="kw">from</span> google.adk.telemetry.setup <span class="kw">import</span> maybe_set_otel_providers
+
+hooks = google_cloud.get_gcp_exporters(
+    enable_cloud_tracing=<span class="kw">True</span>, enable_cloud_metrics=<span class="kw">True</span>, enable_cloud_logging=<span class="kw">True</span>
+)
+maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
+  <div class="note blue"><span class="kk">A third route, no flag and no code</span>ADK also honours the standard OpenTelemetry environment variables. Set <code class="i">OTEL_EXPORTER_OTLP_ENDPOINT</code> (or the per-signal <code class="i">_TRACES</code> / <code class="i">_METRICS</code> / <code class="i">_LOGS</code> variants) and the server wires exporters to that endpoint at startup &mdash; which is how you point an ADK agent at a non-Google backend.</div>
+  <div class="ex"><span class="kk">Example &mdash; verified on a live deploy, 2026-09-12</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><b>Ran:</b> <code class="i">adk deploy agent_engine --otel_to_cloud</code>, then five turns.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>On the resource:</b> <code class="i">GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY = true</code>.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><b>In Cloud Trace:</b> 60 spans across 12 traces.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> every managed path sets one variable or one flag for you. In a container you built, nothing does &mdash; you make the two calls or set the OTLP endpoint yourself.</div>
+  <div class="src">Sources: <code class="i">cli/cli_deploy.py:843-844,1277-1286</code> &middot; <code class="i">cli/api_server.py:650-719</code> (the flag branch and the env-var branch), <code class="i">cli/fast_api.py:114</code> &middot; live Agent Engine deploy with resource read-back (2026-09-12), google-adk 2.9.0.</div>
+</section>
+<details class="notes" data-title="Turning export on, per target">
+  <summary>Speaker notes &mdash; Turning export on, per target</summary>
+  <div class="n-body"><ul>
+    <li><b>Rows 1 and 2 take the same flag</b> and differ only in where it ends up: Agent Engine has no long-lived command line, so the flag becomes an environment variable the platform reads; Cloud Run and GKE run <code>adk api_server</code>, so it becomes a command-line argument in the image.</li>
+    <li><b>Row 3, the scaffolded server, in detail:</b> <code>agents-cli</code> generates <code>app/fast_api_app.py</code>, which calls <code>get_fast_api_app(otel_to_cloud=...)</code>. On Cloud Run and GKE it passes <code>True</code> unconditionally; on Agent Engine it derives the value from <code>ENABLE_TELEMETRY</code>, which is why the Console toggle genuinely turns export off there. With a Terraform-managed project, <code>service.tf</code> owns that variable along with the content settings, so changing it by hand gets reverted on the next apply.</li>
+    <li>The highlighted row is the one where you can see what is happening. The other three hide these same two calls behind a flag.</li>
+    <li>An unset switch resolves to <b>off</b> on Agent Engine. It is opt-in, not opt-out.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 19. THE EXPORTER PACKAGES ==== -->
+<section class="page">
+  <h1>The exporter packages</h1>
+  <p class="lede">The switch tells ADK to export. The code that does the exporting is a separate set of packages, and they have to be in the image.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What is needed:</b> <code class="i">google-adk[otel-gcp]</code> and the Cloud exporter packages, listed in the <code class="i">requirements.txt</code> that the build actually reads.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>With <code class="i">adk deploy</code>:</b> list them in <code class="i">&lt;agent_dir&gt;/requirements.txt</code> &mdash; the file <b>inside</b> the agent folder. One beside it is not staged, and the generated Dockerfile then installs base <code class="i">google-adk</code> only.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>With your own Dockerfile</b> to Cloud Run or GKE: they are whatever your image installs. Nothing generates a requirements file for you, and nothing warns you if the exporters are absent.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Missing on Cloud Run or GKE:</b> the container fails to start &mdash; the Cloud Logging exporter is imported unconditionally, so the import error kills the process.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Missing on Agent Engine:</b> the container starts and serves traffic. The telemetry imports are wrapped in <code class="i">try/except</code>, so it logs a warning and runs with telemetry off.</p></div>
+  </div>
+  <div class="note"><span class="kk">Either way, the deploy command exits 0</span>The packages are resolved when the image is built and imported when the container starts &mdash; both after <code class="i">adk deploy</code> has reported success. Verify by fetching a span, not by reading the exit code.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, turning on tracing for an agent on Agent Engine.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> see span trees in Cloud Trace for a deployed agent.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> adds the exporter packages to <code class="i">requirements.txt</code>, runs <code class="i">adk deploy agent_engine --otel_to_cloud</code>. The command reports success.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Result:</span> the agent answers turns; Cloud Trace is empty. His <code class="i">requirements.txt</code> sat one directory above the agent folder, so the deploy generated its own two-line file. <code class="i">reasoning_engine_stderr</code> reads <code class="i">Unable to import GoogleGenAiSdkInstrumentor &mdash; some telemetry will be disabled.</code></p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Fix:</span> move the file inside the agent folder, redeploy, send one turn, confirm a span.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a clean deploy proves the image built, not that telemetry works. On Agent Engine especially, check stderr or check for a span.</div>
+  <div class="src">Sources: <code class="i">telemetry/google_cloud.py:272</code> (unguarded import) &middot; <code class="i">vertexai/agent_engines/templates/adk.py:407-417,485-490,540-546</code> (guarded, degrades), google-cloud-aiplatform 2.1.0 &middot; both failure modes observed on live deploys (2026-09-12) &middot; tracing tutorial 2.2.</div>
+</section>
+<details class="notes" data-title="The exporter packages">
+  <summary>Speaker notes &mdash; The exporter packages</summary>
+  <div class="n-body"><ul>
+    <li><b>How the packages get into the image.</b> <code>adk deploy</code> copies your agent folder into a temporary build context and generates a Dockerfile whose install step is <code>pip install -r /app/agents/&lt;name&gt;/requirements.txt</code>. If that file does not exist, it creates one containing only <code>google-cloud-aiplatform[adk,agent_engines]</code> and <code>google-adk[a2a]</code> &mdash; neither of which pulls the Cloud exporters. If it does exist, it appends those two lines to yours rather than replacing anything, so an existing <code>google-adk[otel-gcp]</code> line survives and pip installs the union of the extras.</li>
+    <li><b>Why the two failure modes differ.</b> ADK&rsquo;s own setup path imports the Cloud Logging exporter at module scope with no guard, so on Cloud Run the process dies at startup and the revision never goes healthy. The Vertex SDK wrapper that runs a native Agent Engine deploy wraps each telemetry import in <code>try/except (ImportError, AttributeError)</code> and logs a warning, so the service is healthy and silent. Neither choice is wrong; you just have to know which one is running.</li>
+    <li><b>A container you built yourself:</b> the packages are whatever your own Dockerfile installs. There is no ADK-managed requirements file in that path &mdash; if you call <code>get_fast_api_app(otel_to_cloud=True)</code> or set an OTLP endpoint, make sure your image has the exporters, or you get the same two failures.</li>
+    <li>The fastest check after any deploy: send one turn, then look for a span. Ten seconds, and it distinguishes all three states from page 14.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 20. TWO THINGS AGENT ENGINE DOES DIFFERENTLY ==== -->
+<section class="page">
+  <h1>Two things Agent Engine does differently</h1>
+  <p class="lede">The same agent code produces slightly different telemetry there, and neither difference is something you configure.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>The root span is named <code class="i">invoke_workflow {name}</code>, not <code class="i">invocation</code>.</b> Agent Engine sets <code class="i">GOOGLE_CLOUD_AGENT_ENGINE_ID</code>, which selects telemetry schema v2; every other runtime defaults to v1.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Metrics are flushed when a request ends</b>, not on a background timer.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Why:</b> the runtime throttles CPU the moment a response finishes, so a periodic exporter&rsquo;s thread would only run while a request happened to be in flight. ADK installs a request-driven reader instead.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Spans carry <code class="i">service.name = &lt;engine id&gt;</code></b> and <code class="i">cloud.platform = gcp.agent_engine</code> on the resource &mdash; that is how you find them.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example &mdash; one agent, two targets</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><b>On Cloud Run:</b> the trace roots at <code class="i">invocation</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>On Agent Engine:</b> the same turn roots at <code class="i">invoke_workflow weather_agent</code> &mdash; 11 such roots across 12 traces in the capture.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><b>Everything below the root is identical.</b> A saved query that matches on the root span name will silently match nothing after a move.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> if a trace query stops matching after moving to Agent Engine, check the root span name before checking the configuration.</div>
+  <div class="src">Sources: <code class="i">telemetry/_schema_version.py:60-91</code> (schema selection and the <code class="i">ADK_TELEMETRY_SCHEMA_VERSION_OPT_IN</code> override) &middot; <code class="i">telemetry/_agent_engine.py:1139-1199</code>, <code class="i">_agent_engine_metric_exporter.py</code>, google-adk 2.9.0 &middot; live capture, 60 spans / 12 traces (2026-09-12).</div>
+</section>
+<details class="notes" data-title="Two things Agent Engine does differently">
+  <summary>Speaker notes &mdash; Two things Agent Engine does differently</summary>
+  <div class="n-body"><ul>
+    <li>Schema v2 renames the root to match the OpenTelemetry GenAI convention for a workflow entrypoint, and adds a matching <code>invoke_workflow.duration</code> metric. The child spans are unchanged, so only queries anchored on the root are affected.</li>
+    <li>You can force either version with <code>ADK_TELEMETRY_SCHEMA_VERSION_OPT_IN=1</code> or <code>=2</code> on any runtime. Useful if you are moving to Agent Engine and want your existing dashboards to keep working during the transition &mdash; or the reverse, to adopt v2 early on Cloud Run.</li>
+    <li><b>Why the metric reader matters in practice:</b> every OpenTelemetry batch exporter assumes a daemon thread keeps running between requests. On a scale-to-zero, per-request runtime that assumption is false, and metrics recorded near the end of a turn would be lost. ADK works around it, so this is a &ldquo;why the numbers are right&rdquo; note rather than something to act on.</li>
+    <li>A practical read-back note if anyone tries it: the legacy Cloud Trace v1 API does not return spans exported this way. Use Trace Explorer and filter on the engine id as <code>service.name</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 21. TWO SETTINGS CONTROL PROMPT TEXT IN TELEMETRY ==== -->
+<section class="page">
+  <h1>Two settings control prompt text in telemetry</h1>
+  <p class="lede">Two separate environment variables decide whether the text of prompts and replies is written into your telemetry. They have opposite defaults, and each one covers spans the other does not.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:33%">Variable</th><th style="width:47%">What it controls</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr class="bad"><td><code>ADK_CAPTURE_MESSAGE_<wbr>CONTENT_IN_SPANS</code></td><td>the text ADK writes onto its own spans, as the attributes <code>llm_request</code>, <code>llm_response</code>, <code>tool_call_args</code> and <code>tool_response</code></td><td class="no"><b><code>true</code></b><br><span class="small">text is captured</span></td></tr>
+      <tr><td><code>OTEL_INSTRUMENTATION_GENAI_<wbr>CAPTURE_MESSAGE_CONTENT</code></td><td>the text in the <code>gen_ai.*</code> log events written by the Gemini client instrumentation. If <code>OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code> is also set, the values <code>SPAN_ONLY</code> and <code>SPAN_AND_EVENT</code> put the text on the <code>generate_content</code> span as well</td><td class="yes"><code>NO_CONTENT</code><br><span class="small">nothing captured</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">Each variable controls its own writer</span>Setting one has no effect on the other. To keep prompt text out of every span, the ADK variable must be <code class="i">false</code> <b>and</b> the OTel variable must be <code class="i">NO_CONTENT</code>. The ADK variable is the one people miss, because it defaults to on and most documentation names only the OTel one.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya. A security review asks her to show that customer messages never appear in Cloud Trace.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> confirm that no span carries prompt text.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> she sets <code class="i">ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code>, sends one test message containing the phrase <i>order TEST-4471</i>, opens that turn in Trace Explorer, and reads the attributes of the <code class="i">call_llm</code> span and the <code class="i">generate_content</code> span.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> both spans are clean. <code class="i">call_llm</code> is clean because she turned the ADK variable off. <code class="i">generate_content</code> is clean because the OTel variable is still at its default.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">The trap:</span> a month later a teammate sets <code class="i">OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=SPAN_AND_EVENT</code> (with the opt-in) to debug a prompt and leaves it on. <i>order TEST-4471</i> now appears on <code class="i">generate_content</code> under <code class="i">gen_ai.input.messages</code>. Priya&rsquo;s setting is still in place and does nothing about it, because it never governed that span.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> turning off one variable does not turn off prompt text. Check both, and check them by reading a real span on the deployment you actually run.</div>
+  <div class="src">Sources: <code class="i">telemetry/context.py:41-113</code> (both variables, the opt-in token, and the <code class="i">SPAN_ONLY</code>/<code class="i">SPAN_AND_EVENT</code> routing), google-adk 2.9.0 &middot; eight-combination test against live Gemini calls, 2026-09-12 (each combination of the two variables, one test phrase, spans and log events read back).</div>
+</section>
+<details class="notes" data-title="Two settings control prompt text in telemetry">
+  <summary>Speaker notes &mdash; Two settings control prompt text in telemetry</summary>
+  <div class="n-body"><ul>
+    <li><b>Why there are two variables.</b> Two different libraries write telemetry during a model call. ADK writes the <code>call_llm</code> and <code>execute_tool</code> spans and reads its own variable. The Gemini client instrumentation (<code>opentelemetry-instrumentation-google-genai</code>) writes the <code>generate_content</code> span and the <code>gen_ai.*</code> log events, and reads the OpenTelemetry variable. Neither library looks at the other&rsquo;s setting.</li>
+    <li><b>What the opt-in is.</b> <code>OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code> tells the instrumentation to use the newer, experimental GenAI attribute names. Only in that mode do <code>SPAN_ONLY</code> and <code>SPAN_AND_EVENT</code> write text onto the span. Without the opt-in, the OTel variable affects log events only.</li>
+    <li><b>How to check a span in Cloud Trace:</b> Trace Explorer, open the trace, click the span, read the <b>Attributes</b> panel. <code>gcp.vertex.agent.llm_request</code> on <code>call_llm</code> is where ADK puts the prompt; <code>gen_ai.input.messages</code> on <code>generate_content</code> is where the instrumentation puts it.</li>
+    <li><b>Agent-specific:</b> the trajectory carries user content. That makes observability a data-retention decision, bounded by who can read Cloud Trace, in a way that request logs for an ordinary service usually are not.</li>
+    <li>Delivery beat: ask which default is more dangerous. The ADK one, because it is on, and it is the one not named in most documentation.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 22. WHETHER YOUR SETTING SURVIVES DEPLOYMENT ==== -->
+<section class="page">
+  <h1>Whether your setting survives deployment</h1>
+  <p class="lede">You set <code class="i">ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS</code> once. What ADK actually reads when the container starts depends on which deploy path you used.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:22%">Target</th><th style="width:30%">How you set the variable</th><th>What ADK reads at startup</th></tr></thead>
+    <tbody>
+      <tr class="bad"><td><code>adk deploy agent_engine</code></td><td><code>.env</code> in the agent folder, or a file named with <code>--env_file</code></td><td><b>Always <code>false</code>.</b> The deploy command writes <code>false</code> if you did not set the variable, and the Vertex SDK wrapper sets it to <code>false</code> again every time the container starts. A <code>true</code> you set does not survive.</td></tr>
+      <tr><td><code>adk deploy cloud_run</code><br><code>adk deploy gke</code></td><td><code>.env</code> in the agent folder. <code>cloud_run</code> also accepts <code>--env NAME=VALUE</code> on the deploy command; <code>gke</code> has no such flag</td><td>Normal precedence. A variable set on the container (by <code>--env</code>, or on the service or pod later) wins. The <code>.env</code> file is copied into the image and read at startup, but it only fills in variables the container does not already set. If nothing sets it, the default <code>true</code> applies.</td></tr>
+      <tr><td><code>agents-cli deploy</code> to Agent Runtime</td><td><code>--update-env-vars</code>, or Terraform if the project is Terraform-managed</td><td>The deploy sets <code>false</code>. Nothing changes it at startup, so a later <code>--update-env-vars</code> to <code>true</code> holds.</td></tr>
+      <tr class="hl"><td><b>Your own container</b><br><span class="small">you write the Dockerfile and start the server yourself</span></td><td>however you set variables for that container: Dockerfile, Cloud Run service, Kubernetes manifest</td><td class="yes">Exactly what the container&rsquo;s environment holds. No deploy tool changes it.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><span class="kk">No deploy tool touches the OTel variable</span>On any target, <code class="i">OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</code> is whatever you set and nothing else. If you want it changed, you change it, and nothing resets it.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya. The support app runs in three places: Agent Engine via <code class="i">adk deploy agent_engine</code>, Cloud Run via <code class="i">adk deploy cloud_run</code>, and GKE.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> no prompt text in Cloud Trace from any of the three.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> she adds <code class="i">ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code> to <code class="i">.env</code> in the agent folder and redeploys all three.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> all three are clean, but for different reasons. On Agent Engine the SDK would have forced <code class="i">false</code> even without her line. On Cloud Run and GKE her line is the only thing keeping prompt text out.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">The trap:</span> she tests only on Agent Engine, sees clean spans, and concludes the line works. If the line had a typo, Agent Engine would still be clean and Cloud Run would be capturing every prompt. Test on the target where your setting is the thing doing the work.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the same line in <code class="i">.env</code> means different things on different targets. Verify each one by reading a real span, not by reading your configuration.</div>
+  <div class="src">Sources: <code class="i">cli/cli_deploy.py:1230-1305</code> (Agent Engine writes <code class="i">false</code> if absent), <code class="i">cli/cli_tools_click.py:463</code> (<code class="i">--env</code> on <code class="i">cloud_run</code>), <code class="i">cli/deployers/_cloud_run_deployer.py:99-119</code> (<code class="i">--env</code> becomes <code class="i">gcloud run deploy --update-env-vars</code>), <code class="i">cli/utils/envs.py:53-82</code> (<code class="i">.env</code> loaded at startup; pre-existing environment variables restored afterwards), google-adk 2.9.0 &middot; <code class="i">vertexai/agent_engines/templates/adk.py:990-996</code> (sets <code class="i">false</code> at every start unless the deprecated <code class="i">enable_tracing=True</code>), google-cloud-aiplatform 2.1.0 (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Whether your setting survives deployment">
+  <summary>Speaker notes &mdash; Whether your setting survives deployment</summary>
+  <div class="n-body"><ul>
+    <li><b>Row 1, the mechanism.</b> A native <code>adk deploy agent_engine</code> wraps your agent in the Vertex SDK&rsquo;s <code>AdkApp</code> class. That class&rsquo;s setup code assigns <code>os.environ["ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS"] = "false"</code> every time the container starts, after all environment variables have been loaded. That is why no value you set survives: it is overwritten inside the process, not in the deployment. The only exception is the deprecated <code>enable_tracing=True</code> argument, which the SDK warns about. If someone genuinely needs prompt text in traces on Agent Engine, the answer is their own container (row 4).</li>
+    <li><b>Row 2, the order at startup.</b> The precedence on Cloud Run and GKE is the usual one: the container&rsquo;s environment first, then <code>.env</code> for anything the environment did not set, then ADK&rsquo;s default of <code>true</code>. If anyone reads the source and sees <code>load_dotenv(&hellip;, override=True)</code>: ADK snapshots the variables that existed before the first <code>.env</code> load and restores them afterwards, so the file never replaces a value the environment already had. The <code>override=True</code> is there so a <code>.env</code> in the agent folder can beat a <code>.env</code> in the parent agents directory. One consequence worth saying: if your <code>.gitignore</code> lists <code>.env</code>, the deploy command honors that ignore file and does <i>not</i> copy <code>.env</code> into the image. Then only the container&rsquo;s environment counts.</li>
+    <li><b>Row 3, why it differs from row 1</b> when both run on Agent Runtime. An <code>agents-cli</code> deployment ships a container running the scaffold&rsquo;s own FastAPI server, which never constructs <code>AdkApp</code>. So nothing overwrites the variable at startup, and a later <code>agents-cli deploy --update-env-vars</code> changes it for real.</li>
+    <li><b>Row 4, what &ldquo;your own container&rdquo; means.</b> You write the Dockerfile and you decide how the server starts: <code>adk api_server</code> inside the image, <code>get_fast_api_app()</code> in your own entrypoint, or a runner you wrote. No ADK deploy command and no SDK wrapper is involved. If you still ship a <code>.env</code> and load agents through ADK&rsquo;s loader, it fills in what the environment left unset, as in row 2.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 23. JOINING LOGS TO SPANS ==== -->
+<section class="page">
+  <h1>Joining logs to spans</h1>
+  <p class="lede">The tool span is red. Its <b>Logs &amp; Events</b> tab is empty. The warning your tool wrote is sitting in the console with nothing tying it to that span.</p>
+  <figure>
+    <svg viewBox="0 0 1000 230" width="1000" height="230" role="img" aria-label="A log record gains trace and spanId from a LoggingHandler and lands under its span">
+      <defs><marker id="ar23" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+
+      <text x="230" y="24" font-family="var(--sans)" font-size="14" fill="var(--ink-2)" text-anchor="middle" font-weight="600">Without the bridge</text>
+      <rect x="30" y="38" width="400" height="52" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="230" y="60" font-family="var(--mono)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">logger.warning("lookup failed")</text>
+      <text x="230" y="80" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">no trace, no spanId</text>
+      <line x1="230" y1="90" x2="230" y2="122" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar23)"/>
+      <rect x="30" y="124" width="400" height="46" rx="8" fill="var(--fill-red)" stroke="var(--g-red)"/>
+      <text x="230" y="152" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">console &mdash; unlinked</text>
+
+      <text x="770" y="24" font-family="var(--sans)" font-size="14" fill="var(--ink-2)" text-anchor="middle" font-weight="600">With one LoggingHandler</text>
+      <rect x="570" y="38" width="400" height="52" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="770" y="60" font-family="var(--mono)" font-size="13.5" fill="var(--ink)" text-anchor="middle">logger.warning("lookup failed")</text>
+      <text x="770" y="80" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">trace + spanId attached</text>
+      <line x1="770" y1="90" x2="770" y2="122" stroke="#5f6368" stroke-width="1.6" marker-end="url(#ar23)"/>
+      <rect x="570" y="124" width="400" height="46" rx="8" fill="var(--fill-green)" stroke="var(--g-green)"/>
+      <text x="770" y="152" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">under the red span, in Trace</text>
+
+      <text x="500" y="206" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">A log entry sits under a span when it carries <tspan font-family="var(--mono)" font-size="13">trace</tspan> and <tspan font-family="var(--mono)" font-size="13">spanId</tspan> for a span in the same project.</text>
+    </svg>
+    <figcaption>The only difference between the two columns is a handler installed at startup. The log line itself is unchanged.</figcaption>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Two fields do the joining:</b> <code class="i">logging.googleapis.com/trace</code> (the full name <code class="i">projects/&lt;project&gt;/traces/&lt;32-hex&gt;</code>) and <code class="i">logging.googleapis.com/spanId</code> (16 hex). Trace shows a log under a span when the entry carries both.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>ADK&rsquo;s <code class="i">gen_ai.*</code> events already carry them</b>, because they are emitted through OpenTelemetry, which knows the active span.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Your <code class="i">logger.warning()</code> calls do not.</b> Python&rsquo;s <code class="i">logging</code> knows nothing about OpenTelemetry, so the fields are simply absent.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">LoggingHandler</code> is the piece that bridges them</b> &mdash; a handler that reads the active span at the moment you log and writes both fields onto the entry. ADK ships none; you install it. One on the root logger covers every stream, the framework&rsquo;s included.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, on the red <code class="i">execute_tool get_weather</code> span from the last page.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> find out <i>why</i> the lookup failed, not just that it did.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> open the span&rsquo;s <b>Logs &amp; Events</b> tab.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Before the bridge:</span> empty. The tool&rsquo;s <code class="i">logger.warning("no station within 50km")</code> is in Cloud Logging, findable only by guessing at a timestamp.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">After one <code class="i">LoggingHandler</code>:</span> that same warning is listed under the red span. The &ldquo;why&rdquo; sits next to the &ldquo;what.&rdquo;</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> correlation is one handler, and without it your most useful log line is the one furthest from the span that needs it.</div>
+  <div class="src">Sources: tracing tutorial 3.1&ndash;3.5 (captured) &middot; <a href="https://docs.cloud.google.com/trace/docs/trace-log-integration">Cloud Trace: log&ndash;trace integration</a> &middot; grep of <code class="i">google/adk</code> for <code class="i">LoggingHandler</code>, google-adk 2.9.0 &mdash; zero occurrences (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Joining logs to spans">
+  <summary>Speaker notes &mdash; Joining logs to spans</summary>
+  <div class="n-body"><ul>
+    <li><b>Generic</b> (OpenTelemetry correlation) &mdash; say so. It is agent-shaped because the thing you want beside the red span is your tool&rsquo;s own warning about <i>why</i> it failed.</li>
+    <li>This page closes the loop with page 9: the <code>ContextVar</code> trace id was the manual version of this, for Cloud Logging. The <code>LoggingHandler</code> is the automatic version, for Cloud Trace.</li>
+    <li>Kept off the face: on Cloud Run the inbound request log and ADK&rsquo;s spans are two <i>different</i> traces unless you propagate context in. That is the tutorial&rsquo;s Part 3 and a separate afternoon.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 24. SECTION 2 RECAP ==== -->
+<section class="page">
+  <h1>Section 2 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p><b>Three states:</b> instrumentation is always on, recording needs a provider, export needs an exporter.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>The tree:</b> <code class="i">invocation</code> or <code class="i">invoke_workflow</code> &rarr; <code class="i">invoke_agent</code> &rarr; <code class="i">call_llm</code> &rarr; <code class="i">generate_content</code>, with <code class="i">execute_tool</code> under the <code class="i">call_llm</code> that asked for it.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>A green trace and an unmet request coexist.</b> Classify tool errors yourself, or they never reach the span.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Export is one switch</b>, in a different place per target &mdash; and the exporter packages are a separate requirement that fails differently per target.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Content off is two variables</b>, and one target overwrites your choice no matter what you set.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2 recap">
+  <summary>Speaker notes &mdash; Section 2 recap</summary>
+  <div class="n-body"><ul>
+    <li>Hand-off: a trace is one turn in detail. Section 3 is every turn in aggregate &mdash; and the questions that changes.</li>
+    <li>If asked &ldquo;so do I need traces or metrics&rdquo;: traces for one bad turn, metrics for a trend. The next section&rsquo;s first page makes that concrete.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 25. SECTION DIVIDER: METRICS ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">3</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 3 of 3</div>
+      <h1>Metrics</h1>
+      <div class="dsub">What to chart, what to alert on, and the question a chart cannot answer.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3 &mdash; Metrics">
+  <summary>Speaker notes &mdash; Section 3: Metrics</summary>
+  <div class="n-body"><ul>
+    <li>Hand-off from section 2: a trace is one turn in detail; a metric is every turn in aggregate. Different questions, and the second kind has a hard constraint the first does not.</li>
+    <li>This section needs the <code>gen_ai.*</code> vocabulary from pages 15 and 18 already in place.</li>
+    <li>The spine: what exists (26) &rarr; the operator&rsquo;s first question, which layer is slow (27) &rarr; the question no framework metric answers, and what to alert on instead (28) &rarr; the cost curve (29).</li>
+  </ul></div>
+</details>
+
+<!-- ==== 26. WHAT ADK MEASURES WITHOUT ANY CODE FROM YOU ==== -->
+<section class="page">
+  <h1>What ADK measures without any code from you</h1>
+  <p class="lede">Once metrics export is on, ADK records durations and token counts for every turn, model call and tool call. You write nothing. The names come in two families with different stability guarantees.</p>
+  <div class="note blue"><span class="kk">How metrics export is turned on</span>The same switch as traces: <code class="i">--otel_to_cloud</code> on <code class="i">adk web</code>, <code class="i">adk api_server</code> or <code class="i">adk deploy</code>, or <code class="i">get_fast_api_app(otel_to_cloud=True)</code> in a server you wrote. That one switch exports traces, metrics and logs together. The metrics land in Cloud Monitoring under <code class="i">prometheus.googleapis.com/gen_ai.*</code>.</div>
+  <div class="grid c2" style="margin-top:12px;">
+    <div class="cell green">
+      <h4>Stable &mdash; <code class="i">gen_ai.*</code> (7 names)</h4>
+      <p><code class="i">invoke_agent.duration</code> &middot; <code class="i">invoke_workflow.duration</code> &middot; <code class="i">execute_tool.duration</code> &middot; <code class="i">invoke_agent.inference_calls</code> &middot; <code class="i">invoke_agent.tool_calls</code> &middot; <code class="i">client.operation.duration</code> &middot; <code class="i">client.token.usage</code></p>
+      <p class="small">These names will not change between ADK releases.</p>
+    </div>
+    <div class="cell yellow">
+      <h4>Experimental &mdash; <code class="i">adk.experimental.*</code> (16 names)</h4>
+      <p>Token counts broken out by kind (input, output, total, cache-read, reasoning, tool) at the agent level and the workflow level, plus counts of skill loads and script executions.</p>
+      <p class="small">ADK may rename these in a future release.</p>
+    </div>
+  </div>
+  <div class="note"><span class="kk">Both families are always emitted</span>There is no flag that turns the experimental names on or off; turn export on and you get all 23. The prefix is a warning about the <b>name</b>: a dashboard built on <code class="i">adk.experimental.invoke_agent.input_tokens</code> may stop working after an ADK upgrade. Use a stable name where one exists.</div>
+  <p class="codelabel">Reading the token histogram &mdash; two questions, two queries</p>
+  <pre class="code"><span class="cm"># total input tokens used in the last hour</span>
+sum(increase({<span class="st">"gen_ai.client.token.usage_sum"</span>, <span class="st">"gen_ai.token.type"</span>=<span class="st">"input"</span>}[<span class="fn">1h</span>]))
+
+<span class="cm"># average input tokens per model call in the last hour</span>
+sum(increase({<span class="st">"gen_ai.client.token.usage_sum"</span>,   <span class="st">"gen_ai.token.type"</span>=<span class="st">"input"</span>}[<span class="fn">1h</span>]))
+  / sum(increase({<span class="st">"gen_ai.client.token.usage_count"</span>, <span class="st">"gen_ai.token.type"</span>=<span class="st">"input"</span>}[<span class="fn">1h</span>]))</pre>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, before writing any cost code, checking what she already gets.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> total input tokens for the last two days, and the average per model call.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> runs the two queries above with a 48-hour window.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> <b>77,243</b> input tokens over <b>132</b> model calls, an average of <b>585</b> per call.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Careful with the count:</span> 132 is model calls, not turns. A turn that uses a tool makes two model calls, one to choose the tool and one to write the reply, so tokens per turn is a different, larger number. To count tokens per turn or per conversation, use the BigQuery rows from page 11.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> token counts and timings are already recorded. Prefer the stable names, and remember that the histogram counts model calls, not turns.</div>
+  <div class="src">Sources: <code class="i">telemetry/_metrics.py:67-309</code> (both families; <code class="i">_create_token_histogram</code> at <code class="i">:213</code>), google-adk 2.9.0 &middot; <a href="https://adk.dev/observability/metrics/">ADK: Metrics</a> &middot; metrics tutorial 1.1, 2.2, 3.4; <code class="i">queries/tokens.promql</code> &middot; the two <code class="i">increase()</code> queries run against project <code class="i">jwd-gcp-demos</code>, 48-hour window, 2026-09-13.</div>
+</section>
+<details class="notes" data-title="What ADK measures without any code from you">
+  <summary>Speaker notes &mdash; What ADK measures without any code from you</summary>
+  <div class="n-body"><ul>
+    <li><b>How a histogram is stored in Cloud Monitoring.</b> Each ADK histogram becomes three series: <code>&lt;name&gt;_sum</code> (the total of all recorded values), <code>&lt;name&gt;_count</code> (how many values were recorded) and <code>&lt;name&gt;_bucket</code> (how many fell under each threshold, used for percentiles on the next page). For <code>token.usage</code>, each model call records one value per token type, so <code>_sum</code> is tokens and <code>_count</code> is model calls.</li>
+    <li><b><code>increase()</code> versus <code>rate()</code>.</b> <code>increase(x[1h])</code> is how much the series grew over the last hour, which is the number you want for a total. <code>rate(x[1h])</code> is the same growth divided by the seconds in the window, a per-second figure. The tutorial uses <code>rate() * 60</code> for tokens per minute; the slide uses <code>increase()</code> because &ldquo;how many tokens this hour&rdquo; is the question people actually ask.</li>
+    <li><b>Agent-specific:</b> tokens and tool calls per turn exist as measurements because the workload is a model loop. An ordinary web service has no token metric.</li>
+    <li><b>A filter that returns nothing.</b> The seven stable metrics come from two libraries. <code>gen_ai.client.*</code> is emitted by the Gemini client instrumentation (scope <code>opentelemetry.instrumentation.google_genai</code>); the other five by ADK itself (scope <code>gcp.vertex.agent</code>). If you filter <code>client.token.usage</code> by <code>otel_scope_name="gcp.vertex.agent"</code>, you get an empty result and no error, because that scope never emits it.</li>
+    <li>Delivery beat: ask where they would find token counts. Most people assume they have to build it.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 27. WHICH LAYER IS SLOW ==== -->
+<section class="page">
+  <h1>Which layer is slow: the turn, the model, or a tool</h1>
+  <p class="lede">When users say the agent is slow, the same measurement taken at three levels tells you where the time goes. The measurement is the 95th-percentile duration: the time that 95 out of 100 calls finish within.</p>
+  <figure>
+    <svg viewBox="0 0 1000 300" width="1000" height="300" role="img" aria-label="Bar chart of p95 duration: whole turn 7.84 seconds, model call 4.83 seconds, get_forecast tool 2.16 seconds, get_weather tool 0.01 seconds">
+      <line x1="140" y1="30" x2="140" y2="230" stroke="var(--line)" stroke-width="1"/>
+      <line x1="140" y1="230" x2="940" y2="230" stroke="var(--line)" stroke-width="1"/>
+      <text x="128" y="234" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="end">0</text>
+      <text x="128" y="134" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="end">4s</text>
+      <text x="128" y="34" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="end">8s</text>
+      <line x1="140" y1="130" x2="940" y2="130" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 4"/>
+      <text x="60" y="130" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" transform="rotate(-90 60 130)" text-anchor="middle">p95 duration, seconds</text>
+
+      <rect x="190" y="34" width="120" height="196" rx="4" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.5"/>
+      <text x="250" y="26" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle" font-weight="600">7.84s</text>
+      <text x="250" y="254" font-family="var(--sans)" font-size="14.5" fill="var(--ink)" text-anchor="middle">whole turn</text>
+      <text x="250" y="272" font-family="var(--mono)" font-size="12" fill="var(--ink-3)" text-anchor="middle">invoke_agent.duration</text>
+
+      <rect x="400" y="109" width="120" height="121" rx="4" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.5"/>
+      <text x="460" y="101" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle" font-weight="600">4.83s</text>
+      <text x="460" y="254" font-family="var(--sans)" font-size="14.5" fill="var(--ink)" text-anchor="middle">model call</text>
+      <text x="460" y="272" font-family="var(--mono)" font-size="12" fill="var(--ink-3)" text-anchor="middle">client.operation.duration</text>
+
+      <rect x="610" y="176" width="120" height="54" rx="4" fill="var(--fill-red)" stroke="var(--g-red)" stroke-width="1.5"/>
+      <text x="670" y="168" font-family="var(--mono)" font-size="14" fill="var(--g-red-deep)" text-anchor="middle" font-weight="600">2.16s</text>
+      <text x="670" y="254" font-family="var(--sans)" font-size="14.5" fill="var(--ink)" text-anchor="middle">tool: get_forecast</text>
+      <text x="670" y="272" font-family="var(--mono)" font-size="12" fill="var(--ink-3)" text-anchor="middle">execute_tool.duration</text>
+
+      <rect x="800" y="229" width="120" height="1.5" fill="var(--g-green)"/>
+      <text x="860" y="221" font-family="var(--mono)" font-size="14" fill="var(--g-green-deep)" text-anchor="middle" font-weight="600">0.01s</text>
+      <text x="860" y="254" font-family="var(--sans)" font-size="14.5" fill="var(--ink)" text-anchor="middle">tool: get_weather</text>
+      <text x="860" y="272" font-family="var(--mono)" font-size="12" fill="var(--ink-3)" text-anchor="middle">execute_tool.duration</text>
+    </svg>
+    <figcaption>p95 over the same five-minute window, 30 turns of the <code>slow-tool</code> scenario. The bars do not add up to the turn: a turn contains two model calls plus a tool call plus ADK&rsquo;s own work.</figcaption>
+  </figure>
+  <p class="codelabel">The three queries. Same function, same window; only the metric name and the grouping label change.</p>
+  <pre class="code"><span class="cm"># whole turn, one line per agent</span>
+histogram_quantile(<span class="fn">0.95</span>, sum by (le, <span class="st">"gen_ai.agent.name"</span>) (
+    rate({<span class="st">"gen_ai.invoke_agent.duration_bucket"</span>}[<span class="fn">5m</span>])))
+
+<span class="cm"># model call, one line per model</span>
+histogram_quantile(<span class="fn">0.95</span>, sum by (le, <span class="st">"gen_ai.request.model"</span>) (
+    rate({<span class="st">"gen_ai.client.operation.duration_bucket"</span>}[<span class="fn">5m</span>])))
+
+<span class="cm"># tool call, one line per tool</span>
+histogram_quantile(<span class="fn">0.95</span>, sum by (le, <span class="st">"gen_ai.tool.name"</span>) (
+    rate({<span class="st">"gen_ai.execute_tool.duration_bucket"</span>}[<span class="fn">5m</span>])))</pre>
+  <div class="note blue"><span class="kk">Why the metric name ends in <code class="i">_bucket</code></span>Cloud Monitoring stores each ADK duration histogram as three series: <code class="i">&lt;name&gt;_bucket</code>, <code class="i">&lt;name&gt;_sum</code> and <code class="i">&lt;name&gt;_count</code>. Percentiles are computed from <code class="i">_bucket</code>. If you query the plain name with no suffix, you get an empty result, not an error.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, paged because turn latency crossed its limit.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> decide whether to raise the problem with the model provider or with the team that owns the forecast API.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> runs the three queries for the last five minutes.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the whole turn is <b>7.84s</b>, but the model call is <b>4.83s</b>. The rest of the time is in tools, and by tool name, <code class="i">get_forecast</code> is <b>2.16s</b> while <code class="i">get_weather</code> is <b>0.01s</b>.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Decision:</span> the forecast API is the slow part. He raises it with the team that owns that API and does not spend the day investigating the model.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> measure the turn, the model call and the tool call separately. Only the comparison tells you which one to fix.</div>
+  <div class="src">Sources: metrics tutorial 3.1, <code class="i">slow-tool</code> scenario, 30 turns (captured 2026-09-06, google-adk 2.8.0) &middot; <code class="i">queries/latency.promql</code> &middot; <a href="https://docs.cloud.google.com/stackdriver/docs/managed-prometheus/query">Cloud Monitoring: PromQL</a> (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Which layer is slow: the turn, the model, or a tool">
+  <summary>Speaker notes &mdash; Which layer is slow</summary>
+  <div class="n-body"><ul>
+    <li><b>Why a percentile and not an average.</b> The average hides the slow tail, and the slow tail is what users complain about. p95 says: one call in twenty is at least this slow. The queries use <code>histogram_quantile(0.95, &hellip;)</code>; change the number for p50 or p99.</li>
+    <li><b>Why the bars do not add up.</b> <code>invoke_agent.duration</code> covers the whole turn: in this agent that is two model calls (one to choose the tool, one to write the reply), the tool call between them, and ADK&rsquo;s own work. On top of that, each bar is a percentile over a different population, and percentiles do not add. Read the bars as &ldquo;which layer is large,&rdquo; not as a sum.</li>
+    <li><b>Agent-specific:</b> the model is an external dependency with its own latency, and tools are further external dependencies nested inside the same request. A three-level breakdown is not something an ordinary web service needs.</li>
+    <li><b>If asked whether overlapping turns distort each other&rsquo;s timings:</b> no. Each duration is measured from the span that wraps that one call, not from a shared clock. The tutorial&rsquo;s deep dive runs the same scenario with turns in parallel and gets the same percentiles.</li>
+    <li>Delivery beat: show the turn number alone and ask what they would do with it. Nothing useful is the right answer; that is what the other two bars are for.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 28. THREE WAYS TO COUNT FAILURE ==== -->
+<section class="page">
+  <h1>Three ways to count failure, and which one to alert on</h1>
+  <p class="lede">In this test run, about half the requests asked for a city the weather tool does not know. Three different measurements describe that same run, and they disagree.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:30%">Question</th><th style="width:50%">Measured how</th><th>This run</th></tr></thead>
+    <tbody>
+      <tr><td>How many tool calls returned an error?</td><td><code>execute_tool.duration</code> values that carry <code>error.type</code>, divided by all tool calls</td><td class="no"><b>47.6%</b></td></tr>
+      <tr><td>How many turns ended in an error?</td><td><code>invoke_agent.duration</code> values that carry <code>error.type</code>, divided by all turns</td><td class="yes"><b>0%</b></td></tr>
+      <tr class="hl"><td>How many users did not get the weather they asked for?</td><td>a counter your own code records: <code>tutorial.weather.requests</code> with an <code>outcome</code> label; <code>outcome="unavailable"</code> divided by all</td><td class="no"><b>47.6%</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Row 2 is zero because every turn finished normally.</b> The tool reported &ldquo;unknown city,&rdquo; the model read that and replied &ldquo;I don&rsquo;t have data for Atlantis,&rdquo; and the turn ended. ADK counts that as a completed turn, which it was.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Row 1 tells you a dependency is failing.</b> It does not tell you whether users were affected. If the agent retried, or answered from a second source, the tool error is still counted and the user still got an answer.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Row 3 is the only one that measures what the user experienced.</b> ADK cannot record it, because only your code knows what &ldquo;the user got an answer&rdquo; means for your tool. It is one counter you increment in an <code class="i">after_tool_callback</code>, with a label for the outcome.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, setting up the first alert for the weather agent.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> be paged when users stop getting weather, and not otherwise.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">First try, row 2:</span> alert when turn errors exceed 20%. It never fires, not even in this run, where half the users got no weather.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Second try, row 1:</span> alert when tool errors exceed 20%. It fires here, and correctly. But when Priya later adds a backup weather provider, the first tool still errors, the backup answers, users are happy, and the alert still pages him.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">What he keeps, row 3:</span> alert when <code class="i">outcome="unavailable"</code> exceeds 20%. It fires only when users did not get an answer, whatever happened inside the turn.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> ADK can tell you whether a turn finished. Only your code can tell you whether the user got what they asked for. Put the alert on that.</div>
+  <div class="src">Sources: metrics tutorial 3.7, <code class="i">unknown-city</code> scenario, 40 turns (captured 2026-09-12) &middot; <code class="i">queries/errors.promql</code>, <code class="i">queries/outcome.promql</code>, <code class="i">queries/alert-policy.json</code>.</div>
+</section>
+<details class="notes" data-title="Three ways to count failure, and which one to alert on">
+  <summary>Speaker notes &mdash; Three ways to count failure</summary>
+  <div class="n-body"><ul>
+    <li><b>Connect this to page 17.</b> There, a failed tool inside a completed turn left every span green. This is the same situation seen as numbers instead of as a trace: the turn-level measure reports nothing wrong, because nothing went wrong with the turn.</li>
+    <li><b>Why rows 1 and 3 show the same number here.</b> Every turn in this run called the tool exactly once and there was no retry or fallback, so a failed tool call and an unanswered user were the same event. In a real agent with retries or a second data source they come apart, and the gap between them is exactly the thing row 1 cannot see.</li>
+    <li><b>How the counter is written.</b> An <code>after_tool_callback</code> receives the tool&rsquo;s return value. The callback maps the tool&rsquo;s own <code>status</code> field to an <code>outcome</code> label (<code>ok</code>, <code>unavailable</code>, and so on) and adds one to the counter. It is a lookup on a field the tool returned, not anything parsed out of the model&rsquo;s reply text. That keeps it a metric rather than an evaluation.</li>
+    <li><b>The alert policy shape,</b> if anyone wants to see one: a Cloud Monitoring policy with a <code>conditionPrometheusQueryLanguage</code> condition. The threshold is written inside the PromQL (<code>&hellip; &gt; 0.2</code>) and the policy carries a <code>duration</code> of <code>300s</code>, meaning the condition must hold for five minutes before it fires.</li>
+    <li><b>One naming trap.</b> The counter appears in Cloud Monitoring as <code>tutorial.weather.requests</code>, with no <code>_total</code> suffix. Prometheus convention adds <code>_total</code> to counters, and Cloud Monitoring adds <code>_count</code> and <code>_sum</code> to histograms, but this counter gets neither. Querying the <code>_total</code> form returns an empty result and no error.</li>
+    <li>If asked whether to alert on both: yes, at different severities. A rising tool error rate is a ticket for whoever owns the dependency. Users not getting answers is the page.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 29. INPUT TOKENS GROW AS A CONVERSATION GETS LONGER ==== -->
+<section class="page">
+  <h1>Input tokens grow as a conversation gets longer</h1>
+  <p class="lede">The model has no memory between calls, so ADK sends the whole conversation so far with every request. The later in a conversation a model call happens, the more input tokens it costs.</p>
+  <figure>
+    <svg viewBox="0 0 1000 300" width="1000" height="300" role="img" aria-label="Line chart: input tokens per model call rising from 366 to 1720 across a 20-turn conversation while output tokens per call stay flat at 14 to 15">
+      <line x1="110" y1="30" x2="110" y2="230" stroke="var(--line)" stroke-width="1"/>
+      <line x1="110" y1="230" x2="940" y2="230" stroke="var(--line)" stroke-width="1"/>
+      <text x="98" y="44" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="end">1800</text>
+      <text x="98" y="120" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="end">1000</text>
+      <text x="98" y="234" font-family="var(--mono)" font-size="12.5" fill="var(--ink-3)" text-anchor="end">0</text>
+      <text x="48" y="130" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" transform="rotate(-90 48 130)" text-anchor="middle">tokens per model call</text>
+      <text x="140" y="250" font-family="var(--sans)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">turn 1</text>
+      <text x="930" y="250" font-family="var(--sans)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">turn 20</text>
+      <text x="535" y="250" font-family="var(--sans)" font-size="12.5" fill="var(--ink-3)" text-anchor="middle">one conversation, in order</text>
+
+      <polyline points="140,189 300,187 460,159 620,104 780,73 930,38" fill="none" stroke="var(--g-blue)" stroke-width="2.4"/>
+      <circle cx="140" cy="189" r="4" fill="var(--g-blue)"/><circle cx="300" cy="187" r="4" fill="var(--g-blue)"/>
+      <circle cx="460" cy="159" r="4" fill="var(--g-blue)"/><circle cx="620" cy="104" r="4" fill="var(--g-blue)"/>
+      <circle cx="780" cy="73" r="4" fill="var(--g-blue)"/><circle cx="930" cy="38" r="4" fill="var(--g-blue)"/>
+      <text x="140" y="207" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">366</text>
+      <text x="460" y="177" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">638</text>
+      <text x="620" y="96" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">1129</text>
+      <text x="930" y="30" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">1720</text>
+      <text x="780" y="158" font-family="var(--sans)" font-size="14" fill="var(--g-blue)" font-weight="600" text-anchor="middle">input tokens per call</text>
+
+      <line x1="110" y1="124" x2="940" y2="124" stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="6 4"/>
+      <text x="290" y="116" font-family="var(--sans)" font-size="13" fill="var(--ink-3)">average over the whole conversation</text>
+
+      <polyline points="140,228 300,228 460,228 620,227 780,227 930,227" fill="none" stroke="var(--g-green)" stroke-width="2.4"/>
+      <text x="700" y="218" font-family="var(--sans)" font-size="14" fill="var(--g-green-deep)" font-weight="600">output tokens per call: 14 to 15, flat</text>
+
+      <text x="525" y="282" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Each point is the average input tokens per model call over the previous minute. The dashed line is the single average for the whole run.</text>
+    </svg>
+    <figcaption>Measured 2026-09-12: 20 turns in one session, <code>rate(_sum) / rate(_count)</code> at one-minute resolution.</figcaption>
+  </figure>
+  <p class="codelabel good">To draw this chart: Monitoring &rarr; Metrics Explorer &rarr; <code class="i">&lt;&gt; PromQL</code>, paste, set the time range to cover the conversation, Run query</p>
+  <pre class="code"><span class="cm"># tokens per model call, one line for input and one for output</span>
+sum by (<span class="st">"gen_ai.token.type"</span>) (rate({<span class="st">"gen_ai.client.token.usage_sum"</span>}[<span class="fn">1m</span>]))
+  / sum by (<span class="st">"gen_ai.token.type"</span>) (rate({<span class="st">"gen_ai.client.token.usage_count"</span>}[<span class="fn">1m</span>]))</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Why input grows:</b> the request for turn 20 contains turns 1 to 19 plus the new message. Every earlier turn is sent again.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Why output stays flat:</b> each reply is about the same length, so output tokens per call barely change.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Why it matters:</b> you pay per token, and input is most of the bill. This conversation used <b>72,308</b> input tokens against <b>1,735</b> output.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>How to see it:</b> chart input tokens per model call over a short window, as above. The average for the whole day is one flat number and hides the climb.</p></div>
+    <div class="checkrow"><div class="cdot gray"></div><p><b>Cost per conversation or per user</b> is not available as a metric, because conversation and user ids cannot be metric labels. That is a BigQuery question, using the rows from page 11.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, after finance reports that the support app costs more per conversation than it did at launch.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> find out whether longer conversations are the reason.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> runs a 20-turn test conversation and charts input tokens per model call over time.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> input per call rises from <b>366</b> to <b>1,720</b> tokens; output stays at 14 to 15. A long conversation costs more <i>per turn</i>, not just more turns.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">What she does next:</span> looks at how much history each call needs to carry. That is the cost-management topic in Module 6.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the cost of a model call rises through a conversation. Watch input tokens per call over time, not the average for the day.</div>
+  <div class="src">Sources: metrics tutorial 3.4, <code class="i">growing-context</code> scenario, captured 2026-09-12 (google-adk 2.8.0, <code class="i">adk web --otel_to_cloud</code>, <code class="i">query_range</code> at <code class="i">step=30s</code>) &middot; <code class="i">queries/tokens.promql</code>.</div>
+</section>
+<details class="notes" data-title="Input tokens grow as a conversation gets longer">
+  <summary>Speaker notes &mdash; Input tokens grow as a conversation gets longer</summary>
+  <div class="n-body"><ul>
+    <li><b>Agent-specific:</b> per-token cost grows with context. This is a property of how the agent loop works, not of how much traffic you receive. Two users sending the same number of messages can cost very different amounts depending on how long their conversations run.</li>
+    <li><b>The query on the slide</b> divides tokens by model calls over each one-minute window, and grouping by token type is what produces two lines from one query. Metrics Explorer runs it as a range query and draws it; no other setup. The dashed average line is not something the Console adds; it is on the slide to make the point. The <code>[1m]</code> window matters: the tutorial&rsquo;s dashboard uses <code>[5m]</code>, which smooths the climb.</li>
+    <li><b>Hand off to Module 6</b> explicitly. Limiting the history sent per call, summarizing older turns, and caching are all cost-management choices, not observability ones. This page only shows the curve.</li>
+    <li><b>Two different output-token numbers, if the room is engaged.</b> In the Agent Runtime capture, ADK&rsquo;s <code>call_llm</code> span reported <code>output_tokens=69</code> including 48 reasoning tokens, while the <code>generate_content</code> span for the same call reported 21. ADK counts reasoning tokens as output; the Gemini client instrumentation does not. Know which one your dashboard is reading.</li>
+    <li>These are tokens, not dollars. Multiply by the model&rsquo;s price per token. Whether any of the input was served from cache is not in this metric; it is in the BigQuery rows.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 30. SECTION 3 RECAP ==== -->
+<section class="page">
+  <h1>Section 3 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p><b>Seven stable <code class="i">gen_ai.*</code> instruments, sixteen <code class="i">adk.experimental.*</code></b> &mdash; the prefix is a promise about the name, not a feature switch.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Check the grain</b> before dividing by count: <code class="i">token.usage</code> counts model calls, not turns.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>One percentile at three grains</b> names the layer that owns a slowdown &mdash; turn, model, tool.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Tool error, invocation error and task outcome are three facts.</b> Alert on the third, which you have to emit yourself.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Input tokens climb with context.</b> Read per call over a window, not as a run average.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3 recap">
+  <summary>Speaker notes &mdash; Section 3 recap</summary>
+  <div class="n-body"><ul>
+    <li>Hand-off: the next page is the console tour, then the consequences table &mdash; which is the page to photograph.</li>
+    <li>If you are short on time, skip the tour and go straight to consequences. Every service on it has already been named where it was first used.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 31. THE TOUR ==== -->
+<section class="page">
+  <h1>Where each signal is read</h1>
+  <p class="lede">Five Google Cloud services, each already used somewhere in this module. Here is the one thing that changes about each when the workload is an agent.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th style="width:30%">Service</th><th style="width:34%">What you read there</th><th>The agent-specific part</th></tr></thead>
+    <tbody>
+      <tr><td><b>Cloud Logging</b><br><span class="small">Observability Analytics is the new name; needs an upgraded bucket</span></td><td>individual log entries</td><td>filter by <code>session_id</code>, not by time window &mdash; a conversation is the unit, not a minute</td></tr>
+      <tr><td><b>Cloud Trace</b></td><td>one turn as a span waterfall</td><td>read the waterfall, not the total &mdash; and not via the v1 API, which does not return OTLP-exported spans</td></tr>
+      <tr><td><b>Cloud Monitoring</b></td><td>histograms, dashboards, alerts</td><td>alert on your own outcome <i>ratio</i>, not on a raw tool-error count</td></tr>
+      <tr><td><b>BigQuery</b><br><span class="small">a data warehouse, not a console</span></td><td>one row per agent event</td><td>group by the unbounded id a metric may not carry &mdash; <code>session_id</code>, <code>user_id</code></td></tr>
+      <tr class="bad"><td><b>Data Studio</b><br><span class="small">Looker Studio reverted to Data Studio, April 2026</span></td><td>charts built on those rows</td><td class="no">those rows include a <code>content</code> column of user prompt text &mdash; see the warning below</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note red"><span class="kk">The one that bites: sharing a dashboard can share the prompts behind it</span>A Data Studio report is backed by a dataset. Grant someone access to the <b>report</b> and they see the charts; add them to the underlying <b>dataset</b> and they can query the <code class="i">agent_events</code> rows directly &mdash; including <code class="i">content</code>, which holds what your users typed. The two are separate grants and the second one is easy to give by reflex when a chart will not load for a colleague.</div>
+  <div class="takeaway"><b>Takeaway:</b> each service answers one shape of question &mdash; and the moment agent rows reach a BI tool, access to the chart and access to the prompts become two different decisions.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/logging/docs/analyze/query-and-view">Cloud Logging: Observability Analytics</a> &middot; <a href="https://docs.cloud.google.com/looker/docs/studio/">Data Studio</a> (both re-verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Five consoles, one line each">
+  <summary>Speaker notes &mdash; Five consoles, one line each</summary>
+  <div class="n-body"><ul>
+    <li><b>Mostly generic</b> &mdash; say so. <b>This is the page to compress if the room ran slow</b>, because every service has already been named where it was first used. The red note is the part not to skip.</li>
+    <li>The two renames are worth a sentence either way: students will hit both the old and new names in search results, and Data Studio reverting is unusual enough that people assume the doc is stale.</li>
+    <li><b>On the sharing warning</b>, in case someone asks how it actually happens: a colleague says &ldquo;I can&rsquo;t see your dashboard.&rdquo; The fast fix is to grant them BigQuery access to the dataset, which works and also hands them every prompt any user ever typed. The correct fix is to share the report itself, or to build the report on a view that excludes <code>content</code>. This is the one row on the page with a consequence beyond convenience.</li>
+    <li>Worth naming: only the <code>BigQueryAgentAnalyticsPlugin</code> path from page 11 produces a <code>content</code> column. If you only ever shipped metrics, there is nothing sensitive in the dataset &mdash; the risk arrives with the rows, not with the charts.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 32. CONSEQUENCES ==== -->
+<section class="page">
+  <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
+  <div class="tscroll"><table class="cmp" style="margin-top:14px;">
+    <thead><tr><th style="width:32%">You observed</th><th style="width:36%">Because</th><th>So you&hellip;</th></tr></thead>
+    <tbody>
+      <tr><td>Set the log level, still one line per request</td><td><code>uvicorn.access</code> is configured by uvicorn at startup, not by the flag (p4)</td><td>configure it in your own <code>dictConfig</code></td></tr>
+      <tr><td>A <code>severity&gt;=ERROR</code> alert never fires</td><td>ADK logs text; the platform assigns Default severity (p5)</td><td>emit an explicit <code>severity</code> field</td></tr>
+      <tr><td><code>adk web</code> traces; the same agent in a script does not</td><td>no <code>TracerProvider</code> outside <code>adk web</code> (p14)</td><td>install one, or run under a server that does</td></tr>
+      <tr><td><code>adk deploy</code> exited 0, and there are no spans anywhere</td><td>the exporter packages were not in <code>&lt;agent_dir&gt;/requirements.txt</code> (p19)</td><td>check a span or stderr, never the exit code</td></tr>
+      <tr><td>Cloud Trace v1 API returns nothing for an engine</td><td>OTLP-exported spans do not surface there (p20)</td><td>read Trace Explorer by <code>service.name</code></td></tr>
+      <tr><td>Prompt text in Cloud Trace after setting the OTel variable</td><td>that variable does not govern ADK&rsquo;s own spans (p21)</td><td>set <b>both</b> content variables</td></tr>
+      <tr><td><code>.env</code> says <code>true</code>, the engine still redacts</td><td>the Vertex SDK overwrites it at startup on a native deploy (p22)</td><td>accept it, or move to BYOC</td></tr>
+      <tr><td>Tool error rate 50%, and nobody is complaining</td><td>the model routes around tool failures (p17, p28)</td><td>alert on a task-outcome counter instead</td></tr>
+      <tr><td>A PromQL query returns zero series and no error</td><td>wrong suffix, or wrong <code>otel_scope_name</code> (p26, p28)</td><td>check the name against what is actually emitted</td></tr>
+      <tr><td>The dashboard broke after an ADK upgrade</td><td>it was built on an <code>adk.experimental.*</code> name (p26)</td><td>pin to the stable <code>gen_ai.*</code> set</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<details class="notes" data-title="You observed, because, so you">
+  <summary>Speaker notes &mdash; Consequences</summary>
+  <div class="n-body"><ul>
+    <li><b>This is the page to photograph.</b> Read the third column aloud; the first two are there so the room can find their own symptom.</li>
+    <li>Every row is something verified rather than assumed while building this module. Rows 4, 5 and 9 came out of a live deploy and a live metrics run done for these pages &mdash; they are mistakes made in the course of writing it.</li>
+    <li>The two silent-zero rows (4 and 9) are the ones worth dwelling on: no error, no crash, no alert. Just an empty result that looks exactly like &ldquo;nothing happened.&rdquo;</li>
+  </ul></div>
+</details>
+
+<!-- ==== 33. REFERENCES ==== -->
+<section class="page">
+  <h1>References</h1>
+  <ul style="margin-top:14px;">
+    <li><a href="https://adk.dev/observability/logging/">ADK: Logging</a>, <a href="https://adk.dev/integrations/cloud-trace/">Cloud Trace</a>, <a href="https://adk.dev/observability/metrics/">Metrics</a>, <a href="https://adk.dev/observability/bigquery-agent-analytics/">BigQuery Agent Analytics</a></li>
+    <li><a href="https://github.com/google/adk-python/tree/v2.9.0">google/adk-python</a> at tag <code class="i">v2.9.0</code> &mdash; <code class="i">telemetry/</code>, <code class="i">plugins/</code>, <code class="i">cli/api_server.py</code>, <code class="i">cli/cli_deploy.py</code></li>
+    <li>google-cloud-aiplatform <b>2.1.0</b> &mdash; <code class="i">vertexai/agent_engines/templates/adk.py</code> (the native Agent Runtime wrapper)</li>
+    <li><a href="https://docs.cloud.google.com/run/docs/logging">Cloud Run: structured logging</a> &middot; <a href="https://docs.cloud.google.com/trace/docs/trace-log-integration">Cloud Trace: log&ndash;trace integration</a> &middot; <a href="https://docs.cloud.google.com/logging/docs/analyze/query-and-view">Observability Analytics</a></li>
+    <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing">Agent Runtime: set up tracing</a></li>
+    <li>Test runs behind this deck&rsquo;s numbers: every combination of the two content variables (eight runs), a check with no tracer provider installed, a live Agent Runtime deploy (60 spans / 12 traces), and two local metrics scenarios, all 2026-09-12; token totals re-queried 2026-09-13</li>
+  </ul>
+  <div class="note"><span class="kk">Re-verify before delivery</span>ADK&rsquo;s telemetry surface moved between 2.7.1 and 2.9.0 &mdash; the metric catalog, the schema v2 root span, and what the two content variables control all changed. Check the version you are teaching against before reusing any specific on these pages.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul>
+    <li>Baseline: <b>google-adk 2.9.0</b>, <b>google-cloud-aiplatform 2.1.0</b>, verified 2026-09-12. The two metrics captures (pages 28, 29) were run on 2.8.0, which is what the source tutorial is pinned to; the mechanisms are unchanged on 2.9.0.</li>
+    <li>If a claim on any page looks wrong at delivery time, the fastest check is usually the source line cited in that page&rsquo;s footer rather than the docs &mdash; the docs lagged the code on several of these.</li>
+  </ul></div>
+</details>
+
+</div>
+
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Notes &middot; <span id="notes-title"></span><button id="notes-close" aria-label="Close notes">&times;</button></div>
+  <div id="notes-body"></div>
+</aside>
+
+<div class="bar">
+  <div class="name"><a href="index.html">Agent Operations</a> &middot; Module 3 &middot; Observability for Debugging and Improvement</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous page">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next page">&#8594;</button>
+    <button id="notes-btn" class="pill" aria-expanded="false">Notes</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; N notes &middot; F fullscreen</div>
+</div>
+
+<script>
+(function(){
+  var deck = document.getElementById('deck');
+  var pages = Array.prototype.slice.call(deck.querySelectorAll(':scope > section.page'));
+  var notes = Array.prototype.slice.call(deck.querySelectorAll(':scope > details.notes'));
+  var cnt = document.getElementById('cnt'), panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title'), notesBody = document.getElementById('notes-body');
+  var notesBtn = document.getElementById('notes-btn');
+  var i = 0;
+  if (notes.length !== pages.length) console.warn('agent_ops: ' + pages.length + ' pages but ' + notes.length + ' notes blocks; notes will pair by index.');
+
+  /* chrome on every page, page number on every non-divider h1 */
+  pages.forEach(function(p, k){
+    var conf = document.createElement('div'); conf.className = 'conf'; conf.textContent = 'Proprietary + Confidential'; p.appendChild(conf);
+    var g = document.createElement('div'); g.className = 'gcloud';
+    g.innerHTML = '<span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud'; p.appendChild(g);
+    p.id = 's' + String(k+1).padStart(2,'0');
+    var h = p.querySelector('h1');
+    if (h && !p.classList.contains('divider') && !h.querySelector('.n')) {
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = String(k+1).padStart(2,'0'); h.insertBefore(n, h.firstChild);
+    }
+  });
+
+  function clamp(n){ return Math.max(0, Math.min(pages.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    pages.forEach(function(p,k){ p.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + pages.length;
+    deck.scrollTop = 0;
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    var src = notes[i];
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) Array.prototype.forEach.call(body.children, function(c){ notesBody.appendChild(c.cloneNode(true)); });
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#s' + String(i+1).padStart(2,'0'));
+  }
+  function toggleNotes(force){
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function toggleFullscreen(){
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  notesBtn.addEventListener('click', function(){ toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function(){ toggleNotes(false); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') { show(0); e.preventDefault(); }
+    else if (e.key==='End') { show(pages.length-1); e.preventDefault(); }
+    else if (e.key==='n'||e.key==='N') { toggleNotes(); }
+    else if (e.key==='f'||e.key==='F') { toggleFullscreen(); }
+    else if (e.key==='Escape') { toggleNotes(false); }
+  });
+  function fromHash(){
+    var h = location.hash || '', m = h.match(/s?(\d+)/);
+    show(m ? parseInt(m[1],10)-1 : 0);
+    if (/notes/.test(h)) toggleNotes(true);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>
