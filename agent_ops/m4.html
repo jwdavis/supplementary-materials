@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M4 — Agent Evaluation and Quality Assurance</title>
+<style>
+  /* ===== agent_ops deck skeleton. Copy this <style>, the .bar/.notes chrome and the
+     <script> verbatim into every deck. Do not restyle per deck. ===== */
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed; --term-bg:#202124; --term-ink:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+
+  /* ---- stage: one page visible at a time; the page scrolls when taller than the viewport ---- */
+  .stage{position:fixed;inset:0 0 54px 0;overflow-y:auto;overflow-x:hidden;}
+  .page{display:none;position:relative;max-width:1120px;margin:0 auto;padding:44px 56px 76px;background:var(--bg);min-height:100%;}
+  .page.on{display:block;}
+  @media (min-width:1200px){ .page{margin:22px auto;min-height:calc(100% - 44px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);} }
+  .page .conf{position:absolute;top:14px;right:22px;font-size:11px;color:var(--ink-3);letter-spacing:.02em;}
+  .page .gcloud{position:absolute;bottom:18px;right:26px;font-size:15px;color:var(--ink-2);font-weight:500;}
+  .gcloud .g1{color:#4285f4}.gcloud .g2{color:#ea4335}.gcloud .g3{color:#fbbc04}.gcloud .g4{color:#4285f4}.gcloud .g5{color:#34a853}.gcloud .g6{color:#ea4335}
+
+  /* ---- type ---- */
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .lede{margin:12px 0 0;font-size:20px;color:var(--ink-2);line-height:1.5;border-left:3px solid var(--g-blue);padding-left:14px;}
+  h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  /* ---- epistemic tags: put one on every number or rule on the page face ---- */
+  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:3px;text-transform:uppercase;white-space:nowrap;}
+  .tag.limit{color:var(--g-red-deep);background:var(--fill-red);}       /* service limit: hard, documented, enforced */
+  .tag.guide{color:var(--g-blue-deep);background:var(--fill-blue);}     /* documentation guidance: recommended, not enforced */
+  .tag.heur{color:var(--g-yellow-deep);background:var(--fill-yellow);}  /* heuristic: workload-dependent rule of thumb */
+  .tag.illus{color:var(--g-green-deep);background:var(--fill-green);}   /* illustrative measurement: one scenario */
+  .tag.model{color:var(--ink-2);background:var(--fill-gray);}           /* mental model: a simplification */
+
+  /* ---- callouts ---- */
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.green{background:var(--fill-green);border-left-color:var(--g-green);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;color:var(--g-yellow-deep);}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.green .kk{color:var(--g-green-deep);} .note.red .kk{color:var(--g-red-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;}
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:20px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway code.i{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* ---- example card: actor, input, mechanism, result ---- */
+  .ex{background:var(--fill-green);border-left:4px solid var(--g-green);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .ex .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-green-deep);margin-bottom:4px;}
+  .ex p{margin:5px 0;} .ex .lbl{font-weight:700;color:var(--g-green-deep);} .ex .lbl.bad{color:var(--g-red-deep);}
+
+  /* ---- check rows ---- */
+  .checks{display:flex;flex-direction:column;margin:8px 0;position:relative;}
+  .checkrow{display:flex;gap:14px;align-items:flex-start;position:relative;padding:7px 0;}
+  .checkrow::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;} .checkrow:only-child::before{display:none;}
+  .cdot{width:24px;height:24px;border-radius:50%;background:var(--g-blue);flex:0 0 24px;position:relative;z-index:1;margin-top:3px;}
+  .cdot::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:4px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .cdot.red{background:var(--g-red);} .cdot.green{background:var(--g-green);} .cdot.gray{background:var(--ink-3);}
+  .checkrow p{margin:2px 0 0;line-height:1.45;}
+
+  /* ---- numbered rows ---- */
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:center;}
+  .numrow .n{font-family:var(--mono);font-size:20px;color:var(--g-blue-deep);width:52px;flex:0 0 52px;font-weight:500;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:18.5px;}
+  .numrow.bad .n{color:var(--g-red-deep);} .numrow.bad .body{border-left-color:var(--g-red);background:var(--fill-red);}
+  .numrow.good .n{color:var(--g-green-deep);} .numrow.good .body{border-left-color:var(--g-green);background:var(--fill-green);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  /* ---- card grid ---- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+  .grid.c2{grid-template-columns:repeat(2,1fr);} .grid.c4{grid-template-columns:repeat(4,1fr);}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:12px 15px;border-top:3px solid var(--g-blue);}
+  .cell.green{border-top-color:var(--g-green);} .cell.red{border-top-color:var(--g-red);} .cell.yellow{border-top-color:var(--g-yellow);} .cell.gray{border-top-color:var(--ink-3);}
+  .cell h4{margin:0 0 4px;font-size:17px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:16px;line-height:1.45;color:var(--ink-2);} .cell p b{color:var(--ink);}
+  @media (max-width:900px){ .grid,.grid.c4{grid-template-columns:1fr 1fr;} }
+
+  /* ---- comparison / decision table ---- */
+  table.cmp{border-collapse:collapse;width:100%;font-size:17.5px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp td.m,table.cmp code{font-family:var(--mono);font-size:15.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  .tscroll{overflow-x:auto;}
+
+  /* ---- code ---- */
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .fn{color:var(--g-yellow-deep);} pre.code .chg{background:var(--fill-yellow);border-radius:3px;padding:0 3px;}
+  pre.term{background:var(--term-bg);color:var(--term-ink);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;}
+  pre.term .flag{color:#8ab4f8;} pre.term .lbl{color:#9aa0a6;}
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 -4px;}
+  .codelabel.bad{color:var(--g-red-deep);} .codelabel.good{color:var(--g-green-deep);}
+
+  /* ---- figures and columns ---- */
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+  .cols{display:flex;gap:28px;align-items:flex-start;margin:10px 0;} .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+  @media (max-width:900px){ .cols{flex-direction:column;} }
+  .src{margin-top:26px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+
+  /* ---- divider (module opener and section dividers) ---- */
+  .page.divider{display:none;align-items:center;justify-content:center;}
+  .page.divider.on{display:flex;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;display:block;}
+  .divider .kicker{font-family:var(--mono);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--g-blue-deep);margin-bottom:12px;}
+  .divider .dsub{font-size:19px;color:var(--ink-2);margin-top:16px;max-width:520px;line-height:1.5;}
+  .divider .agenda{margin-top:22px;max-width:520px;}
+  .divider .agenda .numrow .body{font-size:17.5px;} .divider .agenda .numrow.hot .body{font-weight:600;color:var(--ink);} .divider .agenda .numrow.dim .body{color:var(--ink-3);}
+
+  /* ---- speaker notes: <details class="notes"> follows every page; hidden on screen,
+          mirrored into the flyout (Notes button or N), printed under its page ---- */
+  .stage > details.notes{display:none;}
+  #notes-panel{position:fixed;top:0;right:0;bottom:54px;width:min(480px,92vw);background:var(--bg);color:var(--ink);border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.16);display:flex;flex-direction:column;transform:translateX(calc(100% + 40px));transition:transform .22s ease;z-index:60;}
+  #notes-panel.open{transform:none;}
+  #notes-head{display:flex;align-items:center;gap:8px;padding:14px 18px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);flex:none;}
+  #notes-close{margin-left:auto;border:none;background:none;font-size:18px;line-height:1;padding:2px 4px;color:var(--ink-2);cursor:pointer;} #notes-close:hover{color:var(--ink);}
+  #notes-body{flex:1;overflow-y:auto;padding:4px 18px 40px;}
+  #notes-body > ul, .n-body > ul{margin:12px 0 2px;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:17px;color:var(--ink-2);line-height:1.5;}
+  #notes-body ul ul, .n-body ul ul{margin-top:8px;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:16px;}
+  #notes-body li::marker, .n-body li::marker{color:var(--ink-3);}
+  #notes-body code, .n-body code{font-family:var(--mono);font-size:.9em;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  .stage > details.notes summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);list-style:none;user-select:none;}
+  .stage > details.notes summary::-webkit-details-marker{display:none;}
+
+  /* ---- bottom bar ---- */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);color:var(--ink-2);font-size:15px;white-space:nowrap;z-index:70;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;font-weight:500;} .bar .name a{color:var(--ink-2);}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--ink);border-radius:6px;width:38px;height:32px;font-size:17px;cursor:pointer;line-height:1;}
+  .bar button.pill{width:auto;padding:0 12px;font-size:14px;} .bar button.pill[aria-expanded="true"]{background:var(--fill-blue);border-color:var(--g-blue);color:var(--g-blue-deep);}
+  .bar button:hover{background:var(--panel);} .bar .cnt{font-family:var(--mono);font-size:15px;min-width:9ch;text-align:center;} .bar .hint{font-size:14px;color:var(--ink-3);}
+  @media (max-width:820px){ .bar .hint{display:none;} .page{padding:26px 22px 70px;} body{font-size:18.5px;} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;animation:none !important;} }
+
+  /* ---- print: each page followed by its notes ---- */
+  @media print{
+    body{overflow:visible;background:#fff;} .stage{position:static;overflow:visible;}
+    .page{display:block;box-shadow:none;margin:0 auto;min-height:0;page-break-inside:avoid;}
+    .page.divider{display:flex;min-height:600px;}
+    .stage > details.notes{display:block;max-width:1120px;margin:0 auto 28px;border:1px solid var(--line);border-radius:8px;padding:14px 22px;page-break-after:always;page-break-inside:avoid;}
+    .stage > details.notes summary{display:block;margin-bottom:6px;}
+    .bar,#notes-panel{display:none;}
+    .note,.ex,.takeaway,.cell,.tag,pre.term,table.cmp tr.hl td,table.cmp tr.bad td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="deck">
+
+<!-- ==== 1. MODULE OPENER ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">04</div><div class="sh red"></div></div>
+    <div>
+      <h1>Agent Evaluation and Quality Assurance</h1>
+      <div class="dsub">What an eval grades that a test cannot, how a score becomes a pass, and how the same grading runs against production. Verified against <b>google-adk 2.9.0</b>, <b>google-agents-cli 1.5.0</b>, and <b>google-cloud-aiplatform 1.165.1</b>, September 2026.</div>
+      <div class="agenda numrows">
+        <div class="numrow plain hot"><div class="n">01</div><div class="body">What gets graded &mdash; the case, the metrics, the score</div></div>
+        <div class="numrow plain"><div class="n">02</div><div class="body">The managed layer &mdash; ADK, the service, agents-cli</div></div>
+        <div class="numrow plain"><div class="n">03</div><div class="body">In the lifecycle &mdash; production, monitors, alerts</div></div>
+        <div class="numrow plain"><div class="n">04</div><div class="body">Optional &mdash; replay, simulation, optimization</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Agent Evaluation and Quality Assurance">
+  <summary>Speaker notes &mdash; Module opener</summary>
+  <div class="n-body"><ul>
+    <li>This module is taught before Module 2. Wherever it touches pipeline placement it says &ldquo;Module 2&rdquo; and moves on; it does not assume the pipeline material.</li>
+    <li>The through-line: a test checks that deterministic code ran correctly; an eval grades the quality of a response and the path the agent took to it. Everything in section 1 builds that distinction into a score.</li>
+    <li>Delivery beat: ask who has an eval set today, and who has one that a build actually depends on. The gap between those two shows of hands is the module.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 2. OBJECTIVES ==== -->
+<section class="page">
+  <h1>What you will be able to do</h1>
+  <div class="numrows" style="margin-top:18px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Say what an eval grades that a unit test cannot, and name the two properties of agents that make it necessary.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Write an eval case by hand, and say which metrics read which of its fields.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Compute <code class="i">tool_trajectory_avg_score</code> and <code class="i">response_match_score</code> for a case, and say why each passes or fails.</div></div>
+    <div class="numrow"><div class="n">04</div><div class="body">Choose among the thirteen ADK criteria for a given agent, and configure a judge with its cost in mind.</div></div>
+    <div class="numrow"><div class="n">05</div><div class="body">Say which ADK criteria are the same thing as a service metric, which are a different scorer, and which harness a team uses when.</div></div>
+    <div class="numrow"><div class="n">06</div><div class="body">Turn a production trace into an evaluation item from any runtime, run an offline evaluation, create a monitor, and alert on its score.</div></div>
+  </div>
+</section>
+<details class="notes" data-title="What you will be able to do">
+  <summary>Speaker notes &mdash; What you will be able to do</summary>
+  <div class="n-body"><ul>
+    <li>Objective 6 is the production half &mdash; scoring the agent once it is live. It is the one this deck measured against a live project, on page 25.</li>
+    <li>Objective 5 is the answer to the confusion the room arrives with: ADK eval, the Gen AI evaluation service, Agent Platform agent evaluation, and agents-cli are not four systems.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 3. SECTION DIVIDER: WHAT GETS GRADED ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">1</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 1 of 4</div>
+      <h1>What gets graded</h1>
+      <div class="dsub">A recorded conversation, a metric that reads it, a score, and a threshold. Eleven pages, one case: the refund agent and order 6041.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1: What gets graded">
+  <summary>Speaker notes &mdash; Section 1 divider</summary>
+  <div class="n-body"><ul>
+    <li>Say up front that the section reuses one case throughout, so nobody waits for a new scenario each page.</li>
+    <li>The question this section answers: what does an eval grade that the tests the room already runs cannot?</li>
+  </ul></div>
+</details>
+
+<!-- ==== 4. A TEST CHECKS EXECUTION; AN EVAL GRADES THE DECISION ==== -->
+<section class="page">
+  <h1>A test checks execution. An eval grades the decision.</h1>
+  <p class="lede">Priya changes one clause of the refund agent&rsquo;s instruction. Every test passes. The agent now refunds orders that never shipped.</p>
+  <figure>
+    <svg viewBox="0 0 960 240" width="960" height="240" role="img" aria-label="Two trajectories with the same final reply but different tool paths">
+      <defs><marker id="m4a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <!-- row 1 -->
+      <rect x="8" y="20" width="4" height="70" fill="#34a853"/>
+      <text x="20" y="42" font-family="var(--sans)" font-size="13" fill="var(--g-green-deep)">before the edit</text>
+      <rect x="20" y="52" width="120" height="36" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="80" y="75" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">"refund 6041"</text>
+      <line x1="140" y1="70" x2="166" y2="70" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="168" y="52" width="120" height="36" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="228" y="75" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">get_order</text>
+      <line x1="288" y1="70" x2="314" y2="70" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="316" y="52" width="140" height="36" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="386" y="75" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">verify_shipment</text>
+      <line x1="456" y1="70" x2="482" y2="70" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="484" y="52" width="120" height="36" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="544" y="75" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">issue_refund</text>
+      <line x1="604" y1="70" x2="630" y2="70" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="632" y="52" width="150" height="36" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="707" y="75" font-family="var(--mono)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">"taken care of"</text>
+      <rect x="800" y="46" width="150" height="22" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="875" y="61" font-family="var(--sans)" font-size="11.5" fill="var(--g-green-deep)" text-anchor="middle">answer: pass</text>
+      <rect x="800" y="72" width="150" height="22" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="875" y="87" font-family="var(--sans)" font-size="11.5" fill="var(--g-green-deep)" text-anchor="middle">trajectory: 1.0</text>
+      <!-- row 2 -->
+      <rect x="8" y="140" width="4" height="70" fill="#ea4335"/>
+      <text x="20" y="162" font-family="var(--sans)" font-size="13" fill="var(--g-red-deep)">after the edit</text>
+      <rect x="20" y="172" width="120" height="36" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="80" y="195" font-family="var(--mono)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">"refund 6041"</text>
+      <line x1="140" y1="190" x2="166" y2="190" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="168" y="172" width="120" height="36" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="228" y="195" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">get_order</text>
+      <line x1="288" y1="190" x2="314" y2="190" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="316" y="172" width="140" height="36" rx="6" fill="none" stroke="var(--g-red)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="386" y="195" font-family="var(--mono)" font-size="12" fill="var(--g-red-deep)" text-anchor="middle">skipped</text>
+      <line x1="456" y1="190" x2="482" y2="190" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="484" y="172" width="120" height="36" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="544" y="195" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">issue_refund</text>
+      <line x1="604" y1="190" x2="630" y2="190" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
+      <rect x="632" y="172" width="150" height="36" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="707" y="195" font-family="var(--mono)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">"taken care of"</text>
+      <rect x="800" y="166" width="150" height="22" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="875" y="181" font-family="var(--sans)" font-size="11.5" fill="var(--g-green-deep)" text-anchor="middle">answer: pass</text>
+      <rect x="800" y="192" width="150" height="22" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="875" y="207" font-family="var(--sans)" font-size="11.5" fill="var(--g-red-deep)" text-anchor="middle">trajectory: 0.0</text>
+      <text x="480" y="232" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">Same reply, different path. Only the trajectory check sees it.</text>
+    </svg>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>A test checks correct execution of deterministic code.</b> It asserts on a code path. No code path changed here; the instruction is text.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>An eval grades the quality of a response and the path the agent took to produce it.</b> The path is the trajectory: which tools, which arguments, in what order.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two properties of agents make this necessary.</b> The same input can produce a different trajectory on the next run; and correctness has several dimensions at once &mdash; trajectory, answer, safety, cost.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The instruction, the tool definitions, and the model id are source files.</b> They change in a reviewed diff, and an eval is how that diff gets checked.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, editing the refund agent&rsquo;s instruction.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> &ldquo;refund order 6041&rdquo;, before and after the edit.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> before, the trajectory is <code class="i">get_order &rarr; verify_shipment &rarr; issue_refund</code>; after, <code class="i">get_order &rarr; issue_refund</code>. The final reply is the same sentence both times.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> an answer check passes. A trajectory check scores the second run 0.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> an eval replays a recorded conversation and grades what the agent decided. Nothing else in the test suite reads a decision.</div>
+  <div class="src">Sources: M2 page 4 (<code class="i">agent_ops/m2-d.html</code>) &middot; <code class="i">trajectory_evaluator.py</code>, google-adk 2.9.0.</div>
+</section>
+<details class="notes" data-title="A test checks execution; an eval grades the decision">
+  <summary>Speaker notes &mdash; A test checks execution; an eval grades the decision</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific, on two of the course&rsquo;s mechanisms: non-determinism of model output, and correctness that is multi-dimensional.</li>
+    <li>Delivery beat: show the two rows, ask which existing test would catch row 2, then reveal the chips. The answer is none of them.</li>
+    <li>Hand-off: page 6 shows the file that records the green row so a machine can replay it.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 5. MODEL EVALUATION HAPPENS FIRST ==== -->
+<section class="page">
+  <h1>Model evaluation happens first, and picks the model</h1>
+  <p class="lede">Before the refund agent exists, Marco has to choose a model. That is the one place model evaluation belongs in this module.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Pointwise</b> scores one model&rsquo;s responses against metrics. <b>Pairwise</b> runs two candidates on the same prompts and reports which one wins.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The Gen AI evaluation service runs either.</b> You give it a set of prompts and the metrics to grade on; it runs each candidate model over the prompts and scores the answers.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>After the decision, the model id is a line in the repo.</b> From then on the agent is what gets evaluated, and a model change is a diff the agent eval set catches.</p></div>
+  </div>
+  <p class="codelabel">Score two candidate models on the same 30 prompts</p>
+  <pre class="code"><span class="kw">from</span> agentplatform <span class="kw">import</span> Client, types
+client = Client(project=PROJECT, location=<span class="st">"us-central1"</span>)
+
+<span class="cm"># prompts: a DataFrame or dataset with one row per prompt</span>
+result = client.evals.<span class="fn">evaluate</span>(
+    dataset=prompts,
+    metrics=[types.RubricMetric.<span class="fn">TEXT_QUALITY</span>,
+             types.RubricMetric.<span class="fn">INSTRUCTION_FOLLOWING</span>],
+    inference_configs={
+        <span class="st">"gemini-3.5-flash"</span>:  {<span class="st">"model"</span>: <span class="st">"gemini-3.5-flash"</span>},
+        <span class="st">"gemini-3.5-pro"</span>:    {<span class="st">"model"</span>: <span class="st">"gemini-3.5-pro"</span>}})
+result.show()   <span class="cm"># per-model averages you compare side by side</span></pre>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco, before writing agent code.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> 30 representative prompts; the two candidate models above.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> <code class="i">result.show()</code> reports <code class="i">text_quality</code> 0.88 vs 0.90 and <code class="i">instruction_following</code> 0.91 vs 0.93; flash answers in half the time. The 0.02 gap does not justify the cost, so <code class="i">gemini-3.5-flash</code> goes in <code class="i">config.py</code> <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="note gray"><span class="kk">Generic</span>Model selection is not agent-specific. It appears here because it is the one place model evaluation fits: before the agent exists, once.</div>
+  <div class="takeaway"><b>Takeaway:</b> evaluate models to choose one; evaluate the agent forever after.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">evaluate-agents</a> &middot; <code class="i">agentplatform/_genai/evals.py:3121</code>, aiplatform 1.165.1.</div>
+</section>
+<details class="notes" data-title="Model evaluation happens first, and picks the model">
+  <summary>Speaker notes &mdash; Model evaluation happens first, and picks the model</summary>
+  <div class="n-body"><ul>
+    <li>Pairwise is also what an A/B on prompt variants uses; mention it and move on.</li>
+    <li><code>inference_configs</code> is a map from a candidate name to how to run it; the same call scores several models in one pass. Without it, <code>evaluate</code> grades one set of pre-generated responses.</li>
+    <li>If asked about ROUGE/BLEU: one appears on page 9 as <code>response_match_score</code>; the rest are for translation and summarization and no agent metric uses them.</li>
+    <li>The gray note keeps the room from thinking this page is the module: model selection happens once, before the agent; everything after page 6 evaluates the agent.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 6. AN EVAL CASE IS A RECORDED CONVERSATION ==== -->
+<section class="page">
+  <h1>An eval case is a recorded conversation with the expected trajectory inside it</h1>
+  <p class="lede">Page 5 scored a model&rsquo;s answer to pick a model. From here on we grade the agent&rsquo;s decisions &mdash; and to do that we record one conversation and say what the agent should have done in it.</p>
+  <p class="codelabel">refunds.test.json &mdash; one eval case, one turn</p>
+  <pre class="code">{
+  <span class="st">"eval_set_id"</span>: <span class="st">"refunds"</span>,
+  <span class="st">"eval_cases"</span>: [{
+    <span class="st">"eval_id"</span>: <span class="st">"refund_6041"</span>,               <span class="cm">// names this case</span>
+    <span class="st">"conversation"</span>: [{                       <span class="cm">// one entry per turn; here, one turn</span>
+      <span class="st">"user_content"</span>:   {<span class="st">"parts"</span>: [{<span class="st">"text"</span>: <span class="st">"refund order 6041"</span>}], <span class="st">"role"</span>: <span class="st">"user"</span>},
+      <span class="st">"final_response"</span>: {<span class="st">"parts"</span>: [{<span class="st">"text"</span>: <span class="st">"Your refund of $42 has been issued."</span>}], <span class="st">"role"</span>: <span class="st">"model"</span>},
+      <span class="st">"intermediate_data"</span>: {
+        <span class="st">"tool_uses"</span>: [                        <span class="cm">// the tools the agent should call, in order</span>
+          {<span class="st">"name"</span>: <span class="st">"get_order"</span>,       <span class="st">"args"</span>: {<span class="st">"order_id"</span>: 6041}},
+          {<span class="st">"name"</span>: <span class="st">"verify_shipment"</span>, <span class="st">"args"</span>: {<span class="st">"order_id"</span>: 6041}},
+          {<span class="st">"name"</span>: <span class="st">"issue_refund"</span>,    <span class="st">"args"</span>: {<span class="st">"order_id"</span>: 6041}}
+        ]                                     <span class="cm">// order_id 6041 is the same in all three: same order</span>
+      }
+    }],
+    <span class="st">"session_input"</span>: {<span class="st">"app_name"</span>: <span class="st">"refund_agent"</span>, <span class="st">"user_id"</span>: <span class="st">"test_user"</span>, <span class="st">"state"</span>: {}}
+  }]
+}</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>A case is a whole conversation.</b> <code class="i">conversation</code> holds one entry per turn; this case has one turn (page 8 has two). Each turn carries the user&rsquo;s message, the expected reply, and the expected tool calls.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>A metric reads whichever of these three it needs:</b> the expected reply (<code class="i">final_response</code>), the expected tool calls (<code class="i">tool_uses</code>), or just the prompt and whatever the agent actually did. Different metrics read different fields.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Reference-based</b> metrics compare the agent to a right answer you wrote here &mdash; the reply, or the tool list. <b>Reference-free</b> metrics judge the run on its own (was it safe, was it grounded), so their cases need no expected reply or trajectory.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The file is code.</b> It lives in the repo, and a change to it is a reviewed diff.</p></div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a case records a conversation and the right answer for it. A reference-based metric needs that right answer; a reference-free one does not.</div>
+  <div class="src">Sources: <code class="i">eval_set.py</code>, <code class="i">eval_case.py:84-112</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/">adk.dev/evaluate</a> schema block.</div>
+</section>
+<details class="notes" data-title="An eval case is a recorded conversation">
+  <summary>Speaker notes &mdash; An eval case is a recorded conversation</summary>
+  <div class="n-body"><ul>
+    <li>Vocabulary: one entry in <code>conversation</code> is an <b>invocation</b> &mdash; one turn (a user message, the tool calls it triggered, the agent&rsquo;s reply). A case is the whole session; page 8 uses a two-turn case.</li>
+    <li>Reference-based vs reference-free is the split that decides whether a case needs a hand-written answer. Reference-based: <code>tool_trajectory_avg_score</code> (needs <code>tool_uses</code>), <code>response_match_score</code> and <code>final_response_match_v2</code> (need <code>final_response</code>). Reference-free: <code>safety_v1</code>, <code>hallucinations_v1</code>, the rubric metrics &mdash; they judge the run itself, so a generated case (page 15) with no answer still works with them.</li>
+    <li>The <code>order_id</code> in <code>args</code> is a tool argument, not a call id. Trajectory matching compares <code>name</code> and <code>args</code> only (an <code>ignore_args</code> option relaxes the args check); it does not match on any id.</li>
+    <li>The legacy flat format (<code>[{query, expected_tool_use, reference}]</code>) still loads with a warning; that is page 7. <code>session_input.state</code> pins initial session state &mdash; a logged-in user, a cart.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 7. TEST FILE AND EVALSET: ONE SCHEMA, TWO DISCOVERERS ==== -->
+<section class="page">
+  <h1>Test file and evalset: one schema, two suffixes</h1>
+  <p class="lede">Two file extensions turn up in ADK projects and look like two formats. They are the same <code class="i">EvalSet</code> schema; only the tool that reads each one differs.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th></th><th><code>.evalset.json</code></th><th><code>.test.json</code></th></tr></thead>
+    <tbody>
+      <tr><td>Schema</td><td><code>EvalSet</code> (page 6)</td><td><code>EvalSet</code> (page 6)</td></tr>
+      <tr><td>Made by</td><td><code>adk web</code> and <code>adk eval_set</code>: you build and browse it in the UI</td><td>you write it (or export one), and drop it under a tests folder</td></tr>
+      <tr><td>Read by</td><td><code>adk web</code> and <code>adk eval</code>, by path or set id</td><td><code>AgentEvaluator.evaluate</code> in a pytest test, which scans a folder for every <code>.test.json</code> in it</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">Rule</span>Pick the suffix by which tool will read the file: <code class="i">.evalset.json</code> for the <code class="i">adk web</code> / <code class="i">adk eval</code> path, <code class="i">.test.json</code> for the pytest path. That is the whole difference.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, adding a regression test for a bug.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the conversation that misbehaved.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> because her CI runs <code class="i">pytest tests/eval</code>, she writes the case as <code class="i">tests/eval/refunds.test.json</code>, where <code class="i">AgentEvaluator.evaluate</code> will find it. Had she wanted to explore it in the browser first, she would have saved it as <code class="i">.evalset.json</code> and opened it in <code class="i">adk web</code>.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the suffix followed the tool, not the other way round.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> same schema, two suffixes. Name the file for the tool that will read it.</div>
+  <div class="src">Sources: <code class="i">agent_evaluator.py:340-346, 394-421</code>, <code class="i">local_eval_sets_manager.py:46</code>, google-adk 2.9.0.</div>
+</section>
+<details class="notes" data-title="Test file and evalset: one schema, two suffixes">
+  <summary>Speaker notes &mdash; Test file and evalset: one schema, two suffixes</summary>
+  <div class="n-body"><ul>
+    <li>Both files load through <code>_load_eval_set_from_file</code>, which parses <code>EvalSet</code> and, on a parse failure, falls back to the legacy flat list with a warning. So the &ldquo;old format vs. new format&rdquo; question is orthogonal to the suffix, and applies to either.</li>
+    <li>Why <code>AgentEvaluator.evaluate</code> scans a folder: pytest points it at a directory, and it walks it for every <code>.test.json</code> so a test can cover a whole folder of cases at once. That is a discovery convenience, not a statement that <code>.test.json</code> files must be small &mdash; the schema is identical, so a <code>.test.json</code> can hold as many cases and turns as an <code>.evalset.json</code>.</li>
+    <li>In practice, capture cases in <code>adk web</code> and the current schema is what you get; export or save with the suffix your runner expects.</li>
+    <li><code>AgentEvaluator.migrate_eval_data_to_new_schema</code> converts a legacy file if you have one.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 8. HOW A TRAJECTORY BECOMES A NUMBER ==== -->
+<section class="page">
+  <h1>How a trajectory becomes a number</h1>
+  <p class="lede"><code class="i">tool_trajectory_avg_score</code> is the default trajectory metric. Here is what it computes for <b>one</b> two-turn conversation.</p>
+  <figure>
+    <svg viewBox="0 0 960 300" width="960" height="300" role="img" aria-label="Two turns of one case scored, expected versus actual tool calls">
+      <text x="480" y="18" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">one eval case &middot; eval_id "refund_6041" &middot; two turns in the same session</text>
+      <!-- panel 1 -->
+      <text x="20" y="38" font-family="var(--sans)" font-size="13.5" fill="var(--ink)">turn 1 &middot; "refund order 6041"</text>
+      <text x="150" y="52" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">expected</text>
+      <text x="330" y="52" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">actual</text>
+      <rect x="60" y="60" width="180" height="30" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="150" y="80" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="middle">get_order(6041)</text>
+      <rect x="250" y="60" width="180" height="30" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="340" y="80" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">get_order(6041)</text>
+      <rect x="60" y="94" width="180" height="30" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="150" y="114" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="middle">verify_shipment(6041)</text>
+      <rect x="250" y="94" width="180" height="30" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="340" y="114" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">verify_shipment(6041)</text>
+      <rect x="60" y="128" width="180" height="30" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="150" y="148" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="middle">issue_refund(6041)</text>
+      <rect x="250" y="128" width="180" height="30" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="340" y="148" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">issue_refund(6041)</text>
+      <rect x="150" y="170" width="190" height="26" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="245" y="188" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">1.0</text>
+      <!-- panel 2 -->
+      <text x="520" y="38" font-family="var(--sans)" font-size="13.5" fill="var(--ink)">turn 2 &middot; "and refund 6042"</text>
+      <text x="620" y="52" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">expected</text>
+      <text x="810" y="52" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">actual</text>
+      <rect x="530" y="60" width="180" height="30" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="620" y="80" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="middle">get_order(6042)</text>
+      <rect x="720" y="60" width="180" height="30" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="810" y="80" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">get_order(6042)</text>
+      <rect x="530" y="94" width="180" height="30" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="620" y="114" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="middle">verify_shipment(6042)</text>
+      <rect x="720" y="94" width="180" height="30" rx="5" fill="none" stroke="var(--g-red)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="810" y="114" font-family="var(--mono)" font-size="13" fill="var(--g-red-deep)" text-anchor="middle">&mdash;</text>
+      <rect x="530" y="128" width="180" height="30" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="620" y="148" font-family="var(--mono)" font-size="12" fill="var(--ink-2)" text-anchor="middle">issue_refund(6042)</text>
+      <rect x="720" y="128" width="180" height="30" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="810" y="148" font-family="var(--mono)" font-size="12" fill="var(--ink)" text-anchor="middle">issue_refund(6042)</text>
+      <text x="810" y="171" font-family="var(--sans)" font-size="11" fill="var(--g-red-deep)" text-anchor="middle">one mismatch &rarr; whole invocation 0</text>
+      <rect x="620" y="176" width="190" height="26" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="715" y="194" font-family="var(--mono)" font-size="13" fill="var(--g-red-deep)" text-anchor="middle">0.0</text>
+      <!-- formula -->
+      <text x="480" y="240" font-family="var(--mono)" font-size="15" fill="var(--ink)" text-anchor="middle">case = (1.0 + 0.0) / 2 = 0.5</text>
+      <rect x="360" y="256" width="240" height="28" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="480" y="275" font-family="var(--sans)" font-size="13" fill="var(--g-red-deep)" text-anchor="middle">&lt; 1.0 threshold &rarr; FAIL</text>
+      <text x="820" y="238" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">match_type EXACT (default)</text>
+    </svg>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Each turn is scored, then averaged into the case.</b> A turn scores <b>1.0 or 0.0</b> (its tool calls match the expected list, or they do not). The case&rsquo;s score for this metric is the mean of its turns: here (1.0 + 0.0) / 2 = 0.5.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The default threshold is 1.0, so every turn must pass.</b> A mean of 0.5 is below 1.0, so the case fails. Lower the threshold only if a partial trajectory should still pass.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">match_type</code></b> decides what counts as a match: <code class="i">EXACT</code> (same calls, same order, nothing extra), <code class="i">IN_ORDER</code> (expected calls present in order, extras allowed), <code class="i">ANY_ORDER</code>.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>What it does not see:</b> the metric reads tool <b>names and arguments</b> only, not what the tool returned. A correctly named call that returned an error still scores 1.0.</p></div>
+  </div>
+  <div class="note blue"><span class="kk">Averaging is within a case, not across cases</span>The mean here is over the turns of <b>one</b> conversation. Separate eval cases are not averaged together: the run reports <code class="i">Tests passed / Tests failed</code> as a count of cases, so a passing case and a failing case are one pass and one fail, never a 50% that passes.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco, on the case above.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> turn 1 matches: 1.0. Turn 2 skipped <code class="i">verify_shipment</code>: 0.0. Mean 0.5, threshold 1.0.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the case fails. Under <code class="i">IN_ORDER</code>, turn 2 would still fail (a required call is missing) &mdash; but a turn with an <i>extra</i> <code class="i">get_customer</code> call inserted between the expected ones would pass, because the three expected calls still appear in order <span class="tag illus">computed from the 2.9.0 code path</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a case passes this metric only if every turn&rsquo;s trajectory matches. Set <code class="i">IN_ORDER</code> when helper calls may vary, and use a different metric when tool success is the question.</div>
+  <div class="src">Sources: <code class="i">trajectory_evaluator.py:106-173</code>, <code class="i">agent_evaluator.py:847-858</code> (mean over turns), <code class="i">eval_metrics.py:193-240</code>, <code class="i">eval_config.py:237-239</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/criteria/">criteria</a>.</div>
+</section>
+<details class="notes" data-title="How a trajectory becomes a number">
+  <summary>Speaker notes &mdash; How a trajectory becomes a number</summary>
+  <div class="n-body"><ul>
+    <li>The one misread to prevent: that the 0.5 average spans separate tests. It does not. Within a case, per-turn scores are meaned (<code>statistics.mean</code>, <code>agent_evaluator.py:854</code>); across cases, results are grouped by <code>eval_id</code> and reported as a pass/fail count (<code>agent_evaluator.py:772</code>).</li>
+    <li>So &ldquo;threshold 1.0&rdquo; means every turn in the case must match. A single-turn case is the common shape, and there the mean is just that one turn&rsquo;s 1.0 or 0.0.</li>
+    <li>Argument comparison is exact: <code>{"order_id": 6041}</code> vs <code>{"order_id": "6041"}</code> is a mismatch. The <code>ignore_args</code> criterion option relaxes this to name-only matching.</li>
+    <li>Field-name note for anyone who saw older material: the metric compares <code>tool_uses</code> (name + args). Names like <code>determine_intent</code> / <code>use_tool</code> are not ADK fields.</li>
+    <li>Production-side, tool success is the outcome counter from Module 3 page 28.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 9. GRADING THE ANSWER: SHARED WORDS OR A JUDGE ==== -->
+<section class="page">
+  <h1>Grading the answer: shared words, or a judge</h1>
+  <p class="lede">Both answer metrics compare the agent&rsquo;s reply against the reference reply in the case (page 6&rsquo;s <code class="i">final_response</code>). The reference here is &ldquo;Your refund of $42 has been issued.&rdquo; Two replies come back; one is right and fails, one is wrong and passes.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Compared against the reference</th><th>ROUGE-1 F</th><th><code>response_match_score</code> @ 0.8</th><th><code>final_response_match_v2</code></th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>reference: &ldquo;Your refund of $42 has been issued.&rdquo;</td><td class="m">&mdash;</td><td>the answer to match</td><td>the answer to match</td></tr>
+      <tr><td>A (correct, reworded): &ldquo;I have issued your $42 refund.&rdquo;</td><td class="m">0.615</td><td class="no">fail</td><td class="yes">valid</td></tr>
+      <tr><td>B (wrong, reuses words): &ldquo;Your refund of $42 has been denied.&rdquo;</td><td class="m">0.857</td><td class="yes">pass</td><td class="no">invalid</td></tr>
+    </tbody>
+  </table></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">response_match_score</code> counts shared words.</b> ROUGE-1 F-measure between reply and reference: tokens <code class="i">[a-z0-9]</code>, Porter-stemmed. Default threshold 0.8. A reply that reuses enough of the reference&rsquo;s words scores high whatever it means; a correct reply in other words scores low.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">final_response_match_v2</code> asks a judge.</b> The reply and the reference go to a judge model with the question &ldquo;valid or invalid&rdquo;; the judge is sampled <code class="i">num_samples</code> times, each invocation is majority-voted, and the score is the fraction of valid invocations.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The judge is a model call with its own non-determinism.</b> That is why it is sampled, and why page 13 shows the cost.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, choosing an answer metric for the refund agent.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the reference and the two replies above.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> reply A shares 4 of the reference&rsquo;s 7 stemmed tokens; reply B shares 6 of 7.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> ROUGE passes the wrong reply and fails the right one. The judge gets both right <span class="tag illus">computed with rouge_score, 2026-09-13</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> use <code class="i">response_match_score</code> for short, fixed replies. For anything a person could phrase two ways, use <code class="i">final_response_match_v2</code>.</div>
+  <div class="src">Sources: <code class="i">final_response_match_v1.py:68-69, 180-199</code>, <code class="i">final_response_match_v2.py:134-136, 196-209</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/criteria/">criteria</a> &middot; scratchpad run.</div>
+</section>
+<details class="notes" data-title="Grading the answer: shared words, or a judge">
+  <summary>Speaker notes &mdash; Grading the answer: shared words, or a judge</summary>
+  <div class="n-body"><ul>
+    <li>Generic (text similarity vs. model judgment); say so. The agent-shaped part is that the judge is another non-deterministic model.</li>
+    <li>Ties in the judge&rsquo;s majority vote count as invalid (<code>aggregate_per_invocation_samples</code>).</li>
+    <li>The judge prompt tells the model to trust the reference for arithmetic and to treat unit changes (miles vs. km) as invalid.</li>
+    <li>Off the face: <code>response_evaluation_score</code> is a third answer metric &mdash; the service&rsquo;s coherence score on a 1&ndash;5 scale; it is in page 10&rsquo;s table.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 10. THE THIRTEEN ADK CRITERIA ==== -->
+<section class="page">
+  <h1>The thirteen ADK criteria, sorted by what each needs</h1>
+  <p class="lede">Every name a <code class="i">test_config.json</code> can contain, and what each one needs from you and from the cloud. <b>Green rows are the four most teams start with.</b></p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Criterion</th><th>Reference?</th><th>Rubrics?</th><th>Judge?</th><th>Runs</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td class="m">tool_trajectory_avg_score</td><td class="yes">yes</td><td>&mdash;</td><td>&mdash;</td><td>in-process</td></tr>
+      <tr class="hl"><td class="m">response_match_score</td><td class="yes">yes</td><td>&mdash;</td><td>&mdash;</td><td>in-process</td></tr>
+      <tr class="hl"><td class="m">final_response_match_v2</td><td class="yes">yes</td><td>&mdash;</td><td class="yes">yes</td><td>in-process judge</td></tr>
+      <tr class="hl"><td class="m">hallucinations_v1</td><td>&mdash;</td><td>&mdash;</td><td class="yes">yes</td><td>in-process judge</td></tr>
+      <tr><td class="m">rubric_based_final_response_quality_v1</td><td>&mdash;</td><td class="yes">yes</td><td class="yes">yes</td><td>in-process judge</td></tr>
+      <tr><td class="m">rubric_based_tool_use_quality_v1</td><td>&mdash;</td><td class="yes">yes</td><td class="yes">yes</td><td>in-process judge</td></tr>
+      <tr><td class="m">rubric_based_multi_turn_trajectory_quality_v1</td><td>&mdash;</td><td class="yes">yes</td><td class="yes">yes</td><td>in-process judge</td></tr>
+      <tr><td class="m">per_turn_user_simulator_quality_v1</td><td>&mdash;</td><td>&mdash;</td><td class="yes">yes</td><td>in-process judge</td></tr>
+      <tr><td class="m">response_evaluation_score</td><td class="yes">yes</td><td>&mdash;</td><td class="yes">yes</td><td><b>service</b></td></tr>
+      <tr><td class="m">safety_v1</td><td>&mdash;</td><td>&mdash;</td><td class="yes">yes</td><td><b>service</b></td></tr>
+      <tr><td class="m">multi_turn_task_success_v1</td><td>&mdash;</td><td>&mdash;</td><td class="yes">yes</td><td><b>service</b></td></tr>
+      <tr><td class="m">multi_turn_trajectory_quality_v1</td><td>&mdash;</td><td>&mdash;</td><td class="yes">yes</td><td><b>service</b></td></tr>
+      <tr><td class="m">multi_turn_tool_use_quality_v1</td><td>&mdash;</td><td>&mdash;</td><td class="yes">yes</td><td><b>service</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">The Runs column</span><b>in-process</b> means the evaluator runs inside your process (in <code class="i">pytest</code> or <code class="i">adk eval</code>); an in-process <b>judge</b> criterion calls a judge model from there, over the network, but ADK drives the loop. <b>service</b> means the whole scoring is handed to the Agent Platform evaluation service &mdash; it needs <code class="i">GOOGLE_CLOUD_PROJECT</code>, <code class="i">GOOGLE_CLOUD_LOCATION</code>, and a region the service supports. Neither runs an LLM on your machine.</div>
+  <div class="takeaway"><b>Takeaway:</b> the four green rows cover most teams. Reach for the service-backed five for simulated multi-turn conversations, and for safety.</div>
+  <div class="src">Sources: <code class="i">metric_evaluator_registry.py:206-260</code>; <code class="i">vertex_ai_eval_facade</code> imports in <code class="i">safety_evaluator.py</code>, <code class="i">response_evaluator.py</code>, <code class="i">multi_turn_*_evaluator.py</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/criteria/">criteria</a> table.</div>
+</section>
+<details class="notes" data-title="The thirteen ADK criteria, sorted by what each needs">
+  <summary>Speaker notes &mdash; The thirteen ADK criteria</summary>
+  <div class="n-body"><ul>
+    <li><b>Reference?</b> yes = the case must carry a hand-written right answer for this metric to compare against: <code>tool_uses</code> for the trajectory metric, <code>final_response</code> for the response-match metrics. no = reference-free, the metric judges the run on its own merits (safe? grounded? met the rubric?), so a case needs no answer.</li>
+    <li><b>Rubrics?</b> yes = you supply a list of pass/fail statements about the reply or the tool use (page 12), and the score is the fraction that pass. no = the metric has its own fixed scoring and takes no rubrics from you.</li>
+    <li><b>Judge?</b> yes = the score comes from an LLM reading the output, so it is non-deterministic and is sampled (page 13). no = a deterministic computation (ROUGE word overlap, or exact tool-call matching).</li>
+    <li>Agent-specific: correctness is multi-dimensional, and the five service criteria make the eval itself depend on an external service with regions and quotas.</li>
+    <li>The criteria page on adk.dev lists 13; the overview page says 12 and omits <code>response_evaluation_score</code>. This deck follows the criteria page.</li>
+    <li>Delivery beat: cover the &ldquo;Runs&rdquo; column first &mdash; it is the one that changes what a CI job needs (a project, a region, a network call).</li>
+  </ul></div>
+</details>
+
+<!-- ==== 11. CHOOSING BY SCENARIO ==== -->
+<section class="page">
+  <h1>Choosing by scenario</h1>
+  <p class="lede">Four agents, four different questions, four different rows from the table.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>The agent</th><th>The question</th><th>Criteria</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Refund flow, fixed order of steps</td><td>Did it verify before it refunded, and say so?</td><td class="m">tool_trajectory_avg_score IN_ORDER + final_response_match_v2</td><td>order is a requirement; helper calls may vary; replies are phrased freely</td></tr>
+      <tr><td>RAG answer over a policy doc</td><td>Did it say only what the document says?</td><td class="m">hallucinations_v1</td><td>no single reference sentence; claims checked against the tool output</td></tr>
+      <tr><td>Customer reply with house rules</td><td>Amount stated, no delivery promise, under three sentences?</td><td class="m">rubric_based_final_response_quality_v1</td><td>the rules are the rubrics; page 12</td></tr>
+      <tr><td>Open-ended multi-turn support</td><td>Did the simulated user get what they came for?</td><td class="m">multi_turn_task_success_v1</td><td>reference-based criteria unsupported with a simulated user</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco, with the RAG agent.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the agent answers &ldquo;the return window is 45 days&rdquo;; the retrieved policy says 30.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> <code class="i">hallucinations_v1</code> splits the reply into sentences and labels each <code class="i">supported</code>, <code class="i">unsupported</code>, <code class="i">contradictory</code>, <code class="i">disputed</code>, or <code class="i">not_applicable</code> against the tool output. The score is the fraction supported or not applicable.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> one of two sentences unsupported: 0.5 <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> pick the criterion by the question, then check its column on page 10 for what it needs.</div>
+  <div class="src">Sources: <a href="https://adk.dev/evaluate/criteria/">criteria</a> sections for each metric &middot; <a href="https://adk.dev/evaluate/">adk.dev/evaluate</a> user-simulation note.</div>
+</section>
+<details class="notes" data-title="Choosing by scenario">
+  <summary>Speaker notes &mdash; Choosing by scenario</summary>
+  <div class="n-body"><ul>
+    <li>The user-simulation constraint, verbatim from the docs: <code>tool_trajectory_avg_score</code>, <code>response_match_score</code>, and <code>final_response_match_v2</code> &ldquo;are not supported in combination with User Simulation.&rdquo;</li>
+    <li><code>hallucinations_v1</code> has an option, <code>evaluate_intermediate_nl_responses</code>, to check text the agent emitted before tool calls as well as the final reply.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 12. A RUBRIC IS ONE TESTABLE CRITERION ==== -->
+<section class="page">
+  <h1>A rubric is one testable criterion; the score is the fraction that passed</h1>
+  <p class="lede">&ldquo;Under three sentences&rdquo; is not a reference answer and not a word count the framework knows. It is a rubric.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Shape:</b> an id, a text property the judge can test, and an optional type. Each rubric gets <b>Pass</b> or <b>Fail</b> per invocation; the metric&rsquo;s score is the fraction that passed.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>You write them</b> for ADK&rsquo;s three <code class="i">rubric_based_*</code> criteria, in <code class="i">test_config.json</code> or on the case (<code class="i">EvalCase.rubrics</code>, additive). An empty effective list raises at evaluation time.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Or the service writes the rubrics for you</b> &mdash; its &ldquo;adaptive&rdquo; metrics (<code class="i">TOOL_USE_QUALITY</code>, <code class="i">FINAL_RESPONSE_QUALITY</code>&hellip;) read your agent&rsquo;s instruction and tool declarations and turn them into pass/fail rubrics per case, so you write none. Page 20 shows the exact rubrics one produced.</p></div>
+    <div class="checkrow"><div class="cdot gray"></div><p><b>Static metrics</b> (<code class="i">SAFETY</code>, <code class="i">HALLUCINATION</code>) return one 0&ndash;1 number instead of a pass rate.</p></div>
+  </div>
+  <p class="codelabel">test_config.json &mdash; three rubrics</p>
+  <pre class="code">{<span class="st">"criteria"</span>: {<span class="st">"rubric_based_final_response_quality_v1"</span>: {
+  <span class="st">"threshold"</span>: 0.67,
+  <span class="st">"rubrics"</span>: [
+    {<span class="st">"rubric_id"</span>: <span class="st">"amount"</span>,  <span class="st">"rubric_content"</span>: {<span class="st">"text_property"</span>: <span class="st">"The reply states the refund amount."</span>}},
+    {<span class="st">"rubric_id"</span>: <span class="st">"no_date"</span>, <span class="st">"rubric_content"</span>: {<span class="st">"text_property"</span>: <span class="st">"The reply does not promise a delivery date."</span>}},
+    {<span class="st">"rubric_id"</span>: <span class="st">"short"</span>,   <span class="st">"rubric_content"</span>: {<span class="st">"text_property"</span>: <span class="st">"The reply is under three sentences."</span>}}
+  ]}}}</pre>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, writing rubrics for the refund agent.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the three rubrics above.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> the ADK judge marks each per invocation.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> a reply that states the amount in four sentences with no delivery promise scores 2/3 &asymp; 0.67.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a rubric turns a house rule into a number. Write them for what you can state; let the service generate them for what it can read from your agent&rsquo;s own configuration.</div>
+  <div class="src">Sources: <code class="i">eval_rubrics.py:24-65</code>, <code class="i">rubric_based_evaluator.py:134-260</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/criteria/">criteria</a> rubric sections &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a>.</div>
+</section>
+<details class="notes" data-title="A rubric is one testable criterion">
+  <summary>Speaker notes &mdash; A rubric is one testable criterion</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific: the rubrics are derived from, or written against, the agent&rsquo;s configuration, which is code.</li>
+    <li>Per-case rubrics are filtered by <code>type</code> (<code>FINAL_RESPONSE_QUALITY</code>, <code>TOOL_USE_QUALITY</code>, <code>TRAJECTORY_QUALITY</code>).</li>
+    <li>Custom LLM metrics on the service (<code>types.LLMMetric</code>) are the third home: a prompt template you write, registered once, applied to runs and monitors alike.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 13. CONFIGURING A JUDGE, AND WHAT A RUN COSTS ==== -->
+<section class="page">
+  <h1>Configuring a judge, and what a run costs</h1>
+  <p class="lede">The criteria on page 10 with a &ldquo;judge&rdquo; tick each take a judge model, a sample count, and a threshold. Those three numbers set the cost of a run.</p>
+  <p class="codelabel">test_config.json &mdash; judge options and match type</p>
+  <pre class="code">{<span class="st">"criteria"</span>: {
+  <span class="st">"tool_trajectory_avg_score"</span>: {<span class="st">"threshold"</span>: 1.0, <span class="st">"match_type"</span>: <span class="st">"IN_ORDER"</span>},
+  <span class="st">"final_response_match_v2"</span>: {
+    <span class="st">"threshold"</span>: 0.8,
+    <span class="st">"judge_model_options"</span>: {<span class="st">"judge_model"</span>: <span class="st">"gemini-3.5-flash"</span>, <span class="st">"num_samples"</span>: 5}
+  }
+}}</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>A bare float is a threshold.</b> An object adds <code class="i">judge_model_options</code> (<code class="i">judge_model</code>, the LLM that grades; <code class="i">num_samples</code>), <code class="i">match_type</code> for the trajectory criterion, <code class="i">rubrics[]</code> for the rubric criteria.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">num_samples</code> stabilizes a non-deterministic judge.</b> The judge is an LLM, so it can score the same reply differently twice. ADK asks it <code class="i">num_samples</code> times (5 here) and aggregates &mdash; majority vote for valid/invalid, mean for a numeric score &mdash; so one stray answer does not swing the result.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">AgentEvaluator</code> also runs every case <code class="i">num_runs=2</code> times</b> by default, because the <i>agent</i> is non-deterministic too &mdash; a different run, then, is a different trajectory to grade.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Cost, in calls:</b> one case with one judge criterion is 2 agent runs and 10 judge calls (2 runs &times; 5 samples), before the agent&rsquo;s own tool and model calls.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, sizing the PR set.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> 60 cases, <code class="i">final_response_match_v2</code> at defaults.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> 60 &times; 2 runs = 120 agent runs; 120 &times; 5 samples = 600 judge calls per pipeline run.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> <code class="i">num_samples: 3</code> for the PR set, 5 for the nightly set: 360 judge calls on a PR <span class="tag illus">computed from defaults</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> two defaults, <code class="i">num_runs=2</code> and <code class="i">num_samples=5</code>, exist because the agent and the judge are both non-deterministic. Know them before you size a set.</div>
+  <div class="src">Sources: <code class="i">eval_metrics.py:81-115</code>, <code class="i">agent_evaluator.py:73</code>, <code class="i">eval_config.py:97-135</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/criteria/">criteria</a> config samples.</div>
+</section>
+<details class="notes" data-title="Configuring a judge, and what a run costs">
+  <summary>Speaker notes &mdash; Configuring a judge, and what a run costs</summary>
+  <div class="n-body"><ul>
+    <li>Model choice: this deck names <code>gemini-3.5-flash</code> as the judge because it is current. Note that the shipped default in google-adk 2.9.0 is <code>gemini-2.5-flash</code> (<code>eval_metrics.py:85</code>); the docs&rsquo; samples say <code>gemini-flash-latest</code>. The point of the config field is that you pick, so pick the current model rather than inheriting the default.</li>
+    <li>Aggregation across the <code>num_samples</code> judge answers: valid/invalid metrics majority-vote (ties count invalid); numeric metrics take the mean.</li>
+    <li>Cost is one bullet, not a headline &mdash; a useful gotcha, not the module&rsquo;s point.</li>
+    <li><code>parallelism_limit</code> (default 1) serializes judge calls; raise it for speed at the price of rate limits. <code>include_intermediate_responses_in_final</code> sends pre-tool-call text to the judge as well.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 14. A SCORE IS NOT A PASS UNTIL SOMETHING COMPARES IT ==== -->
+<section class="page">
+  <h1>A score is not a pass until something compares it to the threshold</h1>
+  <p class="lede">Page 8&rsquo;s case scores 0.5 against a threshold of 1.0. Two commands run it. One fails.</p>
+  <p class="codelabel good">pytest &mdash; AgentEvaluator raises</p>
+  <pre class="term">$ pytest tests/eval
+<span class="lbl">E   AssertionError: tool_trajectory_avg_score for app Failed. Expected 1.0, but got 0.5.</span>
+1 failed in 4.56s
+$ echo $?
+1</pre>
+  <p class="codelabel bad">adk eval &mdash; prints, and stops there</p>
+  <pre class="term">$ adk eval app/ refunds.evalset.json <span class="flag">--config_file_path</span> test_config.json
+refunds:
+  Tests passed: 0
+  Tests failed: 1
+$ echo $?
+0</pre>
+  <pre class="code"><span class="kw">import</span> pytest
+<span class="kw">from</span> google.adk.evaluation.agent_evaluator <span class="kw">import</span> AgentEvaluator
+
+<span class="fn">@pytest.mark.asyncio</span>
+<span class="kw">async def</span> <span class="fn">test_refund_flow</span>():
+    <span class="kw">await</span> AgentEvaluator.evaluate(
+        agent_module=<span class="st">"app.agent"</span>,
+        eval_dataset_file_path_or_dir=<span class="st">"tests/eval/refunds.test.json"</span>)</pre>
+  <div class="note blue"><span class="kk">Rule</span><code class="i">AgentEvaluator.evaluate</code> is <code class="i">async</code>. Without <code class="i">await</code> it returns a coroutine that never runs, and the test passes without evaluating anything.</div>
+  <div class="takeaway"><b>Takeaway:</b> something has to compare the score with the threshold and fail. <code class="i">AgentEvaluator</code> does; the CLI does not. Module 2 places that comparison in the pipeline.</div>
+  <div class="src">Sources: <code class="i">agent_evaluator.py:553-575, 844-887</code>; <code class="i">cli_tools_click.py:1290-1520</code> (no exit on failure), google-adk 2.9.0 &middot; M2 page 6 (both outputs reproduced on 2.9.0).</div>
+</section>
+<details class="notes" data-title="A score is not a pass until something compares it to the threshold">
+  <summary>Speaker notes &mdash; A score is not a pass until something compares it to the threshold</summary>
+  <div class="n-body"><ul>
+    <li>Generic (assert vs. print); say so. This module states the fact and stops.</li>
+    <li>Module 2 has the four ways to run an eval, the exit-code detail for <code>agents-cli eval run</code>, and the set tiering. If asked now: <code>adk eval</code> is built for a person reading scores, and it declines to choose a pass threshold for you.</li>
+    <li>The missing <code>await</code> is the single most common way a scaffolded eval test passes without running.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 15. TWO WAYS TO GROW A SET ==== -->
+<section class="page">
+  <h1>Two ways to grow a set</h1>
+  <p class="lede">A customer was refunded twice. The conversation that did it is the next eval case.</p>
+  <figure>
+    <svg viewBox="0 0 960 270" width="960" height="270" role="img" aria-label="Capturing and generating eval cases">
+      <defs><marker id="m15" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <!-- capture lane -->
+      <rect x="8" y="22" width="4" height="80" fill="#34a853"/>
+      <text x="20" y="18" font-family="var(--sans)" font-size="13" fill="var(--g-green-deep)">capture</text>
+      <rect x="20" y="30" width="150" height="28" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="95" y="48" font-family="var(--sans)" font-size="11" fill="var(--ink-2)" text-anchor="middle">reproduce in adk web</text>
+      <rect x="20" y="64" width="150" height="28" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="95" y="82" font-family="var(--sans)" font-size="11" fill="var(--ink-2)" text-anchor="middle">import a prod trace (p.25)</text>
+      <line x1="170" y1="48" x2="196" y2="58" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <line x1="170" y1="78" x2="196" y2="66" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <rect x="198" y="40" width="150" height="44" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="273" y="66" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">the misbehaving session</text>
+      <line x1="348" y1="62" x2="374" y2="62" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <rect x="376" y="40" width="140" height="44" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="446" y="60" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">save session</text><text x="446" y="76" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">as a case</text>
+      <line x1="516" y1="62" x2="542" y2="62" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <rect x="544" y="40" width="170" height="44" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="629" y="60" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">edit expected</text><text x="629" y="76" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">tool_uses + reference</text>
+      <line x1="714" y1="62" x2="740" y2="62" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <rect x="742" y="40" width="200" height="44" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="842" y="60" font-family="var(--sans)" font-size="11" fill="var(--g-green-deep)" text-anchor="middle">fails until fixed,</text><text x="842" y="76" font-family="var(--sans)" font-size="11" fill="var(--g-green-deep)" text-anchor="middle">then guards</text>
+      <!-- generate lane -->
+      <rect x="8" y="160" width="4" height="80" fill="#4285f4"/>
+      <text x="20" y="156" font-family="var(--sans)" font-size="13" fill="var(--g-blue-deep)">generate</text>
+      <rect x="20" y="178" width="230" height="44" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="135" y="197" font-family="var(--mono)" font-size="10.5" fill="var(--ink-2)" text-anchor="middle">generate_eval_cases count=20</text><text x="135" y="212" font-family="var(--mono)" font-size="10" fill="var(--ink-2)" text-anchor="middle">"refunds for unshipped orders"</text>
+      <line x1="250" y1="200" x2="276" y2="200" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <rect x="278" y="170" width="260" height="60" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="408" y="190" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">service: ConversationScenario &times; 20</text><text x="408" y="212" font-family="var(--mono)" font-size="10" fill="var(--ink-2)" text-anchor="middle">starting_prompt &middot; conversation_plan &middot; user_persona</text>
+      <line x1="538" y1="200" x2="564" y2="200" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m15)"/>
+      <rect x="566" y="178" width="376" height="44" rx="6" fill="var(--fill-yellow)" stroke="var(--g-yellow)"/><text x="754" y="197" font-family="var(--sans)" font-size="11" fill="var(--g-yellow-deep)" text-anchor="middle">no expected trajectory:</text><text x="754" y="212" font-family="var(--sans)" font-size="11" fill="var(--g-yellow-deep)" text-anchor="middle">reference-free metrics + user simulation only</text>
+      <text x="480" y="258" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" text-anchor="middle">Captured cases are recorded trajectories. Generated cases are plans for a simulated user.</text>
+    </svg>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot green"></div><p><b>Capture:</b> start from a real session &mdash; reproduce it in <code class="i">adk web</code>, or import the production trace itself (page 25). Save it as a case, then edit the expected trajectory and reference. Every production failure and bug report becomes a case.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Generate:</b> <code class="i">adk eval_set generate_eval_cases</code> (also <code class="i">agents-cli eval dataset synthesize</code> and <code class="i">client.evals.generate_conversation_scenarios</code>; one service call) writes scenario cases with a starting prompt, a plan, and a persona, and <b>no expected trajectory</b>. They need a project.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Version the set with the agent.</b> A version ships when its scores are at or above the last accepted version&rsquo;s on the same set.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Cover what production sends:</b> ambiguous inputs, tool errors, out-of-scope requests. A set of clean requests passes regressions through.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, after the double refund.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> &ldquo;refund 6041&rdquo; sent twice in one <code class="i">adk web</code> session.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> save the session as a case; edit the second invocation&rsquo;s expected <code class="i">tool_uses</code> to <code class="i">[get_order]</code> and its reference to say the refund already exists.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the case fails until the instruction is fixed, then guards it. <code class="i">generate_eval_cases</code> with <code class="i">count: 20</code> adds twenty scenario cases for the simulated-user run.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> capture gives you cases with an expected trajectory. Generation gives you breadth with none. Use both, and know which metrics each can feed.</div>
+  <div class="src">Sources: <code class="i">adk_web_server.py</code> eval-set routes; <code class="i">cli_tools_click.py:1645-1895</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/user-sim/">user-sim</a> &middot; companion page 34.</div>
+</section>
+<details class="notes" data-title="Two ways to grow a set">
+  <summary>Speaker notes &mdash; Two ways to grow a set</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific: eval sets are maintained artifacts, and captured cases are recorded trajectories.</li>
+    <li><code>generate_eval_cases</code> takes a <code>ConversationGenerationConfig</code> (<code>count</code>, <code>model_name</code> required; <code>generation_instruction</code>, <code>environment_context</code> optional) and hashes each scenario into an <code>eval_id</code>, so re-running does not duplicate.</li>
+    <li>Hold some cases out of the local loop and grade them only when you think you are done; otherwise you fit the agent to the cases you iterate on.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 16. SECTION 1 RECAP ==== -->
+<section class="page">
+  <h1>Section 1 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p>A test checks execution of deterministic code. An eval grades the response and the path to it, because the path can change with no code change.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>A case records the prompt, the reference reply, and the expected tool calls. <code class="i">.test.json</code> and <code class="i">.evalset.json</code> hold the same schema; the suffix picks the discoverer.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><code class="i">tool_trajectory_avg_score</code>: 1.0 or 0.0 per invocation, averaged, threshold 1.0; reads names and arguments, not results. <code class="i">response_match_score</code> counts shared words; <code class="i">final_response_match_v2</code> asks a judge.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Thirteen criteria; eight run locally, five send your invocations to the service. Rubrics are testable criteria scored as a pass rate.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>A judge is sampled five times and every case runs twice. A score is not a pass until <code class="i">AgentEvaluator</code> compares it with the threshold.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 1 recap">
+  <summary>Speaker notes &mdash; Section 1 recap</summary>
+  <div class="n-body"><ul>
+    <li>Read the third row twice; it is the one that changes what someone writes tomorrow.</li>
+    <li>Hand-off: section 2 explains the &ldquo;service&rdquo; those five criteria send to.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 17. SECTION DIVIDER: THE MANAGED LAYER ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">2</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 2 of 4</div>
+      <h1>The managed layer</h1>
+      <div class="dsub">Three layers, not four systems. What the Agent Platform evaluation service is, which ADK criteria are the same thing under another name, and what agents-cli adds.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2: The managed layer">
+  <summary>Speaker notes &mdash; Section 2 divider</summary>
+  <div class="n-body"><ul>
+    <li>The brief listed four things that looked like four systems. This section is the answer to that list.</li>
+    <li>It needs section 1&rsquo;s &ldquo;five criteria delegate&rdquo; fact to land, so do not open here cold.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 18. THREE LAYERS, NOT FOUR SYSTEMS ==== -->
+<section class="page">
+  <h1>The pieces, and how they fit</h1>
+  <p class="lede">ADK eval, the Gen AI evaluation service, Agent Platform agent evaluation, agents-cli. Four names, but two scorers and a shared service &mdash; not four systems. Both scorers grade; they differ in where they run and what data they can reach.</p>
+  <figure>
+    <svg viewBox="0 0 960 340" width="960" height="340" role="img" aria-label="Two scorers, how they are driven, and the data each reads">
+      <defs><marker id="m18" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <text x="14" y="30" font-family="var(--sans)" font-size="12" fill="var(--ink-3)">drive it with&hellip;</text>
+      <rect x="40" y="40" width="230" height="54" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="155" y="62" font-family="var(--sans)" font-size="13" fill="var(--ink)" text-anchor="middle">ADK eval</text><text x="155" y="80" font-family="var(--mono)" font-size="10.5" fill="var(--ink-2)" text-anchor="middle">pytest &middot; adk eval &middot; adk web</text>
+      <rect x="360" y="40" width="220" height="54" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="470" y="62" font-family="var(--sans)" font-size="13" fill="var(--ink)" text-anchor="middle">agents-cli eval</text><text x="470" y="80" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">generate &middot; grade &middot; analyze &middot; compare</text>
+      <rect x="600" y="40" width="320" height="54" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="760" y="60" font-family="var(--sans)" font-size="13" fill="var(--ink)" text-anchor="middle">Console &nbsp;&middot;&nbsp; SDK (client.evals.*)</text><text x="760" y="80" font-family="var(--sans)" font-size="10" fill="var(--ink-2)" text-anchor="middle">browse results, run offline evals, set up monitors</text>
+      <text x="14" y="128" font-family="var(--sans)" font-size="12" fill="var(--ink-3)">&hellip;runs a scorer</text>
+      <rect x="40" y="140" width="230" height="76" rx="7" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="155" y="160" font-family="var(--sans)" font-size="12.5" fill="var(--ink)" text-anchor="middle">ADK metrics, in your process</text><text x="155" y="178" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">tool_trajectory &middot; response_match</text><text x="155" y="192" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">final_response_match_v2 &middot; hallucinations_v1</text><text x="155" y="206" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">rubric_based_* &middot; user_sim</text>
+      <rect x="470" y="140" width="290" height="76" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/><text x="615" y="160" font-family="var(--sans)" font-size="12.5" fill="var(--ink)" text-anchor="middle">Agent Platform evaluation service</text><text x="615" y="178" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">RubricMetric.* &middot; metric registry</text><text x="615" y="192" font-family="var(--mono)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">loss clustering &middot; online monitors</text><text x="615" y="206" font-family="var(--sans)" font-size="9.5" fill="var(--g-blue-deep)" text-anchor="middle">server-side; can reach production traces</text>
+      <line x1="130" y1="94" x2="130" y2="138" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m18)"/><text x="168" y="114" font-family="var(--sans)" font-size="10" fill="var(--ink-2)" text-anchor="middle">8 criteria</text>
+      <line x1="255" y1="94" x2="500" y2="138" stroke="#c5221f" stroke-width="1.8" marker-end="url(#m18)"/><text x="392" y="110" font-family="var(--sans)" font-size="10.5" fill="var(--g-red-deep)" text-anchor="middle">5 criteria delegate</text>
+      <line x1="470" y1="94" x2="560" y2="138" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m18)"/>
+      <line x1="760" y1="94" x2="650" y2="138" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m18)"/>
+      <text x="14" y="252" font-family="var(--sans)" font-size="12" fill="var(--ink-3)">&hellip;over one format</text>
+      <rect x="40" y="262" width="230" height="46" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="155" y="282" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)" text-anchor="middle">ADK EvalSet</text><text x="155" y="297" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">recorded conversation + expected trajectory</text>
+      <rect x="470" y="262" width="290" height="46" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="615" y="282" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)" text-anchor="middle">service EvaluationDataset</text><text x="615" y="297" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">prompts + rubrics; agent runs at grade time</text>
+      <line x1="155" y1="216" x2="155" y2="260" stroke="#5f6368" stroke-width="1.4" marker-end="url(#m18)"/>
+      <line x1="615" y1="216" x2="615" y2="260" stroke="#5f6368" stroke-width="1.4" marker-end="url(#m18)"/>
+      <text x="820" y="286" font-family="var(--sans)" font-size="9.5" fill="var(--ink-3)" text-anchor="middle">agents-cli, SDK, and</text><text x="820" y="298" font-family="var(--sans)" font-size="9.5" fill="var(--ink-3)" text-anchor="middle">console share this one</text>
+      <text x="480" y="332" font-family="var(--sans)" font-size="12" fill="var(--ink-2)" text-anchor="middle">mental model; the five delegating criteria and the two formats are literal.</text>
+    </svg>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Two scorers, both real.</b> ADK&rsquo;s metrics run <b>in your process</b> and grade there; the Agent Platform service grades <b>server-side</b>. ADK eval with local metrics does score &mdash; the difference is where the computation happens, and that only the service can reach production traffic.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>ADK borrows the service for five of its criteria.</b> Eight run in-process; five hand the job to the service (page 10&rsquo;s &ldquo;service&rdquo; rows), so one ADK config can mix both scorers in a run.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>agents-cli, the SDK, and the console are all front ends to the service.</b> Only the drivers differ: a CLI, a notebook, a web UI. From the console you browse results, launch an offline evaluation over past traces, and configure monitors &mdash; the same service the SDK calls.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two dataset formats, by lineage.</b> ADK&rsquo;s <code class="i">EvalSet</code> is older and trajectory-first: you record the expected path. The service&rsquo;s format is prompt-first: you give prompts and rubrics, and the agent runs at grade time. agents-cli/SDK/console all use the service&rsquo;s format; ADK keeps its own.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco, running <code class="i">multi_turn_task_success_v1</code> from an ADK config with no <code class="i">GOOGLE_CLOUD_PROJECT</code> set.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> it is a &ldquo;service&rdquo; criterion, so ADK tries to hand it off and raises &ldquo;specify both project id and location&rdquo;. He sets the project and <code class="i">us-central1</code>, and pins <code class="i">version="v1"</code> because the v2 spec needs a model that region lacks.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the same metric, reached three ways over its life: an ADK config now, <code class="i">agents-cli eval grade</code> in CI, and an Online Monitor in production &mdash; one scorer, three drivers.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> two scorers (ADK in-process, the service server-side), several drivers, two formats. ADK borrows the service for five criteria; only the service reaches production.</div>
+  <div class="src">Sources: <code class="i">multi_turn_task_success_evaluator.py:60-62</code>, <code class="i">vertex_ai_eval_facade.py:40-60</code>, google-adk 2.9.0 &middot; <code class="i">agentplatform/_genai/types/common.py</code> (<code class="i">EvalCase</code>, <code class="i">EvaluationDataset</code>), <code class="i">cli/eval/cmd_generate.py</code> (uses the same type), aiplatform 1.165.1 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">agent-evaluation</a>.</div>
+</section>
+<details class="notes" data-title="The pieces, and how they fit">
+  <summary>Speaker notes &mdash; The pieces, and how they fit</summary>
+  <div class="n-body"><ul>
+    <li>The correction to make out loud: ADK eval is not &ldquo;the un-scored one.&rdquo; Its in-process metrics compute real scores. What the service adds is (a) server-side execution, (b) reach into production traffic, and (c) the registry/monitors/loss-clustering machinery ADK has no equivalent for. That is what &ldquo;the production half&rdquo; meant; the slide now says it plainly.</li>
+    <li>Why two dataset formats: ADK&rsquo;s <code>EvalSet</code> predates the service and is trajectory-first &mdash; you author the expected tool path and reply. The service&rsquo;s <code>EvaluationDataset</code> is prompt-first &mdash; a prompt, a reference, rubrics; the agent&rsquo;s responses and intermediate events are produced when the run executes. Two different jobs, two shapes. (<code>agentplatform._genai.types.common.EvalCase</code> fields: <code>prompt</code>, <code>reference</code>, <code>rubric_groups</code>, <code>responses</code>, <code>intermediate_events</code>.)</li>
+    <li>Is agents-cli&rsquo;s format different from the console/SDK? No &mdash; agents-cli builds the same <code>agentplatform</code> <code>EvalCase</code>/<code>EvaluationDataset</code> the SDK and console use (<code>cli/eval/cmd_generate.py</code> imports it). So there are two formats total, not three: ADK&rsquo;s, and the shared service one.</li>
+    <li>Is ADK&rsquo;s format moving to the service format? No published deprecation or migration as of 2.9.0 / aiplatform 1.165.1. They coexist because the local harness needs a recorded trajectory and the service runs inference. If asked, say &ldquo;not announced&rdquo; rather than guessing a roadmap.</li>
+    <li>The region point is from the <code>_evals_constant.py</code> comment: &ldquo;v2/v3 specs require Gemini 3.5 Flash, which is not available in all regions (e.g. us-central1).&rdquo; &ldquo;Gen AI evaluation service&rdquo; and &ldquo;Agent Platform evaluation&rdquo; are the same service under two names (<code>vertexai.evals</code> / <code>agentplatform.evals</code>).</li>
+    <li>The &ldquo;model eval vs. agent eval&rdquo; framing some material uses is a false split; and the six trajectory matches (exact, in-order, any-order, precision, recall, single-tool) are <code>v1beta1</code> <code>evaluateInstances</code> inputs, not in the current metric set.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 19. SAME NAMES, THREE RELATIONSHIPS, HARNESS DECIDES ==== -->
+<section class="page">
+  <h1>Same names, three relationships, and the harness decides</h1>
+  <p class="lede"><code class="i">safety_v1</code> in a <code class="i">test_config.json</code> and <code class="i">SAFETY</code> on a monitor are the same scorer. <code class="i">hallucinations_v1</code> and <code class="i">HALLUCINATION</code> are not.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>ADK criterion</th><th>Service metric</th><th>Relationship</th></tr></thead>
+    <tbody>
+      <tr><td class="m">multi_turn_task_success_v1</td><td class="m">MULTI_TURN_TASK_SUCCESS</td><td>same thing: ADK sends your invocations to the service</td></tr>
+      <tr><td class="m">multi_turn_tool_use_quality_v1</td><td class="m">MULTI_TURN_TOOL_USE_QUALITY</td><td>same thing</td></tr>
+      <tr><td class="m">multi_turn_trajectory_quality_v1</td><td class="m">MULTI_TURN_TRAJECTORY_QUALITY</td><td>same thing</td></tr>
+      <tr><td class="m">safety_v1</td><td class="m">SAFETY</td><td>same thing</td></tr>
+      <tr><td class="m">response_evaluation_score</td><td class="m">COHERENCE (1&ndash;5)</td><td>same thing</td></tr>
+      <tr><td class="m">hallucinations_v1</td><td class="m">HALLUCINATION</td><td>same idea, different scorer: ADK runs its own sentence-level judge in-process; the service runs its own claim-level judge server-side</td></tr>
+      <tr><td class="m">rubric_based_tool_use_quality_v1</td><td class="m">TOOL_USE_QUALITY</td><td>same idea: your rubrics (ADK) vs. the service&rsquo;s generated rubrics</td></tr>
+      <tr><td class="m">final_response_match_v2</td><td class="m">FINAL_RESPONSE_MATCH</td><td>same idea: an ADK-run judge vs. a service-run judge</td></tr>
+      <tr><td class="m">tool_trajectory_avg_score, response_match_score</td><td>&mdash;</td><td>ADK only; no model call</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note green"><span class="kk">The rule</span>The harness decides. ADK criteria wherever the harness is ADK: the dev loop, pytest, <code class="i">adk eval</code>, a local agent module, recorded cases. Service metrics wherever the harness is the service: a deployed agent, production traces, monitors, loss clustering. Development and pre-merge use ADK; production uses the service, because ADK&rsquo;s harness cannot read production traffic.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, asked why the PR gate and the production dashboard report different hallucination numbers.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> <code class="i">hallucinations_v1</code> in <code class="i">test_config.json</code>; <code class="i">HALLUCINATION</code> on the Online Monitor.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> the first is ADK&rsquo;s sentence-level judge, run in-process on <code class="i">gemini-3.5-flash</code> over recorded cases; the second is the service&rsquo;s claim-level judge, run server-side over sampled production traces.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> two scorers, two populations. Each number is compared with its own previous value, not with the other.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> know which rows are the same scorer. Compare a metric only with itself, on the same harness, over the same kind of data.</div>
+  <div class="src">Sources: the evaluator files cited on pages 10 and 18 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a>.</div>
+</section>
+<details class="notes" data-title="Same names, three relationships, and the harness decides">
+  <summary>Speaker notes &mdash; Same names, three relationships, and the harness decides</summary>
+  <div class="n-body"><ul>
+    <li><code>safety_v1</code> maps to the service&rsquo;s older <code>PrebuiltMetric.SAFETY</code>, not the adaptive <code>RubricMetric.SAFETY</code>; both return 0/1.</li>
+    <li><code>response_evaluation_score</code> is the only 1&ndash;5 criterion in ADK.</li>
+    <li>&ldquo;in-process&rdquo; and &ldquo;server-side&rdquo; are about where the evaluator runs, not where the LLM runs &mdash; the judge model is a remote API call either way. In-process just means ADK, inside your <code>pytest</code>/<code>adk eval</code> process, makes that call and drives the loop.</li>
+    <li>If the room wants one rule: in-process for the gate, service for production, and never read one as a proxy for the other.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 20. THE SERVICE'S SEVEN AGENT METRICS ==== -->
+<section class="page">
+  <h1>The service&rsquo;s seven agent metrics, and what a run returns</h1>
+  <p class="lede">One recorded conversation from the weather agent, two service metrics, twenty-three seconds. The service wrote the rubrics itself, from the agent&rsquo;s own instruction and tools. (Here <code class="i">EVAL_SET</code> came from a production trace &mdash; page 25 shows how to get one; don&rsquo;t worry about that yet.)</p>
+  <p class="codelabel">agentplatform SDK, aiplatform 1.165.1 &mdash; server-side run</p>
+  <pre class="code"><span class="kw">from</span> agentplatform <span class="kw">import</span> Client, types
+client = Client(project=PROJECT, location=<span class="st">"us-central1"</span>)
+
+run = client.evals.create_evaluation_run(
+    dataset=types.EvaluationRunDataSource(evaluation_set=EVAL_SET),
+    metrics=[types.RubricMetric.<span class="fn">TOOL_USE_QUALITY</span>(version=<span class="st">"v1"</span>),
+             types.RubricMetric.<span class="fn">FINAL_RESPONSE_QUALITY</span>(version=<span class="st">"v1"</span>)],
+    dest=<span class="st">"gs://BUCKET/eval-results/"</span>, display_name=<span class="st">"weather-v7"</span>)
+<span class="cm"># poll get_evaluation_run until SUCCEEDED; summary metrics on the run,</span>
+<span class="cm"># per-item JSON with every rubric, verdict, and reasoning in dest</span></pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Single-turn:</b> <code class="i">FINAL_RESPONSE_QUALITY</code>, <code class="i">TOOL_USE_QUALITY</code> (adaptive), <code class="i">HALLUCINATION</code>, <code class="i">SAFETY</code> (static). <b>Multi-turn:</b> <code class="i">MULTI_TURN_TASK_SUCCESS</code>, <code class="i">MULTI_TURN_TOOL_USE_QUALITY</code>, <code class="i">MULTI_TURN_TRAJECTORY_QUALITY</code> (adaptive).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two ways to run it:</b> <code class="i">client.evals.evaluate</code> returns scores inline for a notebook. <code class="i">create_evaluation_run</code> creates a durable run resource &mdash; it writes results to a bucket and appears in the console&rsquo;s Evaluation list, so a teammate can open it, browse the per-case rubrics, and compare it to other runs.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Each adaptive rubric returns</b> its text, an importance, a verdict, and a reasoning sentence.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Custom metrics</b> (<code class="i">types.LLMMetric</code>, <code class="i">types.CodeExecutionMetric</code>) register once with <code class="i">create_evaluation_metric</code> and apply to runs and monitors alike.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example &mdash; observed 2026-09-13</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the M3 weather agent, one trace: &ldquo;What&rsquo;s the weather in London?&rdquo;; the agent called <code class="i">get_weather(city="London")</code> and replied &ldquo;The weather in London is currently 15&deg;C and drizzling.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> the run above. Generated rubrics included &ldquo;calls <code class="i">get_weather</code> for a current-weather question, as the developer instructions specify&rdquo;, &ldquo;the <code class="i">city</code> parameter is set to London&rdquo;, and &ldquo;the final answer is one or two sentences long&rdquo;.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> <code class="i">final_response_quality_v1</code> 1.0 (three rubrics, three pass); <code class="i">tool_use_quality_v1</code> 0.75 (four generated, three pass). 23 seconds.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the service reads your agent&rsquo;s instruction and tool declarations and writes the rubrics for you. What comes back is a pass rate and the reasons.</div>
+  <div class="src">Sources: <code class="i">scratchpad/m4_score_run.py</code> output 2026-09-13; <code class="i">agentplatform/_genai/evals.py:3539-3600</code>, aiplatform 1.165.1 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view-results</a>.</div>
+</section>
+<details class="notes" data-title="The service's seven agent metrics, and what a run returns">
+  <summary>Speaker notes &mdash; The service&rsquo;s seven agent metrics</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific: multi-dimensional correctness, and the rubrics are generated from the agent&rsquo;s configuration.</li>
+    <li><code>version="v1"</code> because v2/v3 specs need a model not offered in <code>us-central1</code>; without the pin the run errors.</li>
+    <li>The one failing tool-use rubric&rsquo;s text was not captured in the run output, so say &ldquo;four generated, three passed&rdquo; and no more.</li>
+    <li>The docs&rsquo; samples pass metrics both as bare strings and as <code>types.RubricMetric.*</code> objects; use the objects. Install is <code>pip install google-cloud-aiplatform[adk,evaluation]</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 21. AGENTS-CLI: WHAT IT ADDS ==== -->
+<section class="page">
+  <h1>agents-cli: what it adds, and the SDK call behind each</h1>
+  <p class="lede">agents-cli has an <code class="i">eval</code> command group. None of it scores anything the SDK cannot.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Command</th><th>What it does</th><th>SDK call underneath</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td class="m">eval generate</td><td>runs the agent over a dataset, writes traces; <code>--url</code> targets a Cloud Run, GKE, or local server</td><td class="m">run_inference</td><td>&mdash;</td></tr>
+      <tr><td class="m">eval grade</td><td>scores traces with the service</td><td class="m">evaluate</td><td>&mdash;</td></tr>
+      <tr><td class="m">eval run</td><td>generate then grade</td><td>both</td><td>&mdash;</td></tr>
+      <tr><td class="m">eval compare</td><td>diffs two result files, with deltas</td><td>a JSON diff</td><td>&mdash;</td></tr>
+      <tr><td class="m">eval analyze</td><td>loss clusters from a result file</td><td class="m">generate_loss_clusters</td><td>Experimental</td></tr>
+      <tr><td class="m">eval dataset synthesize</td><td>scenario cases plus full simulated runs</td><td class="m">generate_conversation_scenarios + run_inference</td><td>Experimental</td></tr>
+      <tr><td class="m">eval submit / results</td><td>managed cloud run</td><td class="m">create_evaluation_run</td><td>Experimental</td></tr>
+      <tr><td class="m">eval metric list</td><td>the service&rsquo;s metric names</td><td class="m">SUPPORTED_PREDEFINED_METRICS</td><td>&mdash;</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, on a scaffolded project.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> <code class="i">tests/eval/eval_config.yaml</code> with <code class="i">custom_response_quality</code>, a local 1&ndash;5 judge in <code class="i">response_quality.py</code>, and a three-case dataset (<code class="i">eval_case_id</code>, <code class="i">prompt</code>, <code class="i">reference.response</code>).</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> <code class="i">agents-cli eval run</code> writes <code class="i">results_&lt;timestamp&gt;.json</code>; <code class="i">eval compare</code> against last week&rsquo;s file.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> <code class="i">+0.07</code> on quality and <code class="i">-1</code> turn. Nothing in the scaffold&rsquo;s pipeline calls it (Module 2, page 9).</p></div>
+    </div>
+  </div>
+  <div class="note gray"><span class="kk">Generic</span>A CLI front end. Everything it scores, it scores by calling the service.</div>
+  <div class="takeaway"><b>Takeaway:</b> use agents-cli for <code class="i">compare</code> and for the scaffold it ships. Its dataset is a third format, not ADK&rsquo;s.</div>
+  <div class="src">Sources: <code class="i">google/agents/cli/eval/cmd_*.py</code>, <code class="i">scaffold/agents/adk/tests/eval/*</code>, google-agents-cli 1.5.0 &middot; M2 page 8.</div>
+</section>
+<details class="notes" data-title="agents-cli: what it adds, and the SDK call behind each">
+  <summary>Speaker notes &mdash; agents-cli: what it adds</summary>
+  <div class="n-body"><ul>
+    <li>Three dataset formats: ADK <code>EvalSet</code> (<code>eval_id</code>/<code>conversation</code>/<code>user_content</code>), agents-cli (<code>eval_case_id</code>/<code>prompt</code>/<code>reference.response</code>), and the service&rsquo;s <code>EvaluationItem</code>.</li>
+    <li>A team usually settles on one harness; mixing means two dataset formats to maintain.</li>
+    <li>The scaffold&rsquo;s <code>agent_turn_count</code> custom metric is an inline function in YAML &mdash; the simplest custom metric that exists.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 22. SECTION 2 RECAP ==== -->
+<section class="page">
+  <h1>Section 2 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p>Three layers: ADK grades locally and sends five criteria to the service; the service grades anything, including production; agents-cli calls the service.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Nine ADK criteria have a service counterpart: five are the same scorer, three are the same idea with a different scorer, and two are ADK-only.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>The harness decides: ADK for development and the gate, the service for production. Compare a metric only with itself.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>The service&rsquo;s seven agent metrics return a pass rate over rubrics it generates from your agent&rsquo;s instruction and tools, with the reasons.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2 recap">
+  <summary>Speaker notes &mdash; Section 2 recap</summary>
+  <div class="n-body"><ul><li>Hand-off: section 3 is where the service&rsquo;s production half gets used.</li></ul></div>
+</details>
+
+<!-- ==== 23. SECTION DIVIDER: IN THE LIFECYCLE ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">3</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 3 of 4</div>
+      <h1>In the lifecycle</h1>
+      <div class="dsub">Where evaluation runs once the agent is live: on demand over traces, continuously with a monitor, alerted by Monitoring, and fed back into the set.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3: In the lifecycle">
+  <summary>Speaker notes &mdash; Section 3 divider</summary>
+  <div class="n-body"><ul>
+    <li>This section restates the two OpenTelemetry variables Module 3 set, and does not re-teach them.</li>
+    <li>It refers to Module 2 for the gate.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 24. THREE MOMENTS, SAME METRICS, DIFFERENT DATA ==== -->
+<section class="page">
+  <h1>Three moments, same metrics, different data</h1>
+  <p class="lede">Nothing merged for eleven days, and task success in production fell from 0.91 to 0.78.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Moment</th><th>Harness</th><th>Data</th><th>What you do with the score</th></tr></thead>
+    <tbody>
+      <tr><td>While developing</td><td class="m">adk web</td><td>a handful of recorded cases</td><td>read it</td></tr>
+      <tr><td>Before merge</td><td class="m">pytest + AgentEvaluator</td><td>the PR set</td><td>it is the gate (Module 2 places it)</td></tr>
+      <tr class="hl"><td>In production</td><td>the service</td><td>live traces: on demand over history, or sampled on a schedule</td><td class="yes">dashboard, alert, and new cases for the set</td></tr>
+    </tbody>
+  </table></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What changes between moments is the data source</b>, not the kind of grading.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Behavior changes with frozen code</b> when the model behind an alias moves to a new version, or when the input mix shifts. Only the production moment sees that.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the agent passed its PR gate on 2026-08-30; nothing merged since.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> on 2026-09-10 the model behind the agent&rsquo;s alias moved to a new version; the agent&rsquo;s own code and prompts were unchanged.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the PR gate never fired, because no PR was opened. Only scoring live production traffic could have caught this drop <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the gate catches your changes. Production scoring catches everyone else&rsquo;s.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">agent-evaluation</a> workflow table &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">evaluate-agents</a> three-type table.</div>
+</section>
+<details class="notes" data-title="Three moments, same metrics, different data">
+  <summary>Speaker notes &mdash; Three moments, same metrics, different data</summary>
+  <div class="n-body"><ul>
+    <li>Generic lifecycle table; say so. The agent-shaped row is the last one: the model is an external dependency that changes under you.</li>
+    <li>The docs&rsquo; own three types are &ldquo;Rapid Evaluation / Test Case Evaluation / Online Monitoring&rdquo; with frequencies &ldquo;Frequent / Scheduled / Continuous&rdquo;; this table is the same thing with the harness named.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 25. HOW A PRODUCTION TRACE BECOMES GRADABLE ==== -->
+<section class="page">
+  <h1>How a production trace becomes something the service can grade</h1>
+  <p class="lede">The service grades a trace only if that trace recorded the prompt and the response. That recording is two environment variables. Once a trace is gradable, who can reach it &mdash; the console, the SDK, or both &mdash; depends on where the agent runs.</p>
+  <figure>
+    <svg viewBox="0 0 960 250" width="960" height="250" role="img" aria-label="An agent process exporting spans to Cloud Trace and message content to Cloud Logging, then consumed by the console or the SDK">
+      <defs><marker id="m25" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <!-- agent process -->
+      <rect x="16" y="86" width="150" height="70" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="91" y="116" font-family="var(--sans)" font-size="12.5" fill="var(--ink)" text-anchor="middle">agent process</text><text x="91" y="134" font-family="var(--sans)" font-size="10" fill="var(--ink-2)" text-anchor="middle">exports OpenTelemetry</text>
+      <!-- the two variables, named in full -->
+      <rect x="196" y="16" width="330" height="60" rx="6" fill="var(--bg)" stroke="var(--g-blue)" stroke-dasharray="4 3"/><text x="206" y="34" font-family="var(--sans)" font-size="10" fill="var(--g-blue-deep)">the two variables that record content</text>
+      <text x="206" y="50" font-family="var(--mono)" font-size="8.5" fill="var(--ink-2)">OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</text>
+      <text x="206" y="66" font-family="var(--mono)" font-size="8.5" fill="var(--ink-2)">OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY</text>
+      <line x1="166" y1="104" x2="196" y2="104" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m25)"/>
+      <!-- two destination bubbles -->
+      <rect x="196" y="88" width="150" height="42" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="271" y="106" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">Cloud Trace</text><text x="271" y="121" font-family="var(--sans)" font-size="9" fill="var(--ink-2)" text-anchor="middle">spans: name, description, id</text>
+      <rect x="196" y="138" width="150" height="42" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="271" y="156" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">Cloud Logging</text><text x="271" y="171" font-family="var(--sans)" font-size="9" fill="var(--ink-2)" text-anchor="middle">messages, instruction, tools</text>
+      <!-- arrows to consumers -->
+      <line x1="346" y1="108" x2="392" y2="100" stroke="#34a853" stroke-width="1.8" marker-end="url(#m25)"/>
+      <line x1="346" y1="160" x2="392" y2="168" stroke="#4285f4" stroke-width="1.8" marker-end="url(#m25)"/>
+      <!-- console consumer -->
+      <rect x="394" y="80" width="546" height="44" rx="7" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="667" y="98" font-family="var(--sans)" font-size="11.5" fill="var(--ink)" text-anchor="middle">Console: Experiments tab (offline runs) &middot; Online Monitors tab (scheduled runs)</text><text x="667" y="114" font-family="var(--sans)" font-size="10" fill="var(--g-green-deep)" text-anchor="middle">lists Agent Runtime agents only</text>
+      <!-- sdk consumer -->
+      <rect x="394" y="144" width="546" height="44" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="667" y="162" font-family="var(--mono)" font-size="10.5" fill="var(--ink)" text-anchor="middle">Agent Platform SDK: client.evals.import_evaluation_set(cloud_trace_source=&hellip;)</text><text x="667" y="178" font-family="var(--sans)" font-size="10" fill="var(--g-blue-deep)" text-anchor="middle">any runtime &mdash; give it a project id and trace or session ids</text>
+      <text x="480" y="216" font-family="var(--sans)" font-size="11" fill="var(--ink-3)" text-anchor="middle">Without the two variables the spans exist but carry no prompt or response, and there is nothing to grade.</text>
+    </svg>
+  </figure>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Where the agent runs</th><th>The two variables</th><th>Console Experiments / Online Monitors tabs</th><th>Agent Platform SDK import by trace or session id</th></tr></thead>
+    <tbody>
+      <tr><td>Agent Runtime <span class="tag">Google-managed hosting</span></td><td>set for you when you deploy with <code class="i">GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true</code> (M3 page 33)</td><td class="yes">yes &mdash; the console lists the agent</td><td class="yes">yes</td></tr>
+      <tr><td>Self-managed <span class="tag">Cloud Run or GKE</span></td><td>you set both yourself (M3 page 18)</td><td>no &mdash; the console does not list self-managed agents</td><td class="yes">yes</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example &mdash; the SDK import, run and observed 2026-09-13</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the M3 weather agent, run on a laptop with <code class="i">adk web --otel_to_cloud</code> (not Agent Runtime); one trace with the two variables set, so the prompt and response were recorded.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> a Python script called <code class="i">client.evals.import_evaluation_set(cloud_trace_source={"project_id": &hellip;, "trace_ids": [&hellip;]})</code> against the Agent Platform SDK (the <code class="i">agentplatform</code> package), from the laptop.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> <code class="i">importedItemCount: 1</code> in 3 seconds. The imported case held the agent&rsquo;s instruction and tool declarations, the prompt, the <code class="i">get_weather</code> call and its response, and the final text &mdash; enough to grade.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Not in the console:</span> a laptop-run agent is not an Agent Runtime agent, so the console&rsquo;s tabs would not list it. The SDK reached the trace anyway.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> record the prompt and response with the two variables, or there is nothing to grade. After that, the SDK can import any trace by id from any runtime; the console&rsquo;s tabs list Agent Runtime agents only.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> (telemetry variables); the SDK row is measured (<code class="i">scratchpad/m4_trace_import.py</code>, 2026-09-13, laptop trace); the runtime rows are from the docs, not measured. <code class="i">agentplatform/_genai/evals.py:3945-3996</code>, aiplatform 1.165.1 &middot; M3 pages 18&ndash;21 name the variables.</div>
+</section>
+<details class="notes" data-title="How a production trace becomes something the service can grade">
+  <summary>Speaker notes &mdash; How a production trace becomes gradable</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific: trajectory-level observability carries user content; the imported case contained every user message.</li>
+    <li>The two variables are the same two set in Module 3 for telemetry recording. The offline and online docs both list this exact pair; the requirement is the <code>gen_ai.client.inference.operation.details</code> event (messages, system instruction, tool definitions). Without it the spans still exist but hold no prompt or response.</li>
+    <li>What I actually measured: the SDK import path, from a trace produced by <code>adk web --otel_to_cloud</code> on a laptop &mdash; <code>importedItemCount: 1</code> in 3 seconds. The Agent Runtime / self-managed console rows are from the docs, not from a deployment I stood up.</li>
+    <li><code>import_evaluation_set</code> also needs a <code>gcs_destination</code> working bucket and takes exactly one source; <code>session_ids</code> imports every trace of a conversation, <code>trace_ids</code> imports individual traces.</li>
+    <li>Multimodal only: agents handling images or large documents can offload inputs and outputs to a GCS bucket with three further OTEL variables (<code>&hellip;UPLOAD_FORMAT</code>, <code>&hellip;COMPLETION_HOOK</code>, <code>&hellip;UPLOAD_BASE_PATH</code>). Off the main path; mention only if asked.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 26. PRODUCTION, ON DEMAND: THE OFFLINE RUN ==== -->
+<section class="page">
+  <h1>Production, on demand: the offline run</h1>
+  <p class="lede">After the drop on page 24, Marco wants the last two weeks of version 7 scored. He does it in two SDK calls: import the traces into an evaluation set, then run metrics over that set. The result appears in the console as an experiment.</p>
+  <p class="codelabel">Step 1 &mdash; import the window of traces into an evaluation set</p>
+  <pre class="code">op = client.evals.<span class="fn">import_evaluation_set</span>(
+    evaluation_set={<span class="st">"display_name"</span>: <span class="st">"v7-last-2-weeks"</span>},
+    gcs_destination={<span class="st">"output_uri_prefix"</span>: <span class="st">"gs://BUCKET/eval-items/"</span>},
+    cloud_trace_source={<span class="st">"project_id"</span>: PROJECT, <span class="st">"session_ids"</span>: SESSION_IDS})
+<span class="cm"># import is a long-running operation; poll until op.done,</span>
+<span class="cm"># then op.response.evaluation_set is the set's resource name</span></pre>
+  <p class="codelabel">Step 2 &mdash; run metrics over the imported set</p>
+  <pre class="code">run = client.evals.<span class="fn">create_evaluation_run</span>(
+    dataset=types.EvaluationRunDataSource(evaluation_set=EVAL_SET),
+    metrics=[types.RubricMetric.<span class="fn">TOOL_USE_QUALITY</span>(version=<span class="st">"v1"</span>),
+             types.RubricMetric.<span class="fn">HALLUCINATION</span>(version=<span class="st">"v1"</span>)],
+    dest=<span class="st">"gs://BUCKET/eval-results/"</span>)
+<span class="cm"># the run is created as an experiment; it shows on the console's Experiments tab</span></pre>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the sessions from the last two weeks of version 7, about 400 traces, imported into one set.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> <code class="i">create_evaluation_run</code> scores the set with two metrics; results land in the bucket and as an experiment on the console&rsquo;s Experiments tab.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> <code class="i">HALLUCINATION</code> unchanged; <code class="i">TOOL_USE_QUALITY</code> fell. He opens the failing rubrics&rsquo; traces, not the average <span class="tag illus">illustrative counts; the scoring mechanism is the one measured on page 20</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a trace is one execution path; a session is a whole conversation. Import the window you want, run the metrics you want, and read the failing rubrics, not the average.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> &middot; <code class="i">agentplatform/_genai/evals.py:3539-3600, 3945-3996</code>, aiplatform 1.165.1 &middot; the two calls were run 2026-09-13 (<code class="i">scratchpad/m4_score_run.py</code>).</div>
+</section>
+<details class="notes" data-title="Production, on demand: the offline run">
+  <summary>Speaker notes &mdash; Production, on demand: the offline run</summary>
+  <div class="n-body"><ul>
+    <li>Console caveat: the offline doc describes an Agents &rarr; Evaluation &rarr; &ldquo;New evaluation&rdquo; button, but the live console has no ad-hoc interactive evaluation. Offline runs surface as experiments on the Experiments tab; scheduled runs are monitors on the Online Monitors tab. The deck teaches the SDK path, which is what was measured, and describes the console as where the run appears.</li>
+    <li><code>create_evaluation_run</code> creates an <code>EvaluationExperiment</code> so the run appears on the Experiments tab; pass an existing experiment name to group runs.</li>
+    <li>The docs mention four core metrics by default (from the metric page: <code>FINAL_RESPONSE_QUALITY</code>, <code>TOOL_USE_QUALITY</code>, <code>HALLUCINATION</code>, <code>SAFETY</code>). The SDK call names its own metrics explicitly, as shown.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 27. PRODUCTION, CONTINUOUSLY: AN ONLINE MONITOR ==== -->
+<section class="page">
+  <h1>Production, continuously: an Online Monitor</h1>
+  <p class="lede">Nobody runs page 26 every ten minutes. An Online Monitor does.</p>
+  <figure>
+    <svg viewBox="0 0 960 250" width="960" height="250" role="img" aria-label="The Online Monitor loop">
+      <defs><marker id="m27" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <text x="480" y="26" font-family="var(--mono)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">projects/P/locations/R/onlineEvaluators/ID</text>
+      <rect x="40" y="60" width="150" height="60" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="115" y="84" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">Cloud Trace +</text><text x="115" y="100" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">Cloud Logging</text>
+      <line x1="190" y1="90" x2="226" y2="90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m27)"/>
+      <rect x="228" y="52" width="180" height="76" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="318" y="74" font-family="var(--sans)" font-size="12.5" fill="var(--ink)" text-anchor="middle">1 Query</text><text x="318" y="94" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">sample 10% &middot; max 50/run</text><text x="318" y="107" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">filter: duration, tokens</text>
+      <line x1="408" y1="90" x2="444" y2="90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m27)"/>
+      <rect x="446" y="52" width="180" height="76" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="536" y="74" font-family="var(--sans)" font-size="12.5" fill="var(--ink)" text-anchor="middle">2 Evaluate</text><text x="536" y="94" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">MULTI_TURN_TASK_SUCCESS</text><text x="536" y="107" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">SAFETY &middot; via the service</text>
+      <line x1="626" y1="90" x2="662" y2="90" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m27)"/>
+      <rect x="664" y="52" width="180" height="76" rx="7" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="754" y="80" font-family="var(--sans)" font-size="12.5" fill="var(--ink)" text-anchor="middle">3 Report</text><text x="754" y="102" font-family="var(--sans)" font-size="9.5" fill="var(--ink-2)" text-anchor="middle">two outputs, below</text>
+      <path d="M754 128 L754 150 L318 150 L318 130" fill="none" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#m27)"/>
+      <text x="536" y="166" font-family="var(--sans)" font-size="10.5" fill="var(--ink-3)" text-anchor="middle">every ~10 minutes</text>
+      <rect x="600" y="176" width="150" height="48" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="675" y="196" font-family="var(--sans)" font-size="11" fill="var(--ink-2)" text-anchor="middle">Cloud Logging</text><text x="675" y="212" font-family="var(--mono)" font-size="8.5" fill="var(--ink-2)" text-anchor="middle">reasoning_engine_id &middot; trace</text>
+      <rect x="770" y="176" width="170" height="48" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="855" y="196" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">Cloud Monitoring</text><text x="855" y="212" font-family="var(--mono)" font-size="8" fill="var(--g-green-deep)" text-anchor="middle">online_evaluator/scores</text>
+      <line x1="754" y1="128" x2="700" y2="174" stroke="#5f6368" stroke-width="1.4" marker-end="url(#m27)"/>
+      <line x1="800" y1="128" x2="850" y2="174" stroke="#5f6368" stroke-width="1.4" marker-end="url(#m27)"/>
+    </svg>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>An <code class="i">OnlineEvaluator</code> resource runs the loop:</b> query (sample a percentage of live traces, capped by max samples per run, optionally filtered by duration or token usage) &rarr; evaluate (the configured metrics, via the service) &rarr; report (results to Logging, numeric scores to Monitoring).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Agent Runtime only:</b> the monitor is created against an &ldquo;Agent engine&rdquo; chosen from a dropdown.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Manage it:</b> enable, disable, pause, resume, duplicate; the <b>Sampled traces</b> column shows what it scored.</p></div>
+  </div>
+  <div class="note red"><span class="kk">Security disclosure (from the docs)</span>The monitor runs as the project-level service account, so any user who can create an <code class="i">OnlineEvaluator</code> can attach it to any agent in the project. Restrict creation to administrators.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, setting up the refund agent&rsquo;s monitor.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> 10% sampling, 50 max per run, <code class="i">MULTI_TURN_TASK_SUCCESS</code> and <code class="i">SAFETY</code>.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> six runs an hour.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> up to 300 scored conversations an hour, each visible in Logging under <code class="i">labels.reasoning_engine_id</code> <span class="tag illus">illustrative sizing</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a monitor is scheduled sampling plus the same metrics, with its scores exported to Monitoring. That export is what the next page alerts on.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online">evaluate-online</a>.</div>
+</section>
+<details class="notes" data-title="Production, continuously: an Online Monitor">
+  <summary>Speaker notes &mdash; Production, continuously: an Online Monitor</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific: non-determinism plus the model as an external dependency mean frozen code does not mean frozen behavior; and the sampled traces carry user content.</li>
+    <li>The 10-minute cadence is the docs&rsquo; &ldquo;typically&rdquo;; no numeric defaults for sampling are documented.</li>
+    <li>Diagnostic log filter: <code>resource.labels.online_evaluator="projects/&hellip;/onlineEvaluators/ID"</code>. No SDK sample for creating a monitor exists in the docs; the console is the documented path.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 28. ALERTING ON QUALITY IS AN ORDINARY POLICY ==== -->
+<section class="page">
+  <h1>Alerting on quality is an ordinary Cloud Monitoring policy</h1>
+  <p class="lede">Module 3 alerted on a counter your code wrote. This alert is on a score the monitor wrote. Same mechanism.</p>
+  <p class="codelabel">policy.yaml &mdash; from the docs; gcloud monitoring policies create --policy-from-file</p>
+  <pre class="code"><span class="st">displayName</span>: <span class="st">"Low Task Success Score"</span>
+<span class="st">conditions</span>:
+- <span class="st">displayName</span>: <span class="st">"Task Success &lt; 0.8"</span>
+  <span class="st">conditionThreshold</span>:
+    <span class="st">filter</span>: &gt;
+      metric.type="aiplatform.googleapis.com/online_evaluator/scores"
+      AND metric.labels.evaluation_metric_name="task_success"
+    <span class="st">comparison</span>: COMPARISON_LT
+    <span class="st">thresholdValue</span>: 0.8
+    <span class="st">duration</span>: 1800s
+    <span class="st">aggregations</span>:
+    - <span class="st">alignmentPeriod</span>: 60s
+      <span class="st">perSeriesAligner</span>: ALIGN_MEAN
+<span class="st">notificationChannels</span>:
+- <span class="st">"projects/PROJECT_ID/notificationChannels/CHANNEL_ID"</span></pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>The metric:</b> <code class="i">aiplatform.googleapis.com/online_evaluator/scores</code>, labeled by <code class="i">evaluation_metric_name</code>. The monitor writes it; nothing else does.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The policy:</b> below a threshold, for a duration, on a per-minute mean. Slack, email, or Pub/Sub as the channel.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Offline runs export nothing to Monitoring.</b> An alert needs a monitor.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Console shortcut:</b> Dashboard &rarr; Evaluation &rarr; <b>Recommended Alerts</b> gives one template per metric on the monitor.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco, on call.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the policy above.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> on 2026-09-10 the 30-minute mean of <code class="i">task_success</code> reads 0.78.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the incident opens, with a link to the sampled traces.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> put the alert on the score, with a duration long enough to cover several monitor runs. Then follow the link to the traces.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts">quality-alerts</a> (<code class="i">policy.yaml</code> verbatim) &middot; M3 page 28.</div>
+</section>
+<details class="notes" data-title="Alerting on quality is an ordinary Cloud Monitoring policy">
+  <summary>Speaker notes &mdash; Alerting on quality is an ordinary Cloud Monitoring policy</summary>
+  <div class="n-body"><ul>
+    <li>Generic (Cloud Monitoring); say so.</li>
+    <li>The label value is snake_case (<code>task_success</code>) while the SDK accessor is <code>MULTI_TURN_TASK_SUCCESS</code>; the docs do not list the full label vocabulary, so read it off Metrics Explorer for your monitor.</li>
+    <li>The docs&rsquo; Python sample is labeled &ldquo;Agent Platform SDK&rdquo; and imports <code>google.cloud.monitoring_v3</code>; it is the Monitoring client. Do not repeat the mislabel.</li>
+    <li>Severity: a quality drop is a ticket unless safety is the metric, and then it is a page.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 29. REACTING: CLUSTER, CASE, COMPARE ==== -->
+<section class="page">
+  <h1>Reacting: cluster the failures, turn them into cases, compare versions</h1>
+  <p class="lede">Forty failing traces is a number. Thirty-one of them missing the same tool call is a diagnosis.</p>
+  <figure>
+    <svg viewBox="0 0 960 200" width="960" height="200" role="img" aria-label="The reaction loop from a run to a fix and back">
+      <defs><marker id="m29" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <rect x="20" y="40" width="120" height="50" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="80" y="62" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">monitor /</text><text x="80" y="77" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">offline run</text>
+      <line x1="140" y1="65" x2="166" y2="65" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m29)"/>
+      <rect x="168" y="34" width="200" height="62" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="268" y="52" font-family="var(--mono)" font-size="10.5" fill="var(--ink)" text-anchor="middle">generate_loss_clusters</text><text x="268" y="70" font-family="var(--mono)" font-size="9" fill="var(--g-red-deep)" text-anchor="middle">Omission of Required Tool Call: 31</text><text x="268" y="83" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" text-anchor="middle">Over-Punting: 6 &middot; Tool Error: 3</text>
+      <line x1="368" y1="65" x2="394" y2="65" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m29)"/>
+      <rect x="396" y="40" width="110" height="50" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="451" y="69" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">open the traces</text>
+      <line x1="506" y1="65" x2="532" y2="65" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m29)"/>
+      <rect x="534" y="40" width="140" height="50" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="604" y="62" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">add cases to the</text><text x="604" y="77" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">set (page 15)</text>
+      <line x1="674" y1="65" x2="700" y2="65" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m29)"/>
+      <rect x="702" y="40" width="130" height="50" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="767" y="62" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">fix instruction</text><text x="767" y="77" font-family="var(--sans)" font-size="11" fill="var(--ink)" text-anchor="middle">or tool def</text>
+      <line x1="832" y1="65" x2="858" y2="65" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m29)"/>
+      <rect x="860" y="40" width="80" height="50" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="900" y="62" font-family="var(--sans)" font-size="11" fill="var(--ink-2)" text-anchor="middle">PR gate</text><text x="900" y="77" font-family="var(--sans)" font-size="10" fill="var(--ink-3)" text-anchor="middle">(M2)</text>
+      <path d="M900 90 L900 140 L80 140 L80 92" fill="none" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#m29)"/>
+      <text x="490" y="156" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)" text-anchor="middle">next version, compare &middot; the triage order from the docs</text>
+    </svg>
+  </figure>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Metric</th><th>Categories</th><th>Examples of loss patterns</th></tr></thead>
+    <tbody>
+      <tr><td class="m">multi_turn_task_success_v1 (13)</td><td>Hallucination, Instruction Following, Tool Calling, Tool Output Handling, Tool Quality</td><td>Hallucination of Action; Over-Punting; Incorrect Tool Selection; Incomplete Execution; Tool Failure</td></tr>
+      <tr><td class="m">multi_turn_tool_use_quality_v1 (13)</td><td>Hallucination, Tool Calling, Tool Response</td><td>Hallucination of Parameter Value; Omission of Required Tool Call; Incorrect Parameter Value; Tool Error</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> 40 failures from the offline run.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> <code class="i">generate_loss_clusters</code>: <i>Omission of Required Tool Call</i>, 31 of 40, all missing <code class="i">verify_shipment</code>. He adds three of those conversations to the set and restores the instruction clause.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> the PR set fails, then passes; the next monitor window reads 0.90 <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> cluster first, then read traces, then find whether the cause is the prompt, a tool definition, or the data. Every failing trace you keep becomes a case.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view-results</a> loss taxonomy and triage list &middot; <code class="i">cmd_analyze.py</code>, <code class="i">cmd_compare.py</code>, google-agents-cli 1.5.0.</div>
+</section>
+<details class="notes" data-title="Reacting: cluster the failures, turn them into cases, compare versions">
+  <summary>Speaker notes &mdash; Reacting: cluster, case, compare</summary>
+  <div class="n-body"><ul>
+    <li>Agent-specific: eval sets are maintained artifacts, and production is where the new cases come from.</li>
+    <li>&ldquo;Over-Punting&rdquo;, from the docs: the agent declines a task, claiming it lacks a tool or capability it has.</li>
+    <li>Version comparison: <code>agents-cli eval compare</code> on two result files, or the dashboard&rsquo;s Performance Trends across versions. <code>eval analyze</code> is Experimental in 1.5.0.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 30. SECTION 3 RECAP ==== -->
+<section class="page">
+  <h1>Section 3 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p>Three moments, same metrics: read the score, gate on it, score production. Only the third sees a model change with no deploy.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>A trace is gradable when the two OpenTelemetry variables are set. The console reads Agent Runtime; the SDK imports by trace id from any runtime, measured.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Offline: pick a window, run the metrics, read the failing rubrics. Online: a monitor samples on a schedule and exports scores to Monitoring.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>The alert is an ordinary Monitoring policy on <code class="i">online_evaluator/scores</code>. The reaction is clusters &rarr; traces &rarr; cause &rarr; new cases &rarr; compare.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3 recap">
+  <summary>Speaker notes &mdash; Section 3 recap</summary>
+  <div class="n-body"><ul><li>Hand-off: the optional section, if time. Otherwise skip to consequences.</li></ul></div>
+</details>
+
+<!-- ==== 31. SECTION DIVIDER: OPTIONAL ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">4</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Optional</div>
+      <h1>Replay, simulation, optimization</h1>
+      <div class="dsub">Two pages that can be dropped for time: conformance replay, and the topics this module names but does not teach.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 4: Optional">
+  <summary>Speaker notes &mdash; Optional divider</summary>
+  <div class="n-body"><ul><li>Cut here if the room is out of time; the consequences and references pages do not depend on these.</li></ul></div>
+</details>
+
+<!-- ==== 32. CONFORMANCE TESTING IS REPLAY, NOT SCORING ==== -->
+<section class="page">
+  <h1>Conformance testing is replay, not scoring</h1>
+  <p class="lede">Marco renamed a tool. He wants to know if anything else changed, with no model call and no score.</p>
+  <p class="codelabel">adk conformance &mdash; google-adk 2.9.0; record and live mode marked work in progress</p>
+  <pre class="term">$ tree tests/refund/verify_before_refund
+spec.yaml                    <span class="lbl"># description, agent, user_messages</span>
+generated-recordings.yaml    <span class="lbl"># every LLM request/response and tool call/result</span>
+generated-session.yaml       <span class="lbl"># the session as recorded</span>
+$ adk conformance record tests/refund none
+$ adk conformance test tests/refund
+Event count mismatch -
+Actual: 6   Recorded: 7
+<span class="lbl">--- recorded function_call</span>
+<span class="lbl">+++ actual function_call</span>
+-  "name": "verify_shipment"
++  "name": "check_shipment"</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">record</code></b> runs the agent with a recordings plugin and writes the LLM requests and responses and the tool calls and results.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">test</code> (replay, the default)</b> reruns the agent against the recording and fails on any difference: event count, request, response, tool call. No model is called; the recording answers for it.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>It is a deterministic regression test whose fixture is the model&rsquo;s recorded behavior.</b> It cannot say whether a new behavior is better. Evaluation does that.</p></div>
+    <div class="checkrow"><div class="cdot gray"></div><p><b>Status in 2.9.0:</b> <code class="i">record</code> prints &ldquo;work in progress&rdquo;; <code class="i">--mode live</code> is not implemented.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, then Marco.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the refund case, recorded once.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> Marco renames <code class="i">verify_shipment</code> to <code class="i">check_shipment</code>; replay reruns the case.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> failure at the first tool call, with a unified diff of the recorded vs. actual function call. Nothing was graded; something changed.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> replay tells you that behavior changed. An eval tells you whether it is still good. Use replay for cheap, deterministic regression on things that must not move.</div>
+  <div class="src">Sources: <code class="i">cli/conformance/cli_test.py</code>, <code class="i">_replay_validators.py:124-141</code>, <code class="i">cli_tools_click.py:568-700</code>, google-adk 2.9.0 &middot; <a href="https://adk.dev/evaluate/">adk.dev/evaluate</a> conformance section.</div>
+</section>
+<details class="notes" data-title="Conformance testing is replay, not scoring">
+  <summary>Speaker notes &mdash; Conformance testing is replay, not scoring</summary>
+  <div class="n-body"><ul>
+    <li>Generic (record/replay); say so. The agent-shaped fact is that the thing mocked is the model.</li>
+    <li>Recording needs <code>adk web</code> started with <code>--extra_plugins=google.adk.cli.plugins.recordings_plugin.RecordingsPlugin</code>. The trailing streaming-mode argument is required: <code>none</code> or <code>sse</code>.</li>
+    <li>Not to be confused with <code>adk test</code>, which replays a JSON fixture against a mocked <code>BaseLlm</code> (Module 2 page 5).</li>
+  </ul></div>
+</details>
+
+<!-- ==== 33. RELATED TOPICS ==== -->
+<section class="page">
+  <h1>Related topics</h1>
+  <p class="lede">Four things this module names and does not teach. Each plugs into the same config and the same harness.</p>
+  <div class="grid c2">
+    <div class="cell"><h4>User simulation <span class="tag guide">v1.18+</span></h4><p>A <code>ConversationScenario</code> (<code>starting_prompt</code>, <code>conversation_plan</code>, <code>user_persona</code>) drives a simulated user; personas <code>EXPERT</code>, <code>NOVICE</code>, <code>EVALUATOR</code>. Reference-based criteria unsupported. <b>Example:</b> a <code>NOVICE</code> cannot correct the agent, so a wrong refund amount goes unchallenged.</p></div>
+    <div class="cell yellow"><h4>Environment simulation <span class="tag heur">experimental</span></h4><p>Mock a tool or inject failures and latency. <b>Example:</b> a 503 injected on <code>verify_shipment</code>; the rubric expects the agent to say it could not verify.</p></div>
+    <div class="cell yellow"><h4>adk optimize <span class="tag heur">experimental</span></h4><p>GEPA rewrites the root agent&rsquo;s instruction against a training eval set and reports validation scores. <b>Example:</b> 100 metric calls; the best candidate&rsquo;s instruction printed.</p></div>
+    <div class="cell"><h4>Custom metrics <span class="tag guide">v1.18+</span></h4><p>A Python function <code>(eval_metric, actual, expected, scenario) &rarr; EvaluationResult</code>, registered under <code>custom_metrics</code> with a <code>code_config.name</code>. <b>Example:</b> the refund amount in the reply equals the tool&rsquo;s return.</p></div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> each of these plugs into the same config and the same harness. Learn the harness first.</div>
+  <div class="src">Sources: <a href="https://adk.dev/evaluate/user-sim/">user-sim</a>, <a href="https://adk.dev/evaluate/environment_simulation/">environment_simulation</a>, <a href="https://adk.dev/optimize/">optimize</a>, <a href="https://adk.dev/evaluate/custom_metrics/">custom_metrics</a> &middot; <code class="i">simulation/pre_built_personas.py:460-510</code>, google-adk 2.9.0.</div>
+</section>
+<details class="notes" data-title="Related topics">
+  <summary>Speaker notes &mdash; Related topics</summary>
+  <div class="n-body"><ul>
+    <li>Status labels come from the docs: environment simulation &ldquo;is an experimental feature&rdquo;; <code>GEPARootAgentPromptOptimizer</code> &ldquo;is experimental&rdquo; and warns on construction. The version tags are the &ldquo;Supported in ADK Python vX&rdquo; badges.</li>
+    <li>User simulation&rsquo;s default model is <code>gemini-flash-latest</code> with a thinking budget of 10240 and <code>max_allowed_invocations</code> 20.</li>
+    <li>Audio (live) evaluation exists from 2.6.0 and is out of scope.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 34. CONSEQUENCES ==== -->
+<section class="page">
+  <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
+  <div class="tscroll"><table class="cmp" style="margin-top:14px;">
+    <thead><tr><th>You observed</th><th>Because</th><th>So you&hellip;</th></tr></thead>
+    <tbody>
+      <tr><td>Every test passes and the agent now refunds unshipped orders</td><td>tests assert on code paths; the instruction is text</td><td>add the conversation as an eval case and gate on <code>tool_trajectory_avg_score</code></td></tr>
+      <tr><td>A correct reply fails <code>response_match_score</code></td><td>ROUGE counts shared words</td><td>switch that case to <code>final_response_match_v2</code></td></tr>
+      <tr><td>A case passes although the tool returned an error</td><td>the trajectory metric reads names and arguments only</td><td>add <code>hallucinations_v1</code> or a tool-use rubric; alert on the outcome counter in production</td></tr>
+      <tr><td>The PR set costs more than the unit tests</td><td><code>num_runs=2</code> and <code>num_samples=5</code></td><td>lower <code>num_samples</code> on the PR set, keep 5 nightly</td></tr>
+      <tr><td><code>adk eval</code> reports a failure and the build is green</td><td>the CLI prints; it does not compare</td><td>wrap the run in pytest with <code>await AgentEvaluator.evaluate</code> (Module 2 for the pipeline)</td></tr>
+      <tr><td><code>multi_turn_task_success_v1</code> raises about a project</td><td>five criteria delegate to the service</td><td>set project and location; pin <code>version="v1"</code> in regions without the v2 model</td></tr>
+      <tr><td>The gate&rsquo;s hallucination score and the dashboard&rsquo;s disagree</td><td>different scorers over different data</td><td>compare each with its own history only</td></tr>
+      <tr><td>Task success fell with no deploy</td><td>the model behind the alias changed</td><td>an Online Monitor plus a Monitoring policy on <code>online_evaluator/scores</code></td></tr>
+      <tr><td>Your Cloud Run agent is not in the console&rsquo;s Evaluation page</td><td>the console reads Agent Runtime</td><td>set the two OTel variables; import by trace id with <code>cloud_trace_source</code></td></tr>
+      <tr><td>Forty failures and no pattern</td><td>you read traces before clustering</td><td><code>generate_loss_clusters</code>, then traces, then cases</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<details class="notes" data-title="Consequences">
+  <summary>Speaker notes &mdash; Consequences</summary>
+  <div class="n-body"><ul><li>Read the ninth row aloud; it is the one the measurement on page 25 settled.</li></ul></div>
+</details>
+
+<!-- ==== 35. REFERENCES ==== -->
+<section class="page">
+  <h1>References</h1>
+  <ul style="margin-top:14px;">
+    <li><b>google-adk 2.9.0</b> &mdash; <code class="i">google/adk/evaluation/</code> (<code class="i">agent_evaluator.py</code>, <code class="i">trajectory_evaluator.py</code>, <code class="i">final_response_match_v1.py</code>, <code class="i">final_response_match_v2.py</code>, <code class="i">eval_metrics.py</code>, <code class="i">eval_config.py</code>, <code class="i">eval_rubrics.py</code>, <code class="i">metric_evaluator_registry.py</code>, <code class="i">vertex_ai_eval_facade.py</code>), <code class="i">google/adk/cli/conformance/</code>, <code class="i">cli_tools_click.py</code></li>
+    <li><b>google-agents-cli 1.5.0</b> &mdash; <code class="i">google/agents/cli/eval/cmd_*.py</code>, <code class="i">scaffold/agents/adk/tests/eval/</code></li>
+    <li><b>google-cloud-aiplatform 1.165.1</b> &mdash; <code class="i">agentplatform/_genai/evals.py</code>, <code class="i">_evals_constant.py</code>, <code class="i">types/common.py</code></li>
+    <li>adk.dev: <a href="https://adk.dev/evaluate/">evaluate</a>, <a href="https://adk.dev/evaluate/criteria/">criteria</a>, <a href="https://adk.dev/evaluate/user-sim/">user-sim</a>, <a href="https://adk.dev/evaluate/custom_metrics/">custom_metrics</a>, <a href="https://adk.dev/evaluate/environment_simulation/">environment_simulation</a>, <a href="https://adk.dev/optimize/">optimize</a></li>
+    <li>Agent Platform: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">agent-evaluation</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">evaluate-agents</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online">evaluate-online</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view-results</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts">quality-alerts</a>, <a href="https://docs.cloud.google.com/run/docs/ai/agent-platform-features">Cloud Run features</a></li>
+    <li><a href="https://developers.googleblog.com/en/agent-and-model-evaluations-in-gemini-enterprise-agent-platform-are-now-ga/">GA announcement, 2026-07-31</a></li>
+    <li>Measured 2026-09-13 in <code class="i">jwd-gcp-demos</code>: <code class="i">m4_trace_import.py</code>, <code class="i">m4_score_run.py</code>; ROUGE-1 with <code class="i">rouge_score</code></li>
+    <li>Companion: <code class="i">agent_operations/m4.html</code> (2.7.1, 2026-08-25)</li>
+  </ul>
+  <div class="note"><span class="kk">Re-verify before delivery</span>Metric names and defaults, the region note for v2/v3 metric specs, the Experimental labels in agents-cli, and whether the Cloud Run and GKE Agent Platform pages have gained an evaluation integration. Checked 2026-09-13; they change without notice.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul>
+    <li>Versions on the face: google-adk 2.9.0, google-agents-cli 1.5.0, google-cloud-aiplatform 1.165.1.</li>
+    <li>The companion page&rsquo;s per-step trajectory averaging is superseded by page 8.</li>
+  </ul></div>
+</details>
+
+</div>
+
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Notes &middot; <span id="notes-title"></span><button id="notes-close" aria-label="Close notes">&times;</button></div>
+  <div id="notes-body"></div>
+</aside>
+
+<div class="bar">
+  <div class="name"><a href="index.html">Agent Operations</a> &middot; Module 4 &middot; Agent Evaluation and Quality Assurance</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous page">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next page">&#8594;</button>
+    <button id="notes-btn" class="pill" aria-expanded="false">Notes</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; N notes &middot; F fullscreen</div>
+</div>
+<script>
+(function(){
+  var deck = document.getElementById('deck');
+  var pages = Array.prototype.slice.call(deck.querySelectorAll(':scope > section.page'));
+  var notes = Array.prototype.slice.call(deck.querySelectorAll(':scope > details.notes'));
+  var cnt = document.getElementById('cnt'), panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title'), notesBody = document.getElementById('notes-body');
+  var notesBtn = document.getElementById('notes-btn');
+  var i = 0;
+  if (notes.length !== pages.length) console.warn('agent_ops: ' + pages.length + ' pages but ' + notes.length + ' notes blocks; notes will pair by index.');
+
+  /* chrome on every page, page number on every non-divider h1 */
+  pages.forEach(function(p, k){
+    var conf = document.createElement('div'); conf.className = 'conf'; conf.textContent = 'Proprietary + Confidential'; p.appendChild(conf);
+    var g = document.createElement('div'); g.className = 'gcloud';
+    g.innerHTML = '<span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud'; p.appendChild(g);
+    p.id = 's' + String(k+1).padStart(2,'0');
+    var h = p.querySelector('h1');
+    if (h && !p.classList.contains('divider') && !h.querySelector('.n')) {
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = String(k+1).padStart(2,'0'); h.insertBefore(n, h.firstChild);
+    }
+  });
+
+  function clamp(n){ return Math.max(0, Math.min(pages.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    pages.forEach(function(p,k){ p.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + pages.length;
+    deck.scrollTop = 0;
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    var src = notes[i];
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) Array.prototype.forEach.call(body.children, function(c){ notesBody.appendChild(c.cloneNode(true)); });
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#s' + String(i+1).padStart(2,'0'));
+  }
+  function toggleNotes(force){
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function toggleFullscreen(){
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  notesBtn.addEventListener('click', function(){ toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function(){ toggleNotes(false); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') { show(0); e.preventDefault(); }
+    else if (e.key==='End') { show(pages.length-1); e.preventDefault(); }
+    else if (e.key==='n'||e.key==='N') { toggleNotes(); }
+    else if (e.key==='f'||e.key==='F') { toggleFullscreen(); }
+    else if (e.key==='Escape') { toggleNotes(false); }
+  });
+  function fromHash(){
+    var h = location.hash || '', m = h.match(/s?(\d+)/);
+    show(m ? parseInt(m[1],10)-1 : 0);
+    if (/notes/.test(h)) toggleNotes(true);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>

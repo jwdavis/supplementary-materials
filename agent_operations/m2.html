@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M2 — CI/CD for Agent Deployments (companion)</title>
+<style>
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+  .stage{position:fixed;inset:0 0 54px 0;overflow-y:auto;overflow-x:hidden;}
+  .page{display:none;max-width:1120px;margin:0 auto;padding:40px 48px 72px;background:var(--bg);min-height:100%;}
+  .page.on{display:block;}
+  @media (min-width:1200px){ .page{margin:22px auto;min-height:calc(100% - 44px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);} }
+
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .claim{margin:12px 0 0;font-size:18px;font-style:italic;color:var(--ink-2);line-height:1.5;border-left:3px solid var(--line);padding-left:14px;}
+  h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  /* badges next to the title (only when needed) */
+  .bdg{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:4px;text-transform:uppercase;}
+  .bdg.fix{color:var(--g-red-deep);background:var(--fill-red);}
+  .bdg.skip{color:var(--ink-2);background:var(--fill-gray);}
+  .bdg.add{color:var(--g-yellow-deep);background:var(--fill-yellow);}
+
+  /* callouts */
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.green{background:var(--fill-green);border-left-color:var(--g-green);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.green .kk{color:var(--g-green-deep);} .note.red .kk{color:var(--g-red-deep);} .note .kk{color:var(--g-yellow-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;}
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:20px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway code.i{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* check rows (MAS) */
+  .checks{display:flex;flex-direction:column;margin:8px 0;position:relative;}
+  .checkrow{display:flex;gap:14px;align-items:flex-start;position:relative;padding:7px 0;}
+  .checkrow::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;} .checkrow:only-child::before{display:none;}
+  .cdot{width:24px;height:24px;border-radius:50%;background:var(--g-blue);flex:0 0 24px;position:relative;z-index:1;margin-top:3px;}
+  .cdot::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:4px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .cdot.red{background:var(--g-red);} .cdot.green{background:var(--g-green);} .cdot.gray{background:var(--ink-3);}
+  .checkrow p{margin:2px 0 0;line-height:1.45;}
+
+  /* numbered rows (MAS) */
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:center;}
+  .numrow .n{font-family:var(--mono);font-size:20px;color:var(--g-blue-deep);width:52px;flex:0 0 52px;font-weight:500;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:18.5px;}
+  .numrow.bad .n{color:var(--g-red-deep);} .numrow.bad .body{border-left-color:var(--g-red);background:var(--fill-red);}
+  .numrow.good .n{color:var(--g-green-deep);} .numrow.good .body{border-left-color:var(--g-green);background:var(--fill-green);}
+
+  /* card grid (MAS) */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+  .grid.c2{grid-template-columns:repeat(2,1fr);} .grid.c4{grid-template-columns:repeat(4,1fr);}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:12px 15px;border-top:3px solid var(--g-blue);}
+  .cell.green{border-top-color:var(--g-green);} .cell.red{border-top-color:var(--g-red);} .cell.yellow{border-top-color:var(--g-yellow);} .cell.gray{border-top-color:var(--ink-3);}
+  .cell h4{margin:0 0 4px;font-size:17px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:16px;line-height:1.45;color:var(--ink-2);}
+  .cell p b{color:var(--ink);}
+  @media (max-width:900px){ .grid,.grid.c4{grid-template-columns:1fr 1fr;} }
+
+  /* example card */
+  .ex{background:var(--fill-green);border-left:4px solid var(--g-green);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .ex .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-green-deep);margin-bottom:4px;}
+  .ex p{margin:5px 0;} .ex .lbl{font-weight:700;color:var(--g-green-deep);}
+  .ex .lbl.bad{color:var(--g-red-deep);}
+
+  /* comparison table (MAS) */
+  table.cmp{border-collapse:collapse;width:100%;font-size:17.5px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp td.m,table.cmp code{font-family:var(--mono);font-size:15.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  .tscroll{overflow-x:auto;}
+
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .chg{background:var(--fill-yellow);border-radius:3px;padding:0 3px;}
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 -4px;}
+  .codelabel.bad{color:var(--g-red-deep);} .codelabel.good{color:var(--g-green-deep);}
+
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+  .cols{display:flex;gap:28px;align-items:flex-start;margin:10px 0;} .cols>div{flex:1;min-width:0;}
+  @media (max-width:900px){ .cols{flex-direction:column;} }
+
+  .src{margin-top:26px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+  ol.mods{padding-left:0;list-style:none;margin:14px 0 0;display:grid;gap:10px;}
+  ol.mods li a{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--row);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:20px;}
+  ol.mods li a:hover{border-color:var(--g-blue);background:var(--fill-blue);text-decoration:none;}
+  ol.mods .num{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--g-blue);color:#fff;font-weight:600;font-size:16px;}
+
+  .bar{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);color:var(--ink-2);font-size:15px;white-space:nowrap;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;font-weight:500;} .bar .name a{color:var(--ink-2);}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--ink);border-radius:6px;width:38px;height:32px;font-size:17px;cursor:pointer;line-height:1;}
+  .bar button:hover{background:var(--panel);} .bar .cnt{font-family:var(--mono);font-size:15px;min-width:9ch;text-align:center;} .bar .hint{font-size:14px;color:var(--ink-3);}
+  @media (max-width:820px){ .bar .hint{display:none;} .page{padding:26px 22px 70px;} body{font-size:18.5px;} }
+  @media print{ body{overflow:visible;background:#fff;} .stage{position:static;overflow:visible;} .page{display:block;break-after:page;page-break-after:always;box-shadow:none;margin:0 auto;} .bar{display:none;}
+    .note,.ex,.takeaway,.cell{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+<section class="page" id="s01">
+  <h1><span class="n">01</span>CI/CD for Agent Deployments <span class="bdg skip">Skip</span></h1>
+  <div class="note gray"><span class="kk">About this module's pages</span>What this module adds beyond generic CI/CD: the verification step includes an eval run (unit tests cannot check model behavior); the deploy step for Agent Runtime is <code class="i">agents-cli deploy</code> / <code class="i">adk deploy agent_engine</code>, not <code class="i">gcloud run deploy</code>; and the deck's own <code class="i">cloudbuild.yaml</code> (slide 29) has two bugs. Verified against ADK 2.7.1 and current docs, Aug 2026.</div>
+</section>
+<section class="page" id="s02"><h1><span class="n">02</span>Learning objectives <span class="bdg skip">Skip</span></h1></section>
+<section class="page" id="s03"><h1><span class="n">03</span>Topics <span class="bdg skip">Skip</span></h1></section>
+
+<section class="page" id="s04">
+  <h1><span class="n">04</span>CI/CD: continuous integration and continuous delivery</h1>
+  <p class="claim">"A software development practice that automates the process of building, testing, and deploying code changes."</p>
+  <h2><span class="k"></span>The agent's pipeline differs in one step</h2>
+  <figure>
+    <svg viewBox="0 0 900 120" width="900" height="120" role="img" aria-label="Pipeline with eval gate">
+      <defs><marker id="b4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <g font-family="var(--sans)" font-size="14" fill="var(--ink)" text-anchor="middle">
+        <rect x="20" y="30" width="130" height="56" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="85" y="63">commit</text>
+        <rect x="180" y="30" width="130" height="56" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="245" y="63">build image</text>
+        <rect x="340" y="30" width="130" height="56" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="405" y="63">unit tests</text>
+        <rect x="500" y="30" width="150" height="56" rx="8" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.8"/><text x="575" y="56" font-weight="600">eval run</text><text x="575" y="76" font-size="12" fill="var(--g-green-deep)">the added step</text>
+        <rect x="680" y="30" width="200" height="56" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="780" y="63">push · deploy</text>
+      </g>
+      <line x1="150" y1="58" x2="178" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#b4)"/><line x1="310" y1="58" x2="338" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#b4)"/><line x1="470" y1="58" x2="498" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#b4)"/><line x1="650" y1="58" x2="678" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#b4)"/>
+      <text x="450" y="110" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">the artifact is code, exactly as for any service: instruction, tools, model id, and config live in the repo and ship through this pipeline</text>
+    </svg>
+  </figure>
+  <div class="ex"><span class="kk">Example</span><p>A pull request changes one sentence of the refund agent's instruction from "offer a refund when appropriate" to "only offer a refund after confirming the order shipped." Unit tests pass (nothing they test changed). The eval step runs the 40-case set; three cases that expect a refund on an unshipped order now fail the tool-trajectory check, and the PR is blocked.</p></div>
+  <div class="takeaway"><b>Takeaway:</b> the artifact is code as always; the pipeline differs in one step, an eval run, because unit tests can't check model behavior.</div>
+</section>
+
+<section class="page" id="s05">
+  <h1><span class="n">05</span>Continuous integration <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"The practice of frequently merging code changes into a central repository." (notes)</p>
+  <div class="note red"><span class="kk">Correction</span>That's half the definition; the other half is the automated verification.</div>
+  <div class="note blue"><span class="kk">Definition (Fowler)</span>Each member of the team merges their changes into the mainline <b>at least daily</b>, and <b>each integration is verified by an automated build (including tests)</b> to detect integration errors as quickly as possible.</div>
+  <div class="grid c2">
+    <div class="cell"><h4>"Stable codebase" means</h4><p>the mainline always builds and passes, so a release can be cut from any commit.</p></div>
+    <div class="cell"><h4>"Integration problems accumulate" means</h4><p>the cost of reconciling branches grows faster than the time they diverge (Fowler: twice the code, about four times the integration): textual conflicts <b>and</b> behavioral interactions between people's instruction and tool edits.</p></div>
+  </div>
+  <div class="note green"><span class="kk">Work that takes longer than a day</span>Merge daily anyway and hide the unfinished part (Fowler, "Hide Work-in-Progress"). The agent version of a keystone interface: write and merge the new tool function with its unit tests, but leave it out of the agent's <code class="i">tools=[...]</code> list until it is ready. Unregistered, it cannot change a trajectory, so the eval run stays green while the code lands daily. A config flag that registers the tool only in test environments does the same job.</div>
+  <div class="ex"><span class="kk">Example</span><p>Priya rewrites the refund instruction to say "call <code class="i">get_order</code> to confirm the order shipped before offering a refund." Marco, in <code class="i">tools.py</code>, renames <code class="i">get_order</code> to <code class="i">lookup_order</code> and updates the old instruction's one reference to it. Each branch passes the 40-case evals. The merge has no textual conflict (instruction file vs. tools file), but the merged instruction names a tool that no longer exists; the model skips the check or calls a tool the runtime rejects, and the shipped-order cases fail. Merged daily, Marco's rename lands on day one and Priya's next eval run fails with a one-line cause. Merged after three weeks, Priya has three weeks of instruction written against the old name to rework, and the failing run contains both people's three weeks of changes to bisect.</p></div>
+  <div class="takeaway"><b>Takeaway:</b> integrate at least daily and verify every integration with tests <b>and</b> evals; the cost of reconciling two people's edits grows faster than the time they diverge, so keep each interaction small enough to spot on the day it happens.</div>
+  <div class="src">Source: <a href="https://martinfowler.com/articles/continuousIntegration.html">martinfowler.com, Continuous Integration</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s06">
+  <h1><span class="n">06</span>Continuous delivery <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Producing software in short cycles… might mean pushing releases to production several times a day."</p>
+  <div class="note red"><span class="kk">Correction</span>"Several times a day" describes continuous <b>deployment</b>. Delivery and deployment are different.</div>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th></th><th>Continuous delivery</th><th>Continuous deployment</th></tr></thead>
+    <tbody>
+      <tr><td>Meaning</td><td>any passing commit <i>could</i> be released at any time</td><td>every passing commit <i>is</i> released, automatically</td></tr>
+      <tr><td>Who decides</td><td>the business</td><td>the pipeline</td></tr>
+      <tr><td>For agents</td><td class="yes">the usual choice, with a canary</td><td>rare: the eval set is a sample of the conversations the agent will see</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example</span><p>Version 14 of the refund agent passes the eval set. Released as a 5% canary (Cloud Run traffic split, or a second Agent Runtime deployment behind Agent Gateway), its tool-error rate on live traffic is twice version 13's, on request phrasings the eval set does not contain. Traffic goes back to 13; the failing conversations become eval cases.</p></div>
+  <div class="takeaway"><b>Takeaway:</b> delivery means every passing commit is releasable; for an agent, release as a canary anyway, because the eval set cannot contain every phrasing.</div>
+  <div class="src">Source: <a href="https://martinfowler.com/bliki/ContinuousDelivery.html">martinfowler.com, Continuous Delivery</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s07">
+  <h1><span class="n">07</span>The benefits of CI/CD</h1>
+  <p class="claim">"Detect bugs sooner · improve code quality · enhance collaboration · reduce the risk of regressions."</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Benefit</th><th>Because</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Bugs sooner</td><td>every merge runs tests <i>and</i> evals within minutes, against a diff a day old</td><td>the slide 4 instruction edit fails three cases the same afternoon; the diff to inspect is one paragraph</td></tr>
+      <tr><td>Code quality</td><td>the pipeline runs checks that need no reviewer: lint, type check, tool-declaration and eval-set validation (review is a separate practice; Fowler notes pre-merge review works against daily integration)</td><td>a type checker flags a tool annotated <code class="i" style="white-space:nowrap">-&gt; list[Order]</code> that returns one <code class="i">Order</code></td></tr>
+      <tr><td>Collaboration</td><td>one mainline everyone merges to daily, so each person sees the others' changes within a day</td><td>Priya rebases on day two and sees Marco's rename before writing more instruction against the old name</td></tr>
+      <tr><td>Reduced risk of regressions</td><td>a regression is behavior that worked in the last release and breaks in the new one; the deploy step runs only after the eval gate passes, so a commit that drops the score never reaches production</td><td>the 0.94 → 0.82 commit is blocked at the eval step; production stays on the 0.94 build until the fix lands</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note"><span class="kk">Move</span>The 1%/99% rollout story in the notes is canary deployment, not CI; it belongs with slide 6.</div>
+  <div class="takeaway"><b>Takeaway:</b> each benefit has a mechanism; if you can't name it (which step, catching what), leave the claim off the slide.</div>
+</section>
+
+<section class="page" id="s08"><h1><span class="n">08</span>Topics <span class="bdg skip">Skip</span></h1></section>
+
+<section class="page" id="s09">
+  <h1><span class="n">09</span>Agentic deployment targets on Google Cloud <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Agent Platform Agent Runtime · Cloud Run · GKE" (notes also say Agent Engine, Gemini Enterprise Agent Platform)</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Name you'll see</th><th>Current name</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td class="m">Vertex AI</td><td><b>Gemini Enterprise Agent Platform</b></td><td>the platform (renamed April 2026)</td></tr>
+      <tr class="hl"><td class="m">Agent Engine</td><td><b>Agent Runtime</b></td><td>the managed agent runtime</td></tr>
+      <tr><td class="m">reasoningEngines/NNN</td><td>unchanged</td><td>the resource name</td></tr>
+      <tr><td class="m">adk deploy agent_engine</td><td>unchanged</td><td>the CLI token</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">The console name, the resource name, and the CLI token disagree on purpose; all three are one product.</p>
+  <div class="grid">
+    <div class="cell"><h4>Agent Runtime</h4><p>hosts your agent object behind the Vertex AI API: no Dockerfile, server, or URL to own</p></div>
+    <div class="cell"><h4>Cloud Run</h4><p>serverless containers; any language, a URL you own, IAP, full networking</p></div>
+    <div class="cell"><h4>GKE</h4><p>Kubernetes; custom isolation and networking, most control</p></div>
+  </div>
+
+  <h2><span class="k"></span>What Agent Runtime actually is</h2>
+  <p>The docs' definition: "a fully-managed, opinionated runtime that you can use to deploy, operate, and scale agentic applications" that "abstracts away the underlying infrastructure." Concretely, it is a hosting service for the agent <i>process</i>. The split of work:</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>You provide</th><th>The runtime provides</th></tr></thead>
+    <tbody>
+      <tr><td>An agent object (pickled), a source tree, a Dockerfile, or a prebuilt image; plus <code>requirements.txt</code></td><td><b>Build and serve.</b> Builds the container and runs the HTTP server. A custom image only has to meet the runtime contract: listen on port 8080, answer <code>/api/reasoning_engine</code> (unary) and <code>/api/stream_reasoning_engine</code> (ndjson stream).</td></tr>
+      <tr><td>Nothing; callers get IAM on the resource</td><td><b>An endpoint you don't own.</b> The agent is <code>reasoningEngines/NNN</code>, reached via <code>LOCATION-aiplatform.googleapis.com/…/reasoningEngines/NNN/api/run</code> (or <code>api/run_sse</code>) with a Google access token. There is no public URL, no ingress setting, no invoker role to configure separately.</td></tr>
+      <tr><td>Optional: <code>min_instances</code>, <code>max_instances</code>, <code>cpu</code>, <code>memory</code></td><td><b>Scaling.</b> 1–8 vCPU, 1–32 GiB, min 0–10 and max up to 1000 instances, scale to zero. CPU only (slide 10).</td></tr>
+      <tr><td>Optional: <code>--agent-identity</code>, or a custom service account email</td><td><b>Identity.</b> Runs as the Reasoning Engine service agent by default, a service account you name, or an <b>Agent Identity</b>: a per-agent IAM principal tied to the agent's lifecycle (Module 5, slide 37).</td></tr>
+      <tr><td>Optional: env vars, Secret Manager references, a network attachment</td><td><b>Networking and secrets.</b> Secrets resolved from Secret Manager (same project); Private Service Connect interface for egress to your VPC or on-prem; VPC Service Controls; CMEK.</td></tr>
+      <tr><td><code>GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true</code></td><td><b>Telemetry.</b> One env var turns on Cloud Trace spans, Cloud Logging (prompt and response content optional), and Cloud Monitoring metrics for the deployment (Module 3).</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note red"><span class="kk">Correction: "sessions, memory built in"</span><p>Sessions and Memory Bank are <b>Agent Platform services</b>, not runtime features. Their parent resource is a <code class="i">reasoningEngines/NNN</code> instance, and the docs are explicit that the instance can be empty: "You don't need to deploy any code to start using Sessions... creating an Agent Runtime instance only takes a few seconds without code deployment." Memory Bank's setup page has the same path for "a different environment, like Cloud Run or Colab."</p>
+    <p>So an agent on Cloud Run, GKE, or a laptop uses them by passing that instance id: <code class="i">VertexAiSessionService(project, location, agent_engine_id)</code>, same for <code class="i">VertexAiMemoryBankService</code>. Slide 11 already lists managed Sessions as a Cloud Run feature. And neither is required anywhere: ADK's session and memory services are interfaces, with <code class="i">InMemorySessionService</code> and <code class="i">DatabaseSessionService</code> (SQLite, Postgres) as the non-managed implementations.</p>
+    <p>What deploying to Agent Runtime actually adds here is <b>wiring</b>: an ADK agent deployed there gets Sessions and Memory Bank pointed at its own instance with no configuration.</p></div>
+
+  <div class="ex"><span class="kk">Example</span><p>A two-person team has a Python ADK support agent and no one who runs infrastructure. On Cloud Run they write a Dockerfile, expose a server, set ingress and an invoker role, and choose where sessions live. On Agent Runtime, <code class="i">agents-cli deploy</code> uploads the pickle and requirements; ten minutes later the agent answers at its <code class="i">reasoningEngines</code> endpoint with sessions on its own instance, and one env var gives them traces. Six months on security wants the agent behind the company load balancer with its own domain and a Cloud Armor policy, which needs a URL the team owns; that is the point at which the target changes to Cloud Run or GKE, and the Sessions instance comes along unchanged via <code class="i">agent_engine_id</code>.</p></div>
+
+  <div class="takeaway"><b>Takeaway:</b> Agent Runtime hosts the agent process (build, serve, scale, identity, private network, telemetry); Sessions and Memory Bank are separate services any host can call, so they do not decide the target.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/vertex-ai-name-changes">name changes</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/runtime">Agent Runtime</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">deploy an agent</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/runtime-contract">runtime contract</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/use-an-agent">use an agent</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/agent-identity">Agent Identity</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/private-service-connect-interface">PSC interface</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing">telemetry</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sessions/manage-with-adk">Sessions with ADK</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/setup">Memory Bank setup</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s10">
+  <h1><span class="n">10</span>Agent Platform Agent Runtime <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Languages: Python, TypeScript, Go, Java · hardware acceleration · state management: Sessions and Memory Bank · agent orchestration in a managed environment."</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Row</th><th>Say instead</th></tr></thead>
+    <tbody>
+      <tr><td>Languages</td><td>Python (<code>adk</code>) and Go (<code>adkgo</code>) are first-class; Java and TypeScript only by bringing your own container.</td></tr>
+      <tr><td>Hardware acceleration</td><td>Not a selection criterion for an agent (below). Your agent code runs on <b>CPU</b>: 1–8 vCPU, 1–32 GiB, min 0–10 and max up to 1000 instances, scales to zero. Inference happens at the model endpoint.</td></tr>
+      <tr><td>"State management"</td><td>Two services (below). Call the row <b>context management</b>.</td></tr>
+      <tr><td>"Orchestration"</td><td>Here: the runtime executing your agent loop. Module 3 uses the word for multi-agent control flow. Say which.</td></tr>
+      <tr><td>Sandbox</td><td>Code Execution (under Sandboxes) is Pre-GA.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">Two deployments, not one</span>An ADK agent is a loop that calls a model endpoint and tools and reads and writes a session: I/O-bound CPU work on every target. The model is a separate deployment: the Gemini API, or a model you serve yourself on GPUs. The deck's <b>Hardware acceleration</b> row (slides 10, 11, 12) compares targets for the second deployment, so it does not separate the three for the workload this module is about. Say in one sentence that none of the three needs an accelerator to run an agent, and move on; a GPU in the agent's own container matters only when a self-hosted model shares the container, and that is a serving decision.</div>
+  <figure>
+    <svg viewBox="0 0 900 200" width="900" height="200" role="img" aria-label="Session versus Memory Bank">
+      <defs><marker id="b10" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <rect x="20" y="20" width="400" height="160" rx="9" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="36" y="44" font-family="var(--sans)" font-size="14" font-weight="600" fill="var(--ink)">Session: one conversation (Monday)</text>
+      <g font-family="var(--mono)" font-size="12.5" fill="var(--ink)">
+        <rect x="36" y="56" width="368" height="24" rx="4" fill="var(--bg)" stroke="var(--line)"/><text x="46" y="72">user: "where's my order?"</text>
+        <rect x="36" y="86" width="368" height="24" rx="4" fill="var(--bg)" stroke="var(--line)"/><text x="46" y="102">tool: track_shipment(6041) → out for delivery</text>
+        <rect x="36" y="116" width="368" height="24" rx="4" fill="var(--bg)" stroke="var(--line)"/><text x="46" y="132">model: "It's out for delivery today."</text>
+      </g>
+      <text x="36" y="166" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)">events + state · VertexAiSessionService · ends with the chat</text>
+      <line x1="422" y1="100" x2="476" y2="100" stroke="#5f6368" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#b10)"/>
+      <text x="449" y="92" font-family="var(--sans)" font-size="11" fill="var(--ink-3)" text-anchor="middle">extract</text>
+      <rect x="480" y="20" width="400" height="160" rx="9" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.6"/>
+      <text x="496" y="44" font-family="var(--sans)" font-size="14" font-weight="600" fill="var(--ink)">Memory Bank: facts about this user (any day)</text>
+      <g font-family="var(--mono)" font-size="12.5" fill="var(--ink)">
+        <rect x="496" y="56" width="368" height="24" rx="4" fill="var(--bg)" stroke="var(--line)"/><text x="506" y="72">"asked about order 6041 on Monday"</text>
+        <rect x="496" y="86" width="368" height="24" rx="4" fill="var(--bg)" stroke="var(--line)"/><text x="506" y="102">"prefers email over SMS"</text>
+        <rect x="496" y="116" width="368" height="24" rx="4" fill="var(--bg)" stroke="var(--line)"/><text x="506" y="132">"ships to a PO box"</text>
+      </g>
+      <text x="496" y="166" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)">GenerateMemories / CreateMemory · read by load_memory · persists</text>
+    </svg>
+    <figcaption>Thursday's "did it arrive?" is a new session with an empty event list; with Memory Bank the agent can preload Monday's context and answer without asking which order.</figcaption>
+  </figure>
+  <div class="takeaway"><b>Takeaway:</b> Agent Runtime runs your agent on CPU with managed scaling; the model runs elsewhere; "state" is two services with two jobs.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">deploy options</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank">Memory Bank</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/runtime">languages</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s11">
+  <h1><span class="n">11</span>Cloud Run <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Agent sandbox: isolate untrusted code with GKE Sandbox."</p>
+  <div class="note red"><span class="kk">Correction</span>GKE Sandbox is a GKE node feature and does not apply to Cloud Run. The sandbox Cloud Run already has (gen1: gVisor; gen2: microVM) is the wrong boundary for this claim: it isolates your container from the host and other tenants, not model-generated code from your agent. Code the agent runs with <code class="i">subprocess</code> inside the container sees the agent's filesystem, environment variables, and the service-account credentials on the metadata server.</div>
+  <div class="note blue"><span class="kk">What the slide was reaching for</span><b>Cloud Run sandboxes</b> (Preview, July 2026): a second boundary inside the running instance. <code class="i">sandbox do -- python script.py</code> runs with a read-only view of the container filesystem, a write overlay that is discarded afterward, no environment variables, no metadata server, and no egress unless requested. ADK 2.7.1 wires it in as <code class="i">CloudRunSandboxCodeExecutor</code> (<code class="i">google.adk.integrations.cloud_run</code>), network off and a 300 s timeout by default.</div>
+  <h2><span class="k"></span>Where model-generated code can run</h2>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Boundary</th><th>What it isolates</th><th>ADK executor</th><th>Stage</th></tr></thead>
+    <tbody>
+      <tr><td>Gemini built-in code execution</td><td>Google-side sandbox; Python only, 30 s cap, no package installs</td><td><code class="i">BuiltInCodeExecutor</code></td><td>GA</td></tr>
+      <tr><td>Agent Runtime Code Execution sandbox</td><td>managed sandbox spawned by the agent; Python or JavaScript; state kept up to 14 days, files up to 100 MB</td><td><code class="i">AgentEngineSandboxCodeExecutor</code></td><td>Preview</td></tr>
+      <tr><td>Cloud Run sandboxes</td><td>boundary inside the instance; any language; no env, secrets, metadata server, or egress by default</td><td><code class="i">CloudRunSandboxCodeExecutor</code></td><td>Preview</td></tr>
+      <tr><td>GKE Agent Sandbox</td><td>gVisor pod per sandbox with default-deny network policy (slide 12)</td><td><code class="i">GkeCodeExecutor</code></td><td>GA, May 2026</td></tr>
+      <tr><td>The agent's own process</td><td>nothing</td><td><code class="i">UnsafeLocalCodeExecutor</code></td><td>dev only</td></tr>
+    </tbody>
+  </table></div>
+  <div class="grid c4">
+    <div class="cell green"><h4>Any container</h4><p>Java and TypeScript ADK agents deploy as-is, no runtime contract to meet (slide 10)</p></div>
+    <div class="cell green"><h4>Sessions</h4><p>can use the managed Agent Platform Sessions backend</p></div>
+    <div class="cell green"><h4>IAP</h4><p>attaches directly with <code class="i">--iap</code> (GA)</p></div>
+    <div class="cell green"><h4>Long turns</h4><p>request timeout up to 60 minutes</p></div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> the instance sandbox protects the platform from your container; it does not protect your agent from code the model wrote. Every runtime needs a second boundary for that, and Cloud Run now has one. Pick Agent Runtime when you also want Agent Identity and Sessions wired in with no server to own (slide 9).</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/run/docs/code-execution">Cloud Run sandboxes</a> · <a href="https://cloud.google.com/blog/topics/developers-practitioners/google-cloud-run-sandboxes-are-in-public-preview">announcement</a> · <a href="https://docs.cloud.google.com/run/docs/configuring/execution-environments">execution environments</a> · <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/sandbox">Agent Platform sandboxes</a> · <a href="https://ai.google.dev/gemini-api/docs/code-execution">Gemini code execution</a> · <a href="https://docs.cloud.google.com/kubernetes-engine/docs/how-to/agent-sandbox">GKE Agent Sandbox</a> · <a href="https://adk.dev/integrations/">ADK integrations</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s12">
+  <h1><span class="n">12</span>Google Kubernetes Engine <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Pod Snapshots: instantly save/restore agent memory states to reduce latency."</p>
+  <div class="note red"><span class="kk">Correction</span>Pod Snapshots (GA May 2026) checkpoint a running pod's memory, CPU and GPU state, and filesystem to Cloud Storage so new replicas skip initialization. They cut cold-start time for heavy startup (a local model); they are not conversational memory. They require GKE Sandbox.</div>
+  <div class="grid c2">
+    <div class="cell"><h4>Use GKE when</h4><p>the team already runs Kubernetes, or needs custom isolation and networking policy; co-hosting a self-served model is a serving decision, not an agent one (slide 10)</p></div>
+    <div class="cell green"><h4>Isolating model-generated code</h4><p><b>Agent Sandbox</b> (<code class="i">kubernetes-sigs/agent-sandbox</code>, gVisor or Kata backends; GA May 2026), the GKE row in slide 11's table; <code class="i">GkeCodeExecutor</code> in sandbox mode uses it</p></div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> GKE is for teams that already run Kubernetes or need custom isolation and networking; Pod Snapshots are about startup time, not memory.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots">Pod Snapshots</a> · <a href="https://agent-sandbox.sigs.k8s.io">Agent Sandbox</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s13"><h1><span class="n">13</span>Topics <span class="bdg skip">Skip</span></h1></section>
+
+<section class="page" id="s14">
+  <h1><span class="n">14</span>CI/CD tooling on Google Cloud</h1>
+  <p class="claim">"Artifact Registry · Cloud Build · Cloud Deploy · Secret Manager."</p>
+  <div class="grid c4">
+    <div class="cell"><h4>Artifact Registry</h4><p>stores the built image; scans on push</p></div>
+    <div class="cell"><h4>Cloud Build</h4><p>runs build → tests → eval → push → deploy</p></div>
+    <div class="cell"><h4>Cloud Deploy</h4><p>staged promotion for Cloud Run and GKE; Agent Runtime via custom target</p></div>
+    <div class="cell"><h4>Secret Manager</h4><p>tool credentials; the model API key if not using ADC</p></div>
+  </div>
+</section>
+
+<section class="page" id="s15">
+  <h1><span class="n">15</span>Artifact Registry <span class="bdg skip">Generic</span></h1>
+  <p class="claim">"Fully managed artifact repository… Docker images, binaries, AAR/APK/JAR… vulnerability scanning."</p>
+  <p>One line, skip the format list.</p>
+  <div class="note gray"><span class="kk">Addition (not in the deck)</span>Neither the slide nor its notes say how to tag images. The useful specific to add: tag with the commit (<code class="i">agent:$COMMIT_SHA</code>) so the image a deployment is running names the commit it was built from. The deck's slide 29 pipeline pushes an untagged image, so every build overwrites <b>latest</b>.</div>
+  <div class="ex"><span class="kk">Example</span><p>Priya's instruction edit merges as commit <code class="i">a3f9c1e</code>; the pipeline builds and deploys <code class="i">agent:a3f9c1e</code>. Two days later refunds on unshipped orders start going through. <code class="i">gcloud run revisions list</code> shows the serving revision runs <b>agent:a3f9c1e</b>, so <code class="i">git show a3f9c1e</code> is the one-paragraph instruction diff to read, and <code class="i">gcloud run deploy lab-agent --image ...agent:7c02b4d</code> puts the previous build back while it is fixed. With <b>latest</b>, the revision says <b>agent:latest</b> for every build; finding the commit means matching build timestamps to the git log, and the previous build's image has no name, only a digest to hunt for in the registry.</p></div>
+</section>
+
+<section class="page" id="s16">
+  <h1><span class="n">16</span>Cloud Build</h1>
+  <p class="claim">"Executes build steps in response to triggers · serverless · compile, build image, run tests, deploy."</p>
+  <p>Present as-is. In the agent pipeline the "run tests" step is <code class="i">pytest</code> <b>and</b> <code class="i">adk eval</code>; a non-zero exit from either stops the build before push and deploy (slide 29).</p>
+  <div class="ex"><span class="kk">Example</span><p>Priya merges a PR to <code class="i">main</code> that changes the refund agent's model id from <code class="i">gemini-2.5-flash</code> to a newer model and rewords two lines of its instruction. A Cloud Build trigger on pushes to <code class="i">main</code> starts the four-step build from slide 29. Step 1 builds the image tagged <code class="i">agent:&lt;commit&gt;</code>. Step 2 runs <code class="i">pytest</code> (green: nothing the unit tests cover changed) and then <code class="i">adk eval</code> against the 40-case set; the new model handles the reworded instruction differently and five cases fall below the tool-trajectory threshold in <code class="i">test_config.json</code>. <code class="i">adk eval</code> exits non-zero, so Cloud Build marks the build <b>Failed</b> at step 2 and never runs step 3 or 4: no image is pushed and the revision serving traffic is the one from the previous commit. The build history entry links to the commit and the step 2 log names the five cases. Priya adjusts the instruction, pushes, and the trigger fires again; this time all four steps pass and the tagged image is deployed.</p>
+  <p>Two things this step does that a unit-test step does not: it calls the model, so it costs tokens and takes minutes rather than seconds, and it can fail because the model endpoint returned a quota error rather than because the code is wrong. Read the step log before assuming a regression.</p></div>
+</section>
+
+<section class="page" id="s17">
+  <h1><span class="n">17</span>Cloud Deploy <span class="bdg add">Add</span></h1>
+  <p class="claim">"Supports deployment pipelines for GKE and Cloud Run."</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Target</th><th>Cloud Deploy support</th></tr></thead>
+    <tbody>
+      <tr><td>Cloud Run</td><td class="yes">native target</td></tr>
+      <tr><td>GKE, attached clusters</td><td class="yes">native target</td></tr>
+      <tr><td>Agent Runtime</td><td><b>custom target type</b> that runs <code>agents-cli deploy</code> or the SDK; or call the deploy from a Cloud Build step and skip Cloud Deploy</td></tr>
+    </tbody>
+  </table></div>
+  <div class="takeaway"><b>Takeaway:</b> Cloud Deploy gives staged promotion with approvals; for Agent Runtime that means a custom target.</div>
+  <div class="src">Source: <a href="https://docs.cloud.google.com/deploy/docs/overview">Cloud Deploy overview</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s18">
+  <h1><span class="n">18</span>Secret Manager</h1>
+  <p class="claim">"Store, manage, and audit credentials · versioning and rotation · never store secrets in source code."</p>
+  <p>Present as-is. An agent's secrets: credentials for each tool it calls (database password, partner API key), and the model API key only when not using Application Default Credentials.</p>
+  <pre class="code">agents-cli deploy --secrets "API_KEY=my-api-key,DB_PASS=db-password:2"   <span class="cm"># secret → env var at deploy time</span></pre>
+  <div class="ex"><span class="kk">Example</span><p>Priya's refund agent has one tool that calls the payments provider's refund endpoint with an API key. The key is in Secret Manager as <code class="i">payments-api-key</code>; the repository holds only that name. The pipeline deploys with <code class="i">agents-cli deploy --secrets "PAYMENTS_API_KEY=payments-api-key:3"</code> and the tool reads <code class="i">os.environ["PAYMENTS_API_KEY"]</code>. The service account the agent runs as (slide 9) has <code class="i">roles/secretmanager.secretAccessor</code> on that one secret and nothing else. When the provider rotates keys, Priya runs <code class="i">gcloud secrets versions add payments-api-key --data-file=-</code> with the new key, which becomes version <b>4</b>, redeploys with <code class="i">:4</code>, checks that a test refund goes through, then disables version 3. No commit, no rebuild: the diff is one version number in the deploy command, and the previous version is still there to switch back to if the new key was pasted wrong. When security asks who has read the key in the last 90 days, the Secret Manager audit log lists every <b>AccessSecretVersion</b> call by principal and time (data access logging has to be turned on for that; it is off by default). The same key in a <code class="i">.env</code> file would be in every clone and in the git history from the day it was added, rotating it would mean a commit, a rebuild, and a redeploy, and nothing would record who had read it.</p></div>
+</section>
+
+<section class="page" id="s19">
+  <h1><span class="n">19</span>IaC / Terraform</h1>
+  <p class="claim">"Define repeatable, version-controlled agent infrastructure: Cloud Run services, IAM, Cloud Build triggers, Artifact Registry repos."</p>
+  <p>Present as-is. Detail students meet in the lab: the Agent Runtime resource is <code class="i">google_vertex_ai_reasoning_engine</code> with <code class="i">lifecycle.ignore_changes</code> on the container and source spec, so Terraform owns the infrastructure and the pipeline owns the agent version.</p>
+</section>
+
+<section class="page" id="s20">
+  <h1><span class="n">20</span>Source management: repositories</h1>
+  <p class="claim">"Versioning is critical for agents · single source of truth · version prompts as artifacts."</p>
+  <div class="note blue"><span class="kk">Key point</span>The instruction, tool definitions, model id, generation config, and eval set are files in the repository, versioned like any code. The slide singles out prompts because a few lines of instruction can change behavior substantially, so instruction diffs get the same review as logic diffs, and the eval score is recorded per commit.</div>
+  <div class="ex"><span class="kk">Example</span><p>Support reports the agent stopped offering exchanges. <code class="i">git log app/instruction.md</code> shows commit <code class="i">a1b3f</code> ("tighten refund wording") three days ago; that commit's CI record shows tool-call accuracy 0.94 → 0.82. Revert, redeploy the previous image tag. Rollback is the same as for any service: the prior image (Cloud Run revision, or redeploy on Agent Runtime).</p></div>
+  <div class="takeaway"><b>Takeaway:</b> version instruction, tools, and eval set with the code and record the eval score per commit, so a behavioral regression is a diff you can find.</div>
+</section>
+
+<section class="page" id="s21">
+  <h1><span class="n">21</span>Model governance for agents <span class="bdg skip">Compress</span></h1>
+  <p class="claim">"Register custom models in Model Registry · semantic versioning · approval gates · lineage: training data, hyperparameters."</p>
+  <p>Written for teams that train their own models. For an agent on a foundation model, two rules:</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Pin the model id per environment.</b> An alias like <code class="i">gemini-flash-latest</code> resolves to different versions over time and across regions.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Treat a model upgrade as a release:</b> change the id in the repo, run the eval set, compare with baseline, canary. Families retire on a schedule (Gemini 2.5: October 2026).</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span><p>Staging pins <code class="i">gemini-2.5-flash</code>; production uses <code class="i">gemini-flash-latest</code>. In August the alias moves to a newer version; production's tool-call formatting changes and staging never showed it.</p></div>
+  <div class="takeaway"><b>Takeaway:</b> pin the model id, and upgrade it through the pipeline like any other change.</div>
+</section>
+
+<section class="page" id="s22">
+  <h1><span class="n">22</span>Model governance: deployment and isolation <span class="bdg skip">Fold into 21</span></h1>
+  <p class="claim">"Dev/staging/prod model versions · canary · rollback · shadow traffic · offline eval before rollout."</p>
+  <p>The keeper is "offline eval before rollout, then canary"; Module 4 covers it.</p>
+</section>
+
+<section class="page" id="s23">
+  <h1><span class="n">23</span>A2A discovery strategies <span class="bdg skip">Skip</span></h1>
+  <p class="claim">"Well-known URI · curated registries · direct configuration."</p>
+  <p>Multi-agent architecture, not CI/CD. If asked: the platform has an Agent Registry, and <code class="i">agents-cli publish</code> registers a deployed agent with Gemini Enterprise.</p>
+</section>
+
+<section class="page" id="s24">
+  <h1><span class="n">24</span>Tool catalog governance</h1>
+  <p class="claim">"Strict schemas · retry policies and circuit breakers · least privilege · log every invocation with agent ID, model version, user context."</p>
+  <div class="grid">
+    <div class="cell"><h4>Schema and docstring</h4><p>what the model reads to decide when and how to call the tool; a vague description produces wrong calls; review like code</p></div>
+    <div class="cell"><h4>Least privilege per environment</h4><p>the dev credential for a tool must not reach production data</p></div>
+    <div class="cell"><h4>Log every invocation</h4><p>agent id, model version, user id: audit trail, and later the cost-attribution key</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span><p><code class="i">issue_refund(order_id, amount)</code> is described as "Refund an order." The model calls it for a customer asking about refund <i>policy</i>. Changing the description to "Issue a refund. Only call after the customer confirms and the order status is delivered" removes the false calls in the eval set. Only the docstring changed.</p></div>
+  <div class="takeaway"><b>Takeaway:</b> the tool's description and schema are what the model decides from, so they are reviewed like code; least privilege per tool bounds what a wrong call can do.</div>
+</section>
+
+<section class="page" id="s25">
+  <h1><span class="n">25</span>Central tool registry and MCP</h1>
+  <p class="claim">"MCP standardizes how agents discover and call tools · publish an API as an MCP server via Apigee or host on Cloud Run."</p>
+  <div class="grid c2">
+    <div class="cell green"><h4>Apigee</h4><p>exposes an existing API as an MCP server with no code (MCP Discovery Proxy template)</p></div>
+    <div class="cell green"><h4>MCP Toolbox for Databases</h4><p>open source (<code class="i">googleapis/mcp-toolbox</code>): governed access to Cloud SQL, AlloyDB, Spanner, BigQuery without a hand-written tool per query</p></div>
+  </div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/apigee/docs/api-platform/apigee-mcp/apigee-mcp-overview">Apigee MCP</a> · <a href="https://github.com/googleapis/mcp-toolbox">MCP Toolbox</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s26"><h1><span class="n">26</span>Topics <span class="bdg skip">Skip</span></h1></section>
+
+<section class="page" id="s27">
+  <h1><span class="n">27</span>Cloud Build automation</h1>
+  <p class="claim">"cloudbuild.yaml · GitHub / GitLab / Bitbucket · triggers on push, tag, PR, manual, Pub/Sub, webhook."</p>
+  <p>Present as-is. The trigger for the eval gate is <b>pull request</b>: block the merge, not just the deploy.</p>
+</section>
+
+<section class="page" id="s28">
+  <h1><span class="n">28</span>Substituting build variable values <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Default substitutions: $PROJECT_ID, $BUILD_ID, $COMMIT_SHA, $BRANCH_NAME, $TAG_NAME, $PROJECT_NUMBER, $REVISION_ID."</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Any build</th><th>Trigger-started builds only</th></tr></thead>
+    <tbody><tr><td class="m">$PROJECT_ID $PROJECT_NUMBER $BUILD_ID $LOCATION</td><td class="m">$COMMIT_SHA $REVISION_ID $SHORT_SHA $BRANCH_NAME $TAG_NAME $TRIGGER_NAME</td></tr></tbody>
+  </table></div>
+  <div class="note"><span class="kk">Caveat</span>A manual <code class="i">gcloud builds submit</code> has no commit context, so <code class="i">$COMMIT_SHA</code> is empty and an image tagged with it gets an empty tag. User-defined substitutions start with an underscore.</div>
+  <div class="src">Source: <a href="https://docs.cloud.google.com/build/docs/configuring-builds/substitute-variable-values">substitutions</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s29">
+  <h1><span class="n">29</span>cloudbuild.yaml to deploy an agent to Cloud Run <span class="bdg fix">Correction</span></h1>
+  <p class="claim">Build image → push → <code class="i">gcloud run deploy lab-agent … --project ${_PROJECT_ID}</code>.</p>
+  <div class="numrows">
+    <div class="numrow bad"><div class="n">1</div><div class="body">the deploy step uses <code class="i">${_PROJECT_ID}</code>, an undefined user substitution, while the build step uses the built-in <code class="i">$PROJECT_ID</code></div></div>
+    <div class="numrow bad"><div class="n">2</div><div class="body">the image has no tag, so every build overwrites <code class="i">latest</code></div></div>
+    <div class="numrow bad"><div class="n">3</div><div class="body">there is no eval step</div></div>
+  </div>
+  <p class="codelabel good">Fixed pipeline</p>
+  <pre class="code"><span class="chg">substitutions:
+  _DEPLOY_PROJECT_ID: "my-deploy-project"
+  _REGION: "us-central1"
+  _REPO: "my-repo"
+</span>
+steps:
+  <span class="cm"># 1. build, tagged with the commit</span>
+  - name: gcr.io/cloud-builders/docker
+    args: ["build","-t","$_REGION-docker.pkg.dev/<span class="chg">$PROJECT_ID</span>/$_REPO/agent:<span class="chg">$COMMIT_SHA</span>","."]
+  <span class="cm"># 2. tests and evals; non-zero exit stops the build</span>
+  - name: python:3.12
+    entrypoint: bash
+    args:
+      - "-c"
+      - |
+        pip install -q -r requirements.txt google-adk pytest
+        pytest tests/unit
+        <span class="chg">adk eval app/ tests/eval/full.evalset.json --config_file_path tests/eval/test_config.json</span>
+  <span class="cm"># 3. push the tagged image before deploy</span>
+  - name: gcr.io/cloud-builders/docker
+    args: ["push","$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent:$COMMIT_SHA"]
+  <span class="cm"># 4. deploy to the deploy project, non-interactively</span>
+  - name: gcr.io/cloud-builders/gcloud
+    args: ["run","deploy","lab-agent",
+           "--image","$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent:$COMMIT_SHA",
+           "--region","$_REGION",
+           "--project","<span class="chg">$_DEPLOY_PROJECT_ID</span>",
+           "<span class="chg">--quiet</span>"]
+
+<span class="cm"># declared so Cloud Build tracks the tagged image as this build's artifact</span>
+images:
+  - "$_REGION-docker.pkg.dev/$PROJECT_ID/$_REPO/agent:$COMMIT_SHA"</pre>
+  <p class="small">Declare <code class="i">_DEPLOY_PROJECT_ID</code>, <code class="i">_REGION</code>, and <code class="i">_REPO</code> in <code class="i">substitutions</code> with defaults so the deploy target is explicit rather than an undefined variable, and override <code class="i">_DEPLOY_PROJECT_ID</code> per trigger when the build project and deploy project differ. <code class="i">--quiet</code> suppresses the interactive prompt so the deploy step doesn't hang in CI. For Agent Runtime, step 4 is <code class="i">agents-cli deploy</code> (no <code class="i">gcloud</code> deploy command exists for it); thresholds live in <code class="i">test_config.json</code>.</p>
+  <div class="takeaway"><b>Takeaway:</b> tag the image with the commit, declare substitutions (including the deploy project) explicitly instead of leaving them undefined, run the eval before push and deploy, and deploy with <code class="i">--quiet</code> so the pipeline never waits on a prompt.</div>
+  <div class="src">Sources: <a href="https://adk.dev/deploy/agent-runtime/agents-cli/">agents-cli deploy</a> · <a href="https://docs.cloud.google.com/build/docs/build-config-file-schema">cloudbuild.yaml schema</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s30">
+  <h1><span class="n">30</span>Cloud Build worker pools</h1>
+  <p class="claim">"Default pool vs private pools · both managed, scale to zero · private pools add VPC access and static IPs."</p>
+  <p>Present as-is. A private pool is needed when a build step must reach a private resource, for example an eval step calling a tool backed by a Cloud SQL instance with a private IP.</p>
+</section>
+
+<section class="page" id="s31">
+  <h1><span class="n">31</span>Cloud Build worker pool features <span class="bdg fix">Correction</span></h1>
+  <p class="claim">"Max concurrent builds: default 30 / private 100+ · machine types: 5 / 64."</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Feature</th><th>Default pool</th><th>Private pool</th></tr></thead>
+    <tbody>
+      <tr><td>Concurrent builds per region</td><td class="no">10–30, not increasable</td><td class="yes">higher, increasable</td></tr>
+      <tr><td>Machine family</td><td>E2 only</td><td>C3, E2, N2D</td></tr>
+      <tr><td>Reach private VPC resources</td><td class="no">no</td><td class="yes">yes</td></tr>
+    </tbody>
+  </table></div>
+  <div class="takeaway"><b>Takeaway:</b> the default pool is fine until you need private-network access or more than about 30 concurrent builds in a region; then it is a private pool, not a quota request.</div>
+  <div class="src">Source: <a href="https://docs.cloud.google.com/build/quotas">Cloud Build quotas</a> (verified 2026-08-25).</div>
+</section>
+
+<section class="page" id="s32"><h1><span class="n">32</span>Topics <span class="bdg skip">Skip</span></h1></section>
+
+<section class="page" id="s33">
+  <h1><span class="n">33</span>Lab: CI/CD pipelines for agents with Terraform and Cloud Build</h1>
+  <p class="claim">"Set up GitHub and test locally · Terraform the pipeline · trigger build and deploy to Cloud Run · modify code and verify redeploy · add tests."</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p>The lab deploys to <b>Cloud Run</b>: the deploy step is <code class="i">gcloud run deploy</code>, not <code class="i">agents-cli deploy</code>. Say so before they start.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p>The last step, "add tests," is where the eval gate from slide 29 goes.</p></div>
+  </div>
+</section>
+
+<section class="page" id="s34"><h1><span class="n">34</span>Questions and answers <span class="bdg skip">Skip</span></h1></section>
+<section class="page" id="s35"><h1><span class="n">35</span>Thank you <span class="bdg skip">Skip</span></h1></section>
+</div>
+<div class="bar">
+  <div class="name"><a href="index.html">Agent Operations companion</a> &middot; Module 2 · CI/CD for Agent Deployments</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous slide">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next slide">&#8594;</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; slide number = deck page</div>
+</div>
+<script>
+(function(){
+  var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+  var stage = document.getElementById('stage');
+  var i = 0, cnt = document.getElementById('cnt');
+  function clamp(n){ return Math.max(0, Math.min(pages.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    pages.forEach(function(p,k){ p.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + pages.length;
+    stage.scrollTop = 0;
+    if (history.replaceState) history.replaceState(null,'','#s'+String(i+1).padStart(2,'0'));
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') { show(0); e.preventDefault(); }
+    else if (e.key==='End') { show(pages.length-1); e.preventDefault(); }
+  });
+  function fromHash(){
+    var m = (location.hash||'').match(/s?(\d+)/);
+    show(m ? parseInt(m[1],10)-1 : 0);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>

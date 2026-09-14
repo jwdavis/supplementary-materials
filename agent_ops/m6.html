@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>M6 — Applying FinOps to Agent Costs</title>
+<style>
+  /* ===== agent_ops deck skeleton. Copy this <style>, the .bar/.notes chrome and the
+     <script> verbatim into every deck. Do not restyle per deck. ===== */
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed; --term-bg:#202124; --term-ink:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414; --term-bg:#111; --term-ink:#e8eaed;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+
+  /* ---- stage: one page visible at a time; the page scrolls when taller than the viewport ---- */
+  .stage{position:fixed;inset:0 0 54px 0;overflow-y:auto;overflow-x:hidden;}
+  .page{display:none;position:relative;max-width:1120px;margin:0 auto;padding:44px 56px 76px;background:var(--bg);min-height:100%;}
+  .page.on{display:block;}
+  @media (min-width:1200px){ .page{margin:22px auto;min-height:calc(100% - 44px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);} }
+  .page .conf{position:absolute;top:14px;right:22px;font-size:11px;color:var(--ink-3);letter-spacing:.02em;}
+  .page .gcloud{position:absolute;bottom:18px;right:26px;font-size:15px;color:var(--ink-2);font-weight:500;}
+  .gcloud .g1{color:#4285f4}.gcloud .g2{color:#ea4335}.gcloud .g3{color:#fbbc04}.gcloud .g4{color:#4285f4}.gcloud .g5{color:#34a853}.gcloud .g6{color:#ea4335}
+
+  /* ---- type ---- */
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .lede{margin:12px 0 0;font-size:20px;color:var(--ink-2);line-height:1.5;border-left:3px solid var(--g-blue);padding-left:14px;}
+  h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  /* ---- epistemic tags: put one on every number or rule on the page face ---- */
+  .tag{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:3px;text-transform:uppercase;white-space:nowrap;}
+  .tag.limit{color:var(--g-red-deep);background:var(--fill-red);}       /* service limit: hard, documented, enforced */
+  .tag.guide{color:var(--g-blue-deep);background:var(--fill-blue);}     /* documentation guidance: recommended, not enforced */
+  .tag.heur{color:var(--g-yellow-deep);background:var(--fill-yellow);}  /* heuristic: workload-dependent rule of thumb */
+  .tag.illus{color:var(--g-green-deep);background:var(--fill-green);}   /* illustrative measurement: one scenario */
+  .tag.model{color:var(--ink-2);background:var(--fill-gray);}           /* mental model: a simplification */
+
+  /* ---- callouts ---- */
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.green{background:var(--fill-green);border-left-color:var(--g-green);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;color:var(--g-yellow-deep);}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.green .kk{color:var(--g-green-deep);} .note.red .kk{color:var(--g-red-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;}
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:20px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway code.i{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* ---- example card: actor, input, mechanism, result ---- */
+  .ex{background:var(--fill-green);border-left:4px solid var(--g-green);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .ex .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-green-deep);margin-bottom:4px;}
+  .ex p{margin:5px 0;} .ex .lbl{font-weight:700;color:var(--g-green-deep);} .ex .lbl.bad{color:var(--g-red-deep);}
+
+  /* ---- check rows ---- */
+  .checks{display:flex;flex-direction:column;margin:8px 0;position:relative;}
+  .checkrow{display:flex;gap:14px;align-items:flex-start;position:relative;padding:7px 0;}
+  .checkrow::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;} .checkrow:only-child::before{display:none;}
+  .cdot{width:24px;height:24px;border-radius:50%;background:var(--g-blue);flex:0 0 24px;position:relative;z-index:1;margin-top:3px;}
+  .cdot::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:4px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .cdot.red{background:var(--g-red);} .cdot.green{background:var(--g-green);} .cdot.gray{background:var(--ink-3);}
+  .checkrow p{margin:2px 0 0;line-height:1.45;}
+
+  /* ---- numbered rows ---- */
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:center;}
+  .numrow .n{font-family:var(--mono);font-size:20px;color:var(--g-blue-deep);width:52px;flex:0 0 52px;font-weight:500;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:18.5px;}
+  .numrow.bad .n{color:var(--g-red-deep);} .numrow.bad .body{border-left-color:var(--g-red);background:var(--fill-red);}
+  .numrow.good .n{color:var(--g-green-deep);} .numrow.good .body{border-left-color:var(--g-green);background:var(--fill-green);}
+  .numrow.plain .body{background:transparent;border-left:none;border-bottom:1px solid var(--line);padding:11px 4px;}
+
+  /* ---- card grid ---- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+  .grid.c2{grid-template-columns:repeat(2,1fr);} .grid.c4{grid-template-columns:repeat(4,1fr);}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:12px 15px;border-top:3px solid var(--g-blue);}
+  .cell.green{border-top-color:var(--g-green);} .cell.red{border-top-color:var(--g-red);} .cell.yellow{border-top-color:var(--g-yellow);} .cell.gray{border-top-color:var(--ink-3);}
+  .cell h4{margin:0 0 4px;font-size:17px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:16px;line-height:1.45;color:var(--ink-2);} .cell p b{color:var(--ink);}
+  @media (max-width:900px){ .grid,.grid.c4{grid-template-columns:1fr 1fr;} }
+
+  /* ---- comparison / decision table ---- */
+  table.cmp{border-collapse:collapse;width:100%;font-size:17.5px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp td.m,table.cmp code{font-family:var(--mono);font-size:15.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  .tscroll{overflow-x:auto;}
+
+  /* ---- code ---- */
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .fn{color:var(--g-yellow-deep);} pre.code .chg{background:var(--fill-yellow);border-radius:3px;padding:0 3px;}
+  pre.term{background:var(--term-bg);color:var(--term-ink);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;}
+  pre.term .flag{color:#8ab4f8;} pre.term .lbl{color:#9aa0a6;}
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 -4px;}
+  .codelabel.bad{color:var(--g-red-deep);} .codelabel.good{color:var(--g-green-deep);}
+
+  /* ---- figures and columns ---- */
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+  .cols{display:flex;gap:28px;align-items:flex-start;margin:10px 0;} .cols>div{flex:1;min-width:0;}
+  .cols.c64>div:first-child{flex:1.6;} .cols.c46>div:last-child{flex:1.6;}
+  @media (max-width:900px){ .cols{flex-direction:column;} }
+  .src{margin-top:26px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+
+  /* ---- divider (module opener and section dividers) ---- */
+  .page.divider{display:none;align-items:center;justify-content:center;}
+  .page.divider.on{display:flex;}
+  .divider .wrap{display:flex;align-items:center;gap:80px;}
+  .shapes{position:relative;width:360px;height:340px;flex:0 0 360px;}
+  .sh{position:absolute;}
+  .sh.green{width:230px;height:130px;border-radius:70px;background:linear-gradient(135deg,#34a853,#188038);left:10px;top:30px;}
+  .sh.yellow{width:110px;height:110px;border-radius:26px;background:linear-gradient(135deg,#fdd663,#fbbc04);left:150px;top:-8px;transform:rotate(18deg);}
+  .sh.red{width:105px;height:105px;border-radius:24px;background:linear-gradient(135deg,#ea4335,#c5221f);left:150px;top:210px;transform:rotate(-8deg);}
+  .sh.blue{width:200px;height:200px;border-radius:50%;background:linear-gradient(135deg,#4285f4,#1a73e8);left:20px;top:80px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--mono);font-size:76px;font-weight:500;}
+  .divider h1{font-size:42px;font-weight:500;color:var(--ink);margin:0;line-height:1.2;max-width:520px;display:block;}
+  .divider .kicker{font-family:var(--mono);font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--g-blue-deep);margin-bottom:12px;}
+  .divider .dsub{font-size:19px;color:var(--ink-2);margin-top:16px;max-width:520px;line-height:1.5;}
+  .divider .agenda{margin-top:22px;max-width:520px;}
+  .divider .agenda .numrow .body{font-size:17.5px;} .divider .agenda .numrow.hot .body{font-weight:600;color:var(--ink);} .divider .agenda .numrow.dim .body{color:var(--ink-3);}
+
+  /* ---- speaker notes: <details class="notes"> follows every page; hidden on screen,
+          mirrored into the flyout (Notes button or N), printed under its page ---- */
+  .stage > details.notes{display:none;}
+  #notes-panel{position:fixed;top:0;right:0;bottom:54px;width:min(480px,92vw);background:var(--bg);color:var(--ink);border-left:1px solid var(--line);box-shadow:-12px 0 32px rgba(0,0,0,.16);display:flex;flex-direction:column;transform:translateX(calc(100% + 40px));transition:transform .22s ease;z-index:60;}
+  #notes-panel.open{transform:none;}
+  #notes-head{display:flex;align-items:center;gap:8px;padding:14px 18px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);flex:none;}
+  #notes-close{margin-left:auto;border:none;background:none;font-size:18px;line-height:1;padding:2px 4px;color:var(--ink-2);cursor:pointer;} #notes-close:hover{color:var(--ink);}
+  #notes-body{flex:1;overflow-y:auto;padding:4px 18px 40px;}
+  #notes-body > ul, .n-body > ul{margin:12px 0 2px;padding-left:20px;display:flex;flex-direction:column;gap:9px;font-size:17px;color:var(--ink-2);line-height:1.5;}
+  #notes-body ul ul, .n-body ul ul{margin-top:8px;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:16px;}
+  #notes-body li::marker, .n-body li::marker{color:var(--ink-3);}
+  #notes-body code, .n-body code{font-family:var(--mono);font-size:.9em;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  .stage > details.notes summary{cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);list-style:none;user-select:none;}
+  .stage > details.notes summary::-webkit-details-marker{display:none;}
+
+  /* ---- bottom bar ---- */
+  .bar{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);color:var(--ink-2);font-size:15px;white-space:nowrap;z-index:70;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;font-weight:500;} .bar .name a{color:var(--ink-2);}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--ink);border-radius:6px;width:38px;height:32px;font-size:17px;cursor:pointer;line-height:1;}
+  .bar button.pill{width:auto;padding:0 12px;font-size:14px;} .bar button.pill[aria-expanded="true"]{background:var(--fill-blue);border-color:var(--g-blue);color:var(--g-blue-deep);}
+  .bar button:hover{background:var(--panel);} .bar .cnt{font-family:var(--mono);font-size:15px;min-width:9ch;text-align:center;} .bar .hint{font-size:14px;color:var(--ink-3);}
+  @media (max-width:820px){ .bar .hint{display:none;} .page{padding:26px 22px 70px;} body{font-size:18.5px;} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;animation:none !important;} }
+
+  /* ---- print: each page followed by its notes ---- */
+  @media print{
+    body{overflow:visible;background:#fff;} .stage{position:static;overflow:visible;}
+    .page{display:block;box-shadow:none;margin:0 auto;min-height:0;page-break-inside:avoid;}
+    .page.divider{display:flex;min-height:600px;}
+    .stage > details.notes{display:block;max-width:1120px;margin:0 auto 28px;border:1px solid var(--line);border-radius:8px;padding:14px 22px;page-break-after:always;page-break-inside:avoid;}
+    .stage > details.notes summary{display:block;margin-bottom:6px;}
+    .bar,#notes-panel{display:none;}
+    .note,.ex,.takeaway,.cell,.tag,pre.term,table.cmp tr.hl td,table.cmp tr.bad td{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="deck">
+
+<!-- ==== 1. MODULE OPENER (divider) ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">06</div><div class="sh red"></div></div>
+    <div>
+      <h1>Applying FinOps to Agent Costs</h1>
+      <div class="dsub">What an agent bills, which levers shrink the bill, and how to prove a cheaper agent is not a worse one. Verified against <b>google-adk 2.9.0</b>; prices from the Agent Platform pricing page on 2026-09-13.</div>
+      <div class="agenda numrows">
+        <div class="numrow plain hot"><div class="n">01</div><div class="body">What is billed, and why input tokens dominate</div></div>
+        <div class="numrow plain"><div class="n">02</div><div class="body">The levers: trim, cache, compact, choose the model</div></div>
+        <div class="numrow plain"><div class="n">03</div><div class="body">Measure per conversation, validate with the eval set</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Module opener">
+  <summary>Speaker notes &mdash; Module opener</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: set the boundary. This module is about the model bill and the levers on it. Infrastructure and observability cost exist and are small by comparison; they get one line on page 3.</li>
+    <li>Delivery beat: ask who has seen a per-conversation cost number for an agent they run. Almost nobody has, and page 16 is where they get one.</li>
+    <li>Every price on these pages is a list price from the pricing page on 2026-09-13 and is tagged illustrative. Tell the room to re-check the page before quoting any number.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 2. OBJECTIVES ==== -->
+<section class="page">
+  <h1>Module objectives</h1>
+  <div class="numrows" style="margin-top:18px;">
+    <div class="numrow"><div class="n">01</div><div class="body">Read an agent&rsquo;s bill: name the billed units, the one multiplier, and the blind spot billing cannot close.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body">Cut the re-sent input: trim tool declarations and retrieval, cache the prefix, compact the history.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body">Choose a model per agent and per request with the eval set, and compute a tuning break-even that includes the tuned-endpoint price.</div></div>
+    <div class="numrow"><div class="n">04</div><div class="body">Run the FinOps loop on Google Cloud: labels, budgets, billing export, and one query for cost per conversation.</div></div>
+  </div>
+</section>
+<details class="notes" data-title="Module objectives">
+  <summary>Speaker notes &mdash; Module objectives</summary>
+  <div class="n-body"><ul>
+    <li>Four capabilities, each one a page range: 3&ndash;5, 6&ndash;10, 11&ndash;13, 14&ndash;17.</li>
+    <li>The source deck&rsquo;s fourth objective mentioned batch inference. Batch is bulk API calls outside the agent loop, so it is out of this module; one note on page 11.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 3. WHAT IS BILLED ==== -->
+<section class="page">
+  <h1>What is billed, what multiplies, what hides</h1>
+  <p class="lede">Dana runs a support agent on Gemini 3.5 Flash. The month-end bill is one line per model. Before touching a lever she needs to know which of the &ldquo;cost drivers&rdquo; are costs at all, and which are the ordinary infrastructure bill wearing a new name.</p>
+  <div class="grid c2">
+    <div class="cell"><h4>Billed units</h4><p><b>Model tokens</b> (input, output, and cached input at a discount) and <b>tool or API calls</b> to other services. These are the lines on the bill.</p></div>
+    <div class="cell yellow"><h4>The one multiplier</h4><p><b>Model tier</b> scales the price of every token by a constant factor. On today&rsquo;s ladder the steps are uneven: Pro is only 1.3&times; Flash, while Flash is 5&times; Flash-Lite. The expensive step is Flash to Flash-Lite, not Flash to Pro. Output costs 6&times; input on every tier.</p></div>
+    <div class="cell"><h4>Multi-agent: shared session or second copy</h4><p>Sub-agents in one ADK app <b>share one session</b>: each re-sends the shared history plus its own, usually smaller, instruction and tools. Routing adds turns, not copies. An <b>A2A remote agent</b> is different: it receives a message, not your session, and runs its own instruction, tools, and history in its own process and project. Its context is a second copy, and its tokens land on its owner&rsquo;s bill.</p></div>
+    <div class="cell gray"><h4>A gap out of the box, closable</h4><p><b>Cost per conversation is not on the bill.</b> Billing aggregates by project, model, and label, never by conversation, so a runaway 40-turn session hides inside the monthly line. Nothing in Cloud Billing closes this. One addition does: per-model-call token rows from the Agent Analytics plugin (pages 15 and 16).</p></div>
+  </div>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Model (global endpoint)</th><th>Input, per 1M tokens</th><th>Output, per 1M tokens</th><th>Cached input, per 1M tokens</th></tr></thead>
+    <tbody>
+      <tr><td>Gemini 3.5 Flash-Lite</td><td class="m">$0.30</td><td class="m">$2.50</td><td class="m">$0.03</td></tr>
+      <tr class="hl"><td>Gemini 3.5 Flash <span class="tag model">ADK 2.9.0 default</span></td><td class="m">$1.50</td><td class="m">$9.00</td><td class="m">$0.15</td></tr>
+      <tr><td>Gemini 3.1 Pro</td><td class="m">$2.00</td><td class="m">$12.00</td><td class="m">$0.20</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">List prices on 2026-09-13 <span class="tag illus">illustrative</span>. Pro input and output double above 200,000 tokens of context.</p>
+  <div class="note gray"><span class="kk">Also on the bill, and not new</span>The machines that run the agent: Agent Runtime vCPU-hours and GiB-hours, Cloud Run or GKE compute, and accelerators if you host a model yourself. That is ordinary FinOps, managed the way it always was. The four cards above are what changes because the workload is an agent, and on a busy agent the token lines dominate the compute lines.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> one day of the support agent&rsquo;s spend.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the billing console shows one Gemini 3.5 Flash line; grouped by the <code class="i">agent</code> label it splits into <code class="i">support</code> and <code class="i">returns</code>.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> neither view can say which conversation cost the most. That answer needs token counts per model call, which only the agent&rsquo;s own event rows carry.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> tokens and tool calls are the bill, model tier is a constant multiplier, multi-agent mostly redistributes tokens, and per-conversation cost is a gap billing cannot close.</div>
+  <div class="src">Sources: <a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">Agent Platform pricing</a> &middot; <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls">custom metadata labels</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="What is billed">
+  <summary>Speaker notes &mdash; What is billed</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source slide listed five &ldquo;drivers&rdquo; as peers. Two are billed units, one is a multiplier, one is a redistribution, one is a visibility gap. Naming them correctly is what makes the levers on later pages make sense.</li>
+    <li>Delivery beat: put the price table up and ask which row surprises them. Most expect Pro to be several times Flash; today it is 1.3&times;. The real tier jump is Flash to Flash-Lite at 5&times;.</li>
+    <li>The source deck (slide 5) called model tier an &ldquo;exponential&rdquo; multiplier. It is a constant per-token factor. Do not repeat the word.</li>
+    <li>Multi-agent: <code>flows/llm_flows/contents.py</code> builds every request from the whole session&rsquo;s events (filtered by branch), so a sub-agent re-sends the shared history. Parallel agents each get their own copy of the context, which is the one case where context is multiplied.</li>
+    <li>Agent Runtime pricing: Agent Compute $0.085 per vCPU-hour after 50 free hours per month, Agent Memory $0.009 per GiB-hour after 100 free; from the same pricing page.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 4. WHERE THE TOKENS GO ==== -->
+<section class="page">
+  <h1>Where the tokens go in one conversation</h1>
+  <p class="lede">Every model call re-sends the instruction, every tool declaration, and the whole conversation so far. Only the answer is new. Dana&rsquo;s agent makes two calls per turn: one to choose a tool, one to answer after the tool result.</p>
+  <figure>
+    <svg viewBox="0 0 1000 210" width="1000" height="210" role="img" aria-label="Input tokens in a 12-turn conversation, split into re-sent prefix, re-sent history, and new tokens">
+      <text x="20" y="24" font-family="var(--sans)" font-size="15" font-weight="600" fill="var(--ink-2)">One 12-turn conversation, 24 model calls, tokens sent and received</text>
+      <rect x="20" y="40" width="322" height="40" fill="var(--g-blue)" opacity=".9"/>
+      <text x="181" y="65" font-family="var(--sans)" font-size="14" fill="#fff" text-anchor="middle">prefix re-sent 24× · 96,000</text>
+      <rect x="342" y="40" width="532" height="40" fill="var(--g-blue)" opacity=".55"/>
+      <text x="608" y="65" font-family="var(--sans)" font-size="14" fill="#fff" text-anchor="middle">history re-sent, growing every turn · 158,400</text>
+      <rect x="874" y="40" width="44" height="40" fill="var(--g-blue)" opacity=".3"/>
+      <text x="896" y="65" font-family="var(--sans)" font-size="13" fill="var(--ink)" text-anchor="middle">13,200</text>
+      <rect x="918" y="40" width="12" height="40" fill="var(--g-green)"/>
+      <text x="936" y="65" font-family="var(--sans)" font-size="13" fill="var(--ink)">3,600</text>
+      <text x="20" y="104" font-family="var(--sans)" font-size="14" fill="var(--ink-2)">blue: input tokens, 267,600 in total · light blue at right: tokens new to this turn (user message, tool call, tool result) · green: output tokens</text>
+      <text x="20" y="140" font-family="var(--sans)" font-size="15" fill="var(--ink)">At Gemini 3.5 Flash prices the input costs <tspan font-family="var(--mono)">$0.40</tspan> and the output <tspan font-family="var(--mono)">$0.03</tspan>: input is 92% of the bill.</text>
+      <text x="20" y="166" font-family="var(--sans)" font-size="15" fill="var(--ink)">Two turns of the same agent cost <tspan font-family="var(--mono)">$0.036</tspan>. Twelve turns cost 12 times as much, not 6, because every turn re-sends the ones before it.</text>
+      <text x="20" y="198" font-family="var(--sans)" font-size="14" font-weight="600" fill="var(--g-blue-deep)">Every lever in this module acts on the blue bar: trim it, cache it, compact it, or send it to a cheaper model.</text>
+    </svg>
+  </figure>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Turn</th><th>Input tokens, both calls</th><th>Output tokens</th><th>Cost at 3.5 Flash</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="m">9,100</td><td class="m">300</td><td class="m">$0.016</td></tr>
+      <tr><td>6</td><td class="m">21,100</td><td class="m">300</td><td class="m">$0.034</td></tr>
+      <tr><td>12</td><td class="m">35,500</td><td class="m">300</td><td class="m">$0.056</td></tr>
+      <tr class="hl"><td>Whole 12-turn conversation, no cache hits</td><td class="m">267,600</td><td class="m">3,600</td><td class="m">$0.434</td></tr>
+      <tr><td>Same 12 turns, implicit cache hit on every call (page 7)</td><td class="m">267,600</td><td class="m">3,600</td><td class="m">$0.097</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s support agent.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> a 4,000-token prefix (instruction plus two tool schemas); each turn adds a 100-token user message, a 100-token tool call, an 800-token tool result, and a 200-token answer to the history.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> both calls in turn 12 carry the prefix plus eleven turns of history.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> turn 12 costs 3.9&times; turn 1, and the conversation costs $0.43 <span class="tag illus">illustrative, computed</span>.</p></div>
+    </div>
+  </div>
+  <div class="note"><span class="kk">The no-cache price is the ceiling</span>The bar and the first four rows are what the tokens cost when nothing is cached. Implicit caching (page 7) bills a matching prefix at 10%, so the same 267,600 tokens can cost as little as $0.065 of input. Real conversations land in between: hits are best effort. The tokens are still sent either way, so the history still grows, still fills the context window, and still adds latency. Caching changes the price of the blue bar; only trimming (page 5) and compaction (page 9) change its size.</div>
+  <div class="takeaway"><b>Takeaway:</b> input dominates because it is re-sent on every call, and it grows with every turn. Caching cuts what the re-sent tokens cost; trimming and compaction cut how many there are.</div>
+  <div class="src">Sources: <a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">Agent Platform pricing</a> (from Gemini 3.5 on, function declarations count as input tokens) &middot; <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/flows/llm_flows/contents.py">contents.py at v2.9.0</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Where the tokens go">
+  <summary>Speaker notes &mdash; Where the tokens go</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the whole module is levers on one bar. Students who leave with this picture can derive the rest.</li>
+    <li>Arithmetic: turn n input = 9,100 + 2,400 &times; (n &minus; 1) across its two calls. Twelve turns: 12 &times; 9,100 + 2,400 &times; 66 = 267,600. Input $ = 267,600 &times; 1.50 / 1M = $0.401; output 3,600 &times; 9.00 / 1M = $0.032. Two turns: 20,600 input and 600 output, $0.036.</li>
+    <li>Delivery beat: ask what a 30-turn conversation costs before showing page 16&rsquo;s answer. The growth is quadratic in turns, which is why the long conversations are the expensive ones.</li>
+    <li>From Gemini 3.5 on, tool declarations are counted as input tokens (pricing page footnote). Earlier models did not count them separately, which is why older material ignores them.</li>
+    <li>Best-case cached row: every call after the first hits on the whole previous request (the prefix that can hit is everything sent so far, page 7), with the 4,096-token minimum applied. Input then costs $0.065; with output, $0.097. Computed in <code>scratchpad</code> on 2026-09-13. Real bills land between the two rows.</li>
+    <li>Not shown: Agent Runtime compute, tool API calls. For this conversation they are a fraction of a cent.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 5. TRIM THE RE-SENT INPUT ==== -->
+<section class="page">
+  <h1>Trim the re-sent input first</h1>
+  <p class="lede">Every token in the prefix is paid for on every call. The cheapest lever is to send fewer of them, and each of these changes is reversible with no model change.</p>
+  <div class="numrows">
+    <div class="numrow"><div class="n">01</div><div class="body"><b>Shorten the instruction.</b> Remove repeated rules and examples the model no longer needs. Move examples the model does need into <code class="i">static_instruction</code>, where caching (page 8) can discount them.</div></div>
+    <div class="numrow"><div class="n">02</div><div class="body"><b>Trim tool declarations.</b> Every tool&rsquo;s full schema (name, description, every parameter) is re-sent on every call. Split the toolset across sub-agents so each carries only its own; filter a toolset with <code class="i">tool_filter</code>; shorten descriptions and drop optional parameters.</div></div>
+    <div class="numrow"><div class="n">03</div><div class="body"><b>Cap the history.</b> Context compaction (page 9) summarizes older events once the prompt crosses a token threshold and keeps the newest ones raw.</div></div>
+    <div class="numrow"><div class="n">04</div><div class="body"><b>Limit retrieval.</b> Retrieval-augmented generation splits documents into chunks of a few hundred tokens, embeds them, and pastes the K most similar into the prompt. Every chunk is input, re-sent each turn: 20 chunks of 500 tokens is 10,000 tokens per call. Lower K to 3&ndash;5, or retrieve broadly, rerank, and keep only the chunks above a relevance threshold.</div></div>
+    <div class="numrow"><div class="n">05</div><div class="body"><b>Ask for structured output.</b> A JSON response schema cuts output tokens, which cost 6&times; input, and removes a re-parse round trip.</div></div>
+    <div class="numrow"><div class="n">06</div><div class="body"><b>Only then change the model</b> (page 11). Model tier is a constant multiplier you apply after the token count is right.</div></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s agent, which has grown to 30 tools.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> 30 declarations at about 70 tokens each, 2,100 tokens on every call.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> she moves 24 tools to two specialist sub-agents and leaves 6 on the router.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the router sends 1,680 fewer input tokens per call, on every call, with no model change <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> trim what is re-sent (tools, history, retrieval) before what is generated, and change the model last.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/tools/base_toolset.py">base_toolset.py at v2.9.0</a> (<code class="i">tool_filter</code>) &middot; <a href="https://adk.dev/context/compaction/">ADK context compaction</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Trim the re-sent input">
+  <summary>Speaker notes &mdash; Trim the re-sent input</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: it is the ordered list of levers, cheapest first. The source slide had the same list without the order or the mechanism behind each item.</li>
+    <li>Delivery beat: row 02 is the one nobody expects. Ask how many tools their biggest agent has, then multiply by 70.</li>
+    <li>A <code>before_model_callback</code> can also strip tools from <code>llm_request.config.tools</code> per turn, but doing so changes the cached prefix (page 8), so prefer splitting the toolset.</li>
+    <li>Structured output: set <code>output_schema</code> on the agent, or a response schema in <code>generate_content_config</code>.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 6. TWO MECHANISMS, TWO NAMES ==== -->
+<section class="page">
+  <h1>Caching: two mechanisms, two names</h1>
+  <p class="lede">&ldquo;Caching&rdquo; is used for two different things. One skips the model. The other runs the model every time and discounts the part of the input it has seen before. Which one you have decides what you save.</p>
+  <div class="grid c2">
+    <div class="cell"><h4>Context caching</h4><p><b>The model runs every turn.</b> The part of the input that matches a recent request (the instruction, the tool declarations, the earlier history) is billed at 10% of the input price instead of being processed again. Output is full price. Gemini does this implicitly by default (page 7); ADK can do it explicitly (page 8).</p></div>
+    <div class="cell gray"><h4>Response caching</h4><p>A lookup keyed on the request. On a hit, the stored answer is returned and <b>the model is not called</b>: zero model cost, near-zero latency. Useful when the same question arrives again. <b>ADK does not ship one</b>; page 10 shows the adk-redis integration that provides it.</p></div>
+  </div>
+  <figure>
+    <svg viewBox="0 0 1000 272" width="1000" height="272" role="img" aria-label="Context caching versus response caching">
+      <defs><marker id="m6" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <text x="20" y="22" font-family="var(--sans)" font-size="15" font-weight="600" fill="var(--g-blue-deep)">Context caching: Gemini and ADK</text>
+      <rect x="20" y="36" width="120" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="80" y="63" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">turn n</text>
+      <rect x="170" y="36" width="400" height="44" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="370" y="55" font-family="var(--mono)" font-size="13" fill="var(--ink)" text-anchor="middle">matching prefix: instruction, tools, history</text><text x="370" y="73" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">billed at 10% of the input price</text>
+      <rect x="600" y="36" width="170" height="44" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/><text x="685" y="55" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">model runs</text><text x="685" y="73" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">every turn</text>
+      <rect x="800" y="36" width="180" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="890" y="55" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">new input and output</text><text x="890" y="73" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">full price</text>
+      <line x1="140" y1="58" x2="168" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m6)"/><line x1="570" y1="58" x2="598" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m6)"/><line x1="770" y1="58" x2="798" y2="58" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m6)"/>
+      <line x1="20" y1="122" x2="980" y2="122" stroke="var(--line)"/>
+      <text x="20" y="150" font-family="var(--sans)" font-size="15" font-weight="600" fill="var(--ink-2)">Response caching: an integration you add (page 10)</text>
+      <rect x="20" y="172" width="120" height="44" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="80" y="199" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">request</text>
+      <rect x="170" y="172" width="150" height="44" rx="6" fill="var(--fill-yellow)" stroke="var(--g-yellow)"/><text x="245" y="199" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">seen before?</text>
+      <rect x="350" y="160" width="300" height="36" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="500" y="183" font-family="var(--sans)" font-size="14" fill="var(--ink)" text-anchor="middle">yes: return the stored answer, no model call</text>
+      <rect x="350" y="208" width="300" height="36" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="500" y="231" font-family="var(--sans)" font-size="14" fill="var(--ink)" text-anchor="middle">no: call the model, store the answer</text>
+      <line x1="140" y1="194" x2="168" y2="194" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m6)"/><line x1="320" y1="188" x2="348" y2="180" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m6)"/><line x1="320" y1="200" x2="348" y2="224" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m6)"/>
+      <text x="670" y="183" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)">$0 model cost on a hit</text>
+      <text x="670" y="231" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">full price on a miss</text>
+      <text x="500" y="264" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Top: the computation over the repeated input is reused; the answer is always new. Bottom: the answer itself is reused.</text>
+    </svg>
+  </figure>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s FAQ agent.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> &ldquo;What is your return window?&rdquo; arrives 900 times a day.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> a response cache answers the second and later copies without a model call. Context caching cannot do that; it makes each of the 900 calls cheaper by discounting the shared instruction and tools.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the response cache saves the whole call, about $0.008 each at 5,000 input tokens; context caching saves about $0.005 of it <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> response caching reuses the answer; context caching reuses the work on the repeated input. They compose: skip the call when you can, discount the prefix when you cannot.</div>
+  <div class="src">Sources: <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview">context cache overview</a> &middot; <a href="https://adk.dev/callbacks/design-patterns-and-best-practices/">ADK callback patterns: caching</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Two mechanisms, two names">
+  <summary>Speaker notes &mdash; Two mechanisms, two names</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source deck&rsquo;s slides 6 to 8 described a response cache (&ldquo;zero model cost for those requests&rdquo;) and then showed ADK&rsquo;s <code>ContextCacheConfig</code>, which is context caching. Students who keep the two merged will expect savings that never arrive.</li>
+    <li>Delivery beat: walk the top band, then the bottom band, then ask which one the ADK code on page 8 implements. Top.</li>
+    <li>Example arithmetic: 5,000 input tokens at $1.50 per 1M is $0.0075 plus a short answer; a context cache hit on 4,000 of those tokens saves 4,000 &times; $1.35 per 1M = $0.0054.</li>
+    <li>The next three pages are the context-caching side (implicit, explicit, compaction). Page 10 comes back to response caching.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 7. IMPLICIT CACHING ==== -->
+<section class="page">
+  <h1>Implicit caching: automatic, free, best effort</h1>
+  <p class="lede">Dana has configured nothing. Her bill already shows cached input tokens, because Gemini reuses its work on any request that begins the way a recent one did.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What it is.</b> Gemini keeps the computed state of recently processed request prefixes. When a new request to the same model starts with the same bytes as a recent one, and the shared prefix reaches the model minimum (4,096 tokens on Gemini 3; 6,144 on some 3.x Flash variants), the cached part is billed at 10% of the input price.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>What you do.</b> Nothing. It is on by default in every Google Cloud project. There is no cache object, no storage charge, and no time-to-live you control.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What makes it hit.</b> Same model, byte-identical prefix, requests close together in time. Put large shared content at the start of the prompt. ADK&rsquo;s request order (system instruction, tools, then history) already does this.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Why agents hit often.</b> History is append-only, so the second call of a turn begins with the whole first call. The prefix that can hit is the entire request so far, not just the instruction.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What the bill shows.</b> Cached input is priced as its own item: the pricing page lists a cached-input price per model, and the docs say the savings are &ldquo;automatically passed on to you.&rdquo; Per response, <code class="i">cachedContentTokenCount</code> says how many tokens hit; the Agent Analytics view exposes it as <code class="i">usage_cached_tokens</code>.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>What it does not promise, and where it does not apply.</b> A hit is best effort, never guaranteed. It is a Gemini feature (plus some open models served through Vertex). Partner models such as Claude on Vertex have their own prompt caching with their own cache-write and cache-read prices.</p></div>
+  </div>
+  <figure>
+    <svg viewBox="0 0 1000 150" width="1000" height="150" role="img" aria-label="Turn 5: call B begins with all of call A">
+      <text x="20" y="22" font-family="var(--sans)" font-size="15" font-weight="600" fill="var(--ink-2)">Turn 5 of Dana&rsquo;s conversation, input tokens per call</text>
+      <text x="20" y="58" font-family="var(--sans)" font-size="14" fill="var(--ink)">call A</text>
+      <rect x="90" y="40" width="240" height="30" fill="var(--g-blue)" opacity=".9"/><text x="210" y="60" font-family="var(--mono)" font-size="13" fill="#fff" text-anchor="middle">prefix 4,000</text>
+      <rect x="330" y="40" width="288" height="30" fill="var(--g-blue)" opacity=".55"/><text x="474" y="60" font-family="var(--mono)" font-size="13" fill="#fff" text-anchor="middle">history 4,800</text>
+      <rect x="618" y="40" width="6" height="30" fill="var(--g-blue)" opacity=".3"/><text x="632" y="60" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">user 100</text>
+      <text x="20" y="106" font-family="var(--sans)" font-size="14" fill="var(--ink)">call B</text>
+      <rect x="90" y="88" width="534" height="30" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="357" y="108" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">same 8,900 bytes as call A: cached, 10% price</text>
+      <rect x="624" y="88" width="54" height="30" fill="var(--g-blue)" opacity=".3"/><text x="690" y="108" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">tool call + result 900: full price</text>
+      <text x="500" y="142" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Call B is call A plus the tool exchange. On a hit, only the 900 new tokens are billed at the full input price.</text>
+    </svg>
+  </figure>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s agent, turn 5.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> call B carries 9,800 input tokens, 8,900 of them identical to call A.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> Gemini matches the prefix against call A, sent a second earlier.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> call B&rsquo;s input costs $0.0027 instead of $0.0147, and <code class="i">usage_cached_tokens</code> reads 8,900 <span class="tag illus">illustrative</span>. On a miss the same call costs full price and nothing in the code changed.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> implicit caching is free and already on. Keep the prefix stable and read <code class="i">usage_cached_tokens</code> to see how often it hits; when you need a guarantee, that is page 8.</div>
+  <div class="src">Sources: <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview">context cache overview</a> (implicit caching, minimums) &middot; <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/plugins/bigquery_agent_analytics_plugin.py">Agent Analytics plugin at v2.9.0</a> (<code class="i">usage_cached_tokens</code>) (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Implicit caching">
+  <summary>Speaker notes &mdash; Implicit caching</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source deck never mentioned implicit caching, and it is the cache most agents are already using. Students should know it exists before they configure the explicit one.</li>
+    <li>Delivery beat: show the two bars and ask what fraction of call B is new. Under 10%.</li>
+    <li>Docs: &ldquo;All Google Cloud projects have implicit caching enabled by default. Implicit caching provides a 90% discount on cached tokens compared to standard input tokens.&rdquo; Minimums: Gemini 3 family 4,096 tokens; 3.0 Flash Preview, 3.1 Pro Preview, 3.7 Flash and 3.8 Flash 6,144 (implicit only); Gemini 2 family 2,048.</li>
+    <li>Arithmetic: 9,800 &times; $1.50 per 1M = $0.0147; on a hit 8,900 &times; $0.15 + 900 &times; $1.50 per 1M = $0.0013 + $0.0014 = $0.0027.</li>
+    <li>Implicit caching is best effort. Explicit caching (next page) creates a server-side cache object and guarantees the discount for its lifetime, at a storage price. The docs note the two interact: an explicit cache can lead to additional implicit caching.</li>
+    <li>On the bill: the pricing page carries separate &ldquo;cached input tokens&rdquo; prices per model, and the billing export itemizes Vertex AI usage by SKU, so cached tokens appear as their own line. The docs&rsquo; wording: &ldquo;implicit cache hit cost savings are automatically passed on to you.&rdquo; If a student needs proof for their own project, the export is where to look.</li>
+    <li>Scope: the context cache overview lists implicit caching for Gemini models and for open models via MaaS. Partner models on Vertex (Anthropic, Mistral) have their own caching with cache-write and cache-read SKUs on the same pricing page.</li>
+    <li>This is why page 4&rsquo;s $0.40 is a ceiling: with a hit on every call the same tokens cost $0.065. Say so here if nobody asked on page 4.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 8. EXPLICIT ADK CONTEXT CACHING ==== -->
+<section class="page">
+  <h1>Explicit context caching in ADK</h1>
+  <p class="lede">When Dana wants the discount guaranteed rather than hoped for, she asks ADK to create the cache. ADK stores the system instruction, the tool declarations, and the leading contents as a server-side cache object and references it on later calls.</p>
+  <p class="codelabel good">google-adk 2.9.0</p>
+  <pre class="code"><span class="kw">from</span> google.adk.agents.llm_agent <span class="kw">import</span> Agent
+<span class="kw">from</span> google.adk.agents.readonly_context <span class="kw">import</span> ReadonlyContext
+<span class="kw">from</span> google.adk.agents.context_cache_config <span class="kw">import</span> ContextCacheConfig
+<span class="kw">from</span> google.adk.apps.app <span class="kw">import</span> App
+<span class="kw">from</span> google.genai <span class="kw">import</span> types
+
+<span class="kw">def</span> <span class="fn">steer</span>(ctx: ReadonlyContext) -> str:              <span class="cm"># dynamic: appended to contents, never in the prefix</span>
+    <span class="kw">return</span> <span class="st">f"The customer's tier is {ctx.state['tier']}. Be concise."</span>
+
+agent = Agent(
+    name=<span class="st">"support_agent"</span>,
+    model=<span class="st">"gemini-3.5-flash"</span>,
+    static_instruction=types.Content(          <span class="cm"># the cached prefix: durable, byte-identical every turn</span>
+        role=<span class="st">"user"</span>, parts=[types.Part(text=SUPPORT_PERSONA_AND_SCHEMAS)]),
+    instruction=steer,
+    tools=[lookup_order, issue_refund],
+)
+
+cache = ContextCacheConfig(min_tokens=0, ttl_seconds=1800, cache_intervals=10)   <span class="cm"># the defaults</span>
+app = App(name=<span class="st">"support_app"</span>, root_agent=agent, context_cache_config=cache)</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What is in the fingerprint:</b> the system instruction, the tool declarations, the tool config, and the leading contents. Caching starts on turn 2, once a previous request&rsquo;s token count is known, and only if that count reaches the model minimum (2,048 on Gemini 2.x, 4,096 on Gemini 3).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The three knobs:</b> <code class="i">min_tokens</code> raises the floor above the model&rsquo;s; <code class="i">ttl_seconds</code> is how long the cache object lives; <code class="i">cache_intervals</code> is how many invocations reuse it before ADK refreshes it.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What it costs:</b> the cached tokens at 10% of the input price, plus storage at $1.00 per 1M tokens per hour on Flash and $4.50 on Pro. The model still runs every turn.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s agent over the 12-turn conversation from page 4.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> a 4,000-token prefix; turns 2 to 12 make 22 calls.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> each call references the cache instead of re-sending the prefix.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> 22 &times; 4,000 tokens move from $1.50 to $0.15 per 1M, saving $0.119 of the $0.401 input bill; storage for the 30-minute lifetime is $0.002 <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="note red"><span class="kk">Resets the cache silently</span><p><b>A value that changes per turn inside <code class="i">static_instruction</code>.</b> <code class="i">f"Today is {date.today()}"</code> or a customer tier makes the prefix differ from the cached one, so every turn creates a new cache and never reuses it. Put anything that varies in the dynamic <code class="i">instruction</code>.</p><p><b>A tool added, removed, or renamed mid-session.</b> Tools are part of the fingerprint. <b>A prefix below the model minimum</b> never caches at all.</p></div>
+  <div class="takeaway"><b>Takeaway:</b> explicit caching guarantees the discount on a byte-identical prefix and bills storage for it. Everything that varies goes in the dynamic <code class="i">instruction</code>.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/agents/context_cache_config.py">context_cache_config.py at v2.9.0</a> &middot; <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/models/gemini_context_cache_manager.py">gemini_context_cache_manager.py at v2.9.0</a> &middot; <a href="https://adk.dev/context/caching/">ADK context caching</a> &middot; <a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">pricing: context cache storage</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Explicit context caching">
+  <summary>Speaker notes &mdash; Explicit context caching</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: it is the one piece of code in the module that students will paste, and the two ways it silently does nothing are not in the docs&rsquo; quickstart.</li>
+    <li>Defaults on 2.9.0: <code>cache_intervals=10</code>, <code>ttl_seconds=1800</code>, <code>min_tokens=0</code>; the class docstring states the model minimums and that caching begins on turn 2. The source deck showed <code>min_tokens=4096, cache_intervals=4</code> as if they were defaults. The API is marked experimental.</li>
+    <li>Mechanism: <code>GeminiContextCacheManager</code> fingerprints system instruction, tools, tool config, and the first N contents; on a match it sets <code>config.cached_content</code> and strips the cached parts from the request; otherwise it calls <code>caches.create</code>. The <code>static_instruction</code> goes to <code>system_instruction</code>; when it is set, <code>instruction</code> is appended to contents instead (llm_agent.py docstring).</li>
+    <li>Arithmetic: 88,000 tokens &times; ($1.50 &minus; $0.15) per 1M = $0.119. Storage: 4,000 tokens &times; $1.00 per 1M per hour &times; 0.5 h = $0.002.</li>
+    <li>Delivery beat: show the date-in-static-instruction bug and ask how they would notice it. Answer: <code>usage_cached_tokens</code> stays at zero.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 9. CONTEXT COMPACTION ==== -->
+<section class="page">
+  <h1>Context compaction caps the history</h1>
+  <p class="lede">Caching changes what the re-sent history costs, not how much of it there is. Every call still carries all of it: it still fills the context window, still adds latency, and a cache miss bills it in full. Compaction is the lever that makes the history smaller.</p>
+  <p class="codelabel good">google-adk 2.9.0</p>
+  <pre class="code"><span class="kw">from</span> google.adk.apps.app <span class="kw">import</span> App, EventsCompactionConfig
+
+app = App(
+    name=<span class="st">"support_app"</span>,
+    root_agent=agent,
+    events_compaction_config=EventsCompactionConfig(
+        token_threshold=20_000,      <span class="cm"># trigger: the last model call sent this many prompt tokens in total</span>
+        event_retention_size=6,      <span class="cm"># keep the newest 6 events raw; summarize everything older</span>
+    ),
+)</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What is measured.</b> The threshold is compared with the prompt token count Gemini reported for the most recent model call: everything that request contained, meaning the static and dynamic instruction, every tool declaration, and the whole history. Not one part of it. The same number page 4 tracks per turn.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What happens.</b> <code class="i">token_threshold</code> and <code class="i">event_retention_size</code> are set together. When the invocation ends and that count met the threshold, ADK summarizes every event older than the newest <code class="i">event_retention_size</code> with one model call and stores the summary as a compaction event. Later requests are built from the summary plus the retained events, so their history is short again.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Sliding-window trigger.</b> <code class="i">compaction_interval</code> compacts every N completed events, with <code class="i">overlap_size</code> events carried into the next window. Use the token trigger when the goal is cost.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>The summarizer is a model call.</b> Each compaction reads the range it replaces and writes a summary. On short sessions that is a cost with no payoff; on long ones it pays back within a turn or two.</p></div>
+  </div>
+  <figure>
+    <svg viewBox="0 0 1000 130" width="1000" height="130" role="img" aria-label="Request size before and after compaction">
+      <text x="20" y="22" font-family="var(--sans)" font-size="15" font-weight="600" fill="var(--ink-2)">Input tokens per call, turn 17 of a 40-turn session</text>
+      <text x="20" y="56" font-family="var(--sans)" font-size="14" fill="var(--ink)">without</text>
+      <rect x="100" y="38" width="160" height="30" fill="var(--g-blue)" opacity=".9"/><text x="180" y="58" font-family="var(--mono)" font-size="13" fill="#fff" text-anchor="middle">prefix 4,000</text>
+      <rect x="260" y="38" width="800" height="30" fill="var(--g-blue)" opacity=".55" clip-path="inset(0 100px 0 0)"/><text x="600" y="58" font-family="var(--mono)" font-size="13" fill="#fff" text-anchor="middle">history 20,000 and still growing</text>
+      <text x="20" y="104" font-family="var(--sans)" font-size="14" fill="var(--ink)">with</text>
+      <rect x="100" y="86" width="160" height="30" fill="var(--g-blue)" opacity=".9"/><text x="180" y="106" font-family="var(--mono)" font-size="13" fill="#fff" text-anchor="middle">prefix 4,000</text>
+      <rect x="260" y="86" width="60" height="30" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="290" y="106" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)" text-anchor="middle">1,500</text>
+      <rect x="320" y="86" width="72" height="30" fill="var(--g-blue)" opacity=".55"/><text x="356" y="106" font-family="var(--mono)" font-size="12" fill="#fff" text-anchor="middle">1,800</text>
+      <text x="404" y="106" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)">summary of 34 older events (green) + 6 newest events raw: 7,300 tokens instead of 24,000</text>
+    </svg>
+  </figure>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s agent on a 40-turn session.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> <code class="i">token_threshold=20000</code>, <code class="i">event_retention_size=6</code>; history grows 1,200 tokens per turn.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> after turn 14 the prompt passes 20,000 tokens; ADK summarizes the older events into about 1,500 tokens and keeps the last 6 raw.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> each later call carries about 7,300 tokens instead of 24,000 and rising; the compaction itself is one Flash call costing about $0.04, recovered within two turns <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> compaction bounds the history at a price of one model call per compaction. Turn it on for long sessions; leave it off for short ones.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/apps/_configs.py">apps/_configs.py at v2.9.0</a> (<code class="i">EventsCompactionConfig</code>) &middot; <a href="https://adk.dev/context/compaction/">ADK context compaction</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Context compaction">
+  <summary>Speaker notes &mdash; Context compaction</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: page 4 showed history outweighing the prefix by mid-conversation; this is the lever for that bar. The source deck did not cover it.</li>
+    <li>Validator on 2.9.0: <code>token_threshold</code> and <code>event_retention_size</code> must both be set or both be unset. The docstring: &ldquo;ADK will attempt a post-invocation compaction when the most recently observed prompt token count meets or exceeds this threshold.&rdquo; <code>apps/compaction.py</code> reads that count from the latest event&rsquo;s <code>usage_metadata.prompt_token_count</code>, the total input of that model call; when no count is available it estimates one from the session contents at four characters per token.</li>
+    <li>Caching and compaction are not in tension: caching makes the re-sent history cheap on a hit, compaction makes it short. A cached hit still sends every token, and the next call after a miss pays full price for all of them. Say this if page 7 left anyone thinking caching solves growth.</li>
+    <li>The summarizer defaults to <code>LlmEventSummarizer</code>; you can pass your own <code>summarizer=</code> and choose a cheaper model for it.</li>
+    <li>Arithmetic: compaction reads about 20,000 tokens ($0.03) and writes about 1,500 ($0.014). Each later call saves at least 13,000 input tokens ($0.02), and there are two calls per turn.</li>
+    <li>A summary loses detail. If the agent must quote an exact earlier value, keep <code>event_retention_size</code> large enough or store the value in session state.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 10. RESPONSE CACHING ==== -->
+<section class="page">
+  <h1>Response caching: the adk-redis integration</h1>
+  <p class="lede">For the questions that arrive again and again, Dana wants to skip the model entirely. ADK supplies the hook, and the adk-redis package supplies the cache: two callbacks backed by a Redis store that matches on meaning, not on exact wording.</p>
+  <p class="codelabel good">google-adk 2.9.0 with adk-redis (pip install 'adk-redis[all]'; needs a Redis 8.4+ instance)</p>
+  <pre class="code"><span class="kw">from</span> google.adk.agents <span class="kw">import</span> Agent
+<span class="kw">from</span> redisvl.utils.vectorize <span class="kw">import</span> HFTextVectorizer
+<span class="kw">from</span> adk_redis <span class="kw">import</span> (LLMResponseCache, RedisVLCacheProvider,
+                       RedisVLCacheProviderConfig, create_llm_cache_callbacks)
+
+provider = RedisVLCacheProvider(
+    config=RedisVLCacheProviderConfig(
+        redis_url=<span class="st">"redis://localhost:6379"</span>,
+        ttl=3600,                    <span class="cm"># a stored answer expires after one hour</span>
+        distance_threshold=0.1,      <span class="cm"># how close a paraphrase must be to count as a hit</span>
+    ),
+    vectorizer=HFTextVectorizer(model=<span class="st">"redis/langcache-embed-v2"</span>),   <span class="cm"># embeds each prompt</span>
+)
+llm_cache = LLMResponseCache(provider=provider)
+before_model_cb, after_model_cb = create_llm_cache_callbacks(llm_cache)
+
+agent = Agent(
+    name=<span class="st">"faq_agent"</span>, model=<span class="st">"gemini-3.5-flash"</span>, instruction=FAQ_INSTRUCTION,
+    before_model_callback=before_model_cb,     <span class="cm"># a hit returns the stored answer; the model is skipped</span>
+    after_model_callback=after_model_cb,       <span class="cm"># a miss stores the new answer</span>
+)</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>The mechanism is ADK&rsquo;s.</b> A <code class="i">before_model_callback</code> that returns an <code class="i">LlmResponse</code> short-circuits the call; the <code class="i">after_model_callback</code> sees the miss and stores it. The provider supplies the two callbacks, the key, and the store.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What the provider adds.</b> The prompt is embedded and compared with stored prompts; anything within <code class="i">distance_threshold</code> is a hit, so rephrasings share an answer. The store is shared across replicas and outlives a restart; <code class="i">ttl</code> bounds how stale an answer can be. <code class="i">LangCacheProvider</code> is the managed version with server-side embeddings.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>What to watch.</b> A loose threshold serves one question&rsquo;s answer to a different question; start tight and widen while watching false hits. Never cache turns whose answer is an action (a tool call) or reads live data. If answers are personalized, scope the cache per user, or one user gets another&rsquo;s answer.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s FAQ agent with the callbacks above.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the return-window question, 900 times a day, in about 40 wordings.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the first wording misses, runs the model, and is stored. Every later wording embeds within the threshold of it and is served from Redis without a model call.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> roughly 800 model calls a day skipped, about $6 a day at 5,000 input tokens each, and those answers return in milliseconds <span class="tag illus">illustrative</span>. An exact-match cache would have hit about one call in ten.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> a response cache is two callbacks and a key. adk-redis supplies both with semantic matching; you set the threshold, the TTL, and the rule for what never gets cached.</div>
+  <div class="src">Sources: <a href="https://adk.dev/integrations/redis/">ADK Redis integration: semantic caching</a> &middot; <a href="https://adk.dev/callbacks/design-patterns-and-best-practices/">ADK callback patterns: caching</a> &middot; <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/flows/llm_flows/base_llm_flow.py">base_llm_flow.py at v2.9.0</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Response caching">
+  <summary>Speaker notes &mdash; Response caching</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source deck promised &ldquo;zero model cost on a hit&rdquo; and attributed it to ADK. The mechanism is real; adk-redis is the maintained implementation, and this page is its shape.</li>
+    <li>Mechanism: <code>_handle_before_model_callback</code> in base_llm_flow.py returns the callback&rsquo;s <code>LlmResponse</code> as the model result and never calls the model. The ADK callback-patterns doc (section 4, Caching) describes building the same thing by hand with a dict keyed on the request; that version matches exact text only and lives in one process.</li>
+    <li>Snippet is the adk.dev integration page&rsquo;s self-hosted example with the model id and names changed; the LangCache variant swaps the provider for <code>LangCacheProvider(config=LangCacheProviderConfig(cache_id=…, api_key=…, ttl=…))</code> and drops the vectorizer.</li>
+    <li>Cost of the cache itself: a Redis instance (Memorystore or self-hosted) and the embedding of each prompt on the local vectorizer. Both are small next to a skipped Flash call, but they are not zero.</li>
+    <li>Arithmetic: 800 calls &times; 5,000 input tokens &times; $1.50 per 1M = $6.00 plus output.</li>
+    <li>Generic page: a semantic cache in front of any API works the same way. What is agent-shaped is the rule for what never gets cached: tool-calling turns are actions, not answers.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 11. MODEL RIGHT-SIZING ==== -->
+<section class="page">
+  <h1>Model right-sizing: the eval set decides</h1>
+  <p class="lede">The token count is right. Now Dana asks whether the refund agent needs Gemini 3.5 Flash at all. The answer comes from the eval set, not from a hunch.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Model (refund agent, 40 eval cases)</th><th>Tool trajectory score</th><th>Response quality</th><th>Input / output, per 1M</th><th>Decision</th></tr></thead>
+    <tbody>
+      <tr><td>Gemini 3.1 Pro</td><td class="m">0.95</td><td class="m">4.6 / 5</td><td class="m">$2.00 / $12.00</td><td>clears the bar at the highest price</td></tr>
+      <tr class="hl"><td>Gemini 3.5 Flash</td><td class="m">0.93</td><td class="m">4.5 / 5</td><td class="m">$1.50 / $9.00</td><td class="yes">cheapest model above the 0.90 threshold</td></tr>
+      <tr class="bad"><td>Gemini 3.5 Flash-Lite</td><td class="m">0.85</td><td class="m">4.1 / 5</td><td class="m">$0.30 / $2.50</td><td class="no">below the threshold: not for this agent</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">Scores <span class="tag illus">illustrative</span>; prices on 2026-09-13. Set the threshold before running the comparison, and keep the eval in the pipeline so a later regression on the smaller model is caught.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Per agent, not per system.</b> Each agent sets its own <code class="i">model=</code>; unset, it inherits from its parent. The router and the order-lookup agent may clear their thresholds on Flash-Lite while the refund agent needs Flash.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Cheapest above the threshold wins.</b> Not the best score. The eval set is the artifact that justifies the choice, and it goes in the pipeline with the model id.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the refund agent&rsquo;s 40 eval cases run against three models.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> tool-trajectory score against a 0.90 threshold, then price.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> Flash stays; a separate run for the order-lookup agent scores 0.94 on Flash-Lite, so that agent moves down a tier and its input price drops from $1.50 to $0.30 per 1M <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> pick the cheapest model that clears the eval threshold, per agent, and keep the eval in the pipeline so the choice stays justified.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/agents/llm_agent.py">llm_agent.py at v2.9.0</a> (<code class="i">model</code> inherits from the ancestor) &middot; <a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">Agent Platform pricing</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Model right-sizing">
+  <summary>Speaker notes &mdash; Model right-sizing</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source slide said &ldquo;use eval scores to justify model choice&rdquo; without showing what that looks like. The table is the artifact.</li>
+    <li>Delivery beat: ask which row they would pick before revealing the highlight. Some pick Pro for the score; the point is the threshold was set first.</li>
+    <li>The eval set and metrics are Module 4&rsquo;s. Trajectory and response quality are two dimensions; a model can win one and lose the other.</li>
+    <li>Batch inference, which the source deck had as its own slide: bulk Gemini API calls from a file, 50% off, asynchronous with a 24-hour target. It belongs to eval runs and corpus embedding, not to the agent loop, so it is out of this module.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 12. FINE-TUNING BREAK-EVEN ==== -->
+<section class="page">
+  <h1>Fine-tuning is a volume decision with a surcharge</h1>
+  <p class="lede">A tuned model can drop the few-shot examples from every prompt. But on Gemini 3 and later, a tuned endpoint bills 1.5&times; the base model per token, so the saving has to come from a shorter prompt or a lower tier, and the break-even has to include the surcharge.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Training cost</b> is dataset tokens &times; epochs at the tuning price ($0.01 per 1,000 training tokens on Gemini 3.5 Flash). <b>Inference</b> on the tuned endpoint is 1.5&times; the base model&rsquo;s token price.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Break-even requests</b> = training cost &divide; (base cost per request &minus; tuned cost per request). If the second term is not positive, tuning never pays.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Tuning is the last lever.</b> Trimming, caching, compaction, and right-sizing are reversible and need no training pipeline. Tuning adds a model artifact you re-train when the base model version retires.</p></div>
+  </div>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Classification step, 200,000 requests a month</th><th>Input / output tokens</th><th>Price, per 1M</th><th>Cost per request</th></tr></thead>
+    <tbody>
+      <tr><td>Base Gemini 3.5 Flash, prompt with few-shot examples</td><td class="m">1,500 / 50</td><td class="m">$1.50 / $9.00</td><td class="m">$0.00270</td></tr>
+      <tr class="hl"><td>Tuned 3.5 Flash, examples removed from the prompt</td><td class="m">400 / 20</td><td class="m">$2.25 / $13.50</td><td class="m">$0.00117</td></tr>
+      <tr class="bad"><td>Tuned 3.5 Flash, prompt left as it was</td><td class="m">1,500 / 50</td><td class="m">$2.25 / $13.50</td><td class="m">$0.00405</td></tr>
+    </tbody>
+  </table></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s ticket-classification step.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> 2,000 labeled examples of 500 tokens, 3 epochs: 3M training tokens, $30.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the tuned model needs no examples in the prompt, saving $0.00153 per request.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> break-even at 19,600 requests, about three days of traffic. The same tuning without shortening the prompt loses $0.00135 per request, every request <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> compute the break-even with the 1.5&times; endpoint price inside it. Tuning pays through a shorter prompt or a lower tier, never on its own.</div>
+  <div class="src">Sources: <a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">Agent Platform pricing</a> (tuned endpoint 1.5&times; for Gemini 3 and later; SFT training tokens) &middot; <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini-supervised-tuning">Gemini supervised tuning</a> (training tokens = dataset &times; epochs) (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Fine-tuning break-even">
+  <summary>Speaker notes &mdash; Fine-tuning break-even</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source slide assumed a tuned model is cheaper per request. On Gemini 3 and later it is 1.5&times; the base price per token (pricing page footnotes: &ldquo;Tuned model endpoint will be 1.5 times of the base model&rdquo; and &ldquo;For model inference starting from Gemini 3, tuned model endpoint prediction price will be 1.5 times of the base model. Old Gemini models prediction price stays the same as the base model.&rdquo;).</li>
+    <li>Arithmetic: base 1,500 &times; $1.50 + 50 &times; $9.00 per 1M = $0.00270. Tuned short prompt 400 &times; $2.25 + 20 &times; $13.50 per 1M = $0.00117. Tuned long prompt 1,500 &times; $2.25 + 50 &times; $13.50 per 1M = $0.00405. Break-even $30 / $0.00153 = 19,608.</li>
+    <li>Not in the table: building and labeling the dataset, the eval run to prove the tuned model clears the threshold, and re-tuning when the base version retires. These usually dwarf the $30.</li>
+    <li>Delivery beat: the third row is the trap. Ask why anyone would tune and keep the prompt; the answer is that nobody means to, they just forget to remove the examples.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 13. ROUTING ==== -->
+<section class="page">
+  <h1>Routing: three ways to pick the model per request</h1>
+  <p class="lede">Most of Dana&rsquo;s traffic is easy and some of it is not. Rather than pay the hard-case price for every request, the agent chooses the model at run time. All three ways are code.</p>
+  <figure>
+    <svg viewBox="0 0 1000 170" width="1000" height="170" role="img" aria-label="A router agent sends easy requests to a small model and hard ones to a large model">
+      <defs><marker id="m13" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <rect x="20" y="60" width="150" height="56" rx="8" fill="var(--panel)" stroke="var(--line)"/><text x="95" y="84" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">request</text><text x="95" y="104" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">1,000 a day</text>
+      <line x1="170" y1="88" x2="248" y2="88" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m13)"/>
+      <rect x="250" y="60" width="220" height="56" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/><text x="360" y="84" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">router agent</text><text x="360" y="104" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">gemini-3.5-flash-lite</text>
+      <line x1="470" y1="78" x2="598" y2="42" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m13)"/><text x="530" y="46" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">80%</text>
+      <line x1="470" y1="98" x2="598" y2="134" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m13)"/><text x="530" y="132" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">20%</text>
+      <rect x="600" y="14" width="250" height="56" rx="8" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="725" y="38" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">order-lookup agent</text><text x="725" y="58" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">3.5-flash-lite · $0.30 / 1M in</text>
+      <rect x="600" y="104" width="250" height="56" rx="8" fill="var(--fill-yellow)" stroke="var(--g-yellow)"/><text x="725" y="128" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">policy-reading agent</text><text x="725" y="148" font-family="var(--mono)" font-size="13" fill="var(--g-yellow-deep)" text-anchor="middle">3.1-pro · $2.00 / 1M in</text>
+      <text x="925" y="88" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">blended $0.64 / 1M</text>
+    </svg>
+  </figure>
+  <div class="grid">
+    <div class="cell green"><h4>Router agent</h4><p>ADK&rsquo;s idiomatic option: a root <code class="i">LlmAgent</code> with <code class="i">sub_agents</code>, each with its own <code class="i">model=</code>. The router&rsquo;s own call is the fixed cost of routing.</p></div>
+    <div class="cell"><h4>Override per request</h4><p>A <code class="i">before_model_callback</code> sets <code class="i">llm_request.model</code> for this call only. The same hook as an app-wide plugin covers every agent.</p></div>
+    <div class="cell"><h4>Model as a tool</h4><p>A tool whose body calls another model. Fits when the hard cases are a distinct sub-task the agent already delegates.</p></div>
+  </div>
+  <p class="codelabel good">google-adk 2.9.0: override per request &middot; run against Vertex AI on 2026-09-13</p>
+  <pre class="code"><span class="kw">def</span> <span class="fn">pick_model</span>(ctx: CallbackContext, llm_request: LlmRequest) -> None:
+    <span class="kw">if</span> needs_long_reasoning(ctx.user_content):        <span class="cm"># your rule or classifier</span>
+        llm_request.model = PRO_MODEL_ID                <span class="cm"># this call only; the agent default is unchanged</span>
+
+agent = LlmAgent(
+    name=<span class="st">"support"</span>,
+    model=FLASH_LITE_MODEL_ID,                          <span class="cm"># default for every call</span>
+    before_model_callback=pick_model,
+)</pre>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s support system.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> 1,000 requests a day; 80% are order-status lookups, 20% need a long policy document read.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> a Flash-Lite router delegates to a Flash-Lite lookup agent or a Pro policy agent.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> blended input price about $0.64 per 1M tokens against $2.00 for Pro everywhere, plus one small router call per request <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> routing spends a small fixed cost per request to avoid a large variable one. It pays when most traffic is easy, and every form of it is a code change.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/models/google_llm.py">google_llm.py at v2.9.0</a> (the call reads <code class="i">llm_request.model</code>) &middot; <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/flows/llm_flows/base_llm_flow.py">base_llm_flow.py at v2.9.0</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Routing">
+  <summary>Speaker notes &mdash; Routing</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source deck spent three slides on routing (an image, three cards, and a code sample that called <code>Agent.load</code> and <code>run(config={"model_name": …})</code>, neither of which exists in ADK). This page is the three mechanisms with the verified code.</li>
+    <li>Mechanism: <code>GoogleLlm.generate_content_async</code> starts with <code>model = llm_request.model</code>, so a callback that sets it changes that call. <code>before_model_callback</code> runs inside the <code>call_llm</code> span, before the request is sent.</li>
+    <li>Tested 2026-09-13 on google-adk 2.9.0 against Vertex AI (<code>scratchpad/test_override.py</code>): an agent with <code>model="gemini-3.5-flash-lite"</code> and this callback. The &ldquo;easy&rdquo; request came back with <code>model_version=gemini-3.5-flash-lite</code>; the &ldquo;hard&rdquo; request, where the callback set <code>llm_request.model="gemini-3.5-flash"</code>, came back with <code>model_version=gemini-3.5-flash</code>. The agent&rsquo;s <code>model</code> field was unchanged after both.</li>
+    <li>Arithmetic: 0.8 &times; $0.30 + 0.2 &times; $2.00 = $0.64 per 1M input tokens. The router call adds a few hundred Flash-Lite tokens per request.</li>
+    <li>Model ids are constants in the snippet on purpose: pin them in one place, and treat a change as a code change that goes through the pipeline with an eval run.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 14. THE FINOPS TOOLKIT ==== -->
+<section class="page">
+  <h1>The FinOps toolkit on Google Cloud</h1>
+  <p class="lede">None of this is agent-specific, and all of it is needed. Each tool answers one question about spend; the agent-shaped hooks are the labels ADK puts on each model API request and the per-model-call rows on pages 15 and 16.</p>
+  <figure>
+    <svg viewBox="0 0 1000 330" width="1000" height="330" role="img" aria-label="Six FinOps tools and the question each one answers">
+      <defs><marker id="m14" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
+      <text x="150" y="22" font-family="var(--sans)" font-size="13" font-weight="700" fill="var(--ink-2)" text-anchor="middle" letter-spacing="1">THE TOOL</text>
+      <text x="720" y="22" font-family="var(--sans)" font-size="13" font-weight="700" fill="var(--ink-2)" text-anchor="middle" letter-spacing="1">THE QUESTION IT ANSWERS</text>
+      <rect x="20" y="36" width="260" height="40" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/><text x="150" y="61" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Labels on model API requests</text>
+      <line x1="280" y1="56" x2="438" y2="56" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m14)"/>
+      <rect x="440" y="36" width="540" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="710" y="61" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Which agent, feature, or environment spent it?</text>
+      <rect x="20" y="86" width="260" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="150" y="111" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Billing export to BigQuery</text>
+      <line x1="280" y1="106" x2="438" y2="106" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m14)"/>
+      <rect x="440" y="86" width="540" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="710" y="111" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">What did we spend, by day, model, and label?</text>
+      <rect x="20" y="136" width="260" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="150" y="161" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Budgets</text>
+      <line x1="280" y1="156" x2="438" y2="156" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m14)"/>
+      <rect x="440" y="136" width="540" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="710" y="161" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Are we on track this month, and who gets told when not?</text>
+      <rect x="20" y="186" width="260" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="150" y="211" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Model Garden org policy</text>
+      <line x1="280" y1="206" x2="438" y2="206" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m14)"/>
+      <rect x="440" y="186" width="540" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="710" y="211" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Which models may run in this project at all?</text>
+      <rect x="20" y="236" width="260" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="150" y="261" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">One project per environment</text>
+      <line x1="280" y1="256" x2="438" y2="256" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m14)"/>
+      <rect x="440" y="236" width="540" height="40" rx="6" fill="var(--panel)" stroke="var(--line)"/><text x="710" y="261" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Is this production spend or someone&rsquo;s experiment?</text>
+      <rect x="20" y="286" width="260" height="40" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/><text x="150" y="311" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">BigQuery Agent Analytics rows</text>
+      <line x1="280" y1="306" x2="438" y2="306" stroke="#5f6368" stroke-width="1.5" marker-end="url(#m14)"/>
+      <rect x="440" y="286" width="540" height="40" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="710" y="311" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">Which conversation cost the most, and why?</text>
+    </svg>
+  </figure>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Tool</th><th>How you turn it on</th><th>What to know</th></tr></thead>
+    <tbody>
+      <tr class="hl"><td>Labels</td><td><code>RunConfig(labels={…})</code> on the run, copied into every <code>generateContent</code> request of that invocation</td><td>up to 64 per request; lowercase keys and values, 63 characters; 1,000 unique values per key before the key is dropped; pay-as-you-go only <span class="tag limit">limit</span></td></tr>
+      <tr><td>Billing export</td><td>Cloud Billing &rarr; export standard usage cost to a BigQuery dataset</td><td>rows arrive hours later, not minutes; <code>labels.key</code> and <code>labels.value</code> carry the labels above</td></tr>
+      <tr><td>Budgets</td><td>Cloud Billing budget per project; thresholds at 50 / 80 / 100%; email or Pub/Sub</td><td>alerts do not cap spend; Pub/Sub is the hook for automation</td></tr>
+      <tr><td>Org policy</td><td>Model Garden policy: allow or deny <code>publishers/google/models/&lt;id&gt;:predict</code></td><td>one model per entry, at most 500; explicit deny wins over allow</td></tr>
+      <tr><td>Projects</td><td>separate projects for dev, staging, production, and AI workloads</td><td>a budget and an org policy attach per project</td></tr>
+      <tr><td>Agent Analytics</td><td><code>BigQueryAgentAnalyticsPlugin</code> on the <code>App</code>; setup on page 15</td><td>one row per model call with session id and token counts; the query is page 16</td></tr>
+    </tbody>
+  </table></div>
+  <p class="codelabel good">google-adk 2.9.0: labels per run, verified on the request 2026-09-13</p>
+  <pre class="code"><span class="kw">from</span> google.adk.agents.run_config <span class="kw">import</span> RunConfig
+
+run_config = RunConfig(labels={<span class="st">"agent"</span>: <span class="st">"support"</span>, <span class="st">"feature"</span>: <span class="st">"returns"</span>, <span class="st">"env"</span>: <span class="st">"prod"</span>})
+
+<span class="kw">async for</span> event <span class="kw">in</span> runner.run_async(user_id=user_id, session_id=session_id,
+                                    new_message=message, run_config=run_config):
+    ...   <span class="cm"># every generateContent request in this invocation carries the three labels</span></pre>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the run above, with three labels on its <code class="i">RunConfig</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> ADK copies the labels into the <code class="i">labels</code> field of each <code class="i">generateContent</code> request the invocation makes; Vertex AI forwards them to Cloud Billing; the export lands them in <code class="i">labels.key</code> and <code class="i">labels.value</code>.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the next day&rsquo;s query splits the Gemini line by feature; a budget at 80% posts to Pub/Sub; an org policy allowing only the two Flash models in the dev project makes a stray Pro deploy fail on its first call.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> label every model API request, export billing to BigQuery, budget per project, allowlist models by policy. Then use the agent&rsquo;s own rows for the question billing cannot answer.</div>
+  <div class="src">Sources: <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls">custom metadata labels</a> &middot; <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/agents/run_config.py">run_config.py at v2.9.0</a> &middot; <a href="https://cloud.google.com/billing/docs/how-to/budgets">budgets</a> &middot; <a href="https://cloud.google.com/billing/docs/how-to/export-data-bigquery">billing export</a> &middot; <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/control-model-access">control model access</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="The FinOps toolkit">
+  <summary>Speaker notes &mdash; The FinOps toolkit</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source deck listed the practices twice (slides 3 and 15) with no mechanics. This is the mechanics, once, with the question each tool answers, which is what an attendee needs to pick one.</li>
+    <li><code>RunConfig.labels</code> is new in 2.9.0: &ldquo;User labels for the current invocation (e.g. for billing/attribution)&rdquo;; <code>flows/llm_flows/basic.py</code> merges them into <code>llm_request.config.labels</code>, the <code>labels</code> field of the request&rsquo;s generation config. Verified 2026-09-13 (<code>scratchpad/test_override.py</code>): a <code>before_model_callback</code> saw <code>{"agent": "support", "feature": "returns"}</code> on <code>llm_request.config.labels</code> for both requests of the test. When calling through an AI Studio API key, ADK drops labels because that path does not support them.</li>
+    <li>Precision on wording: a label is on the API request, not on the model. The same model called from two agents with two label sets shows up twice in the export.</li>
+    <li>Labels doc: 64 labels for Google models, 32 for partner models; keys 1&ndash;63 characters; each key at most 1,000 unique values over the billing account&rsquo;s life or the key may be dropped; forwarded only under pay-as-you-go, silently ignored under Provisioned Throughput. Do not put user ids in labels.</li>
+    <li>Budgets doc: &ldquo;Setting an alerts-only budget doesn&rsquo;t automatically cap Google Cloud usage or spending.&rdquo; A spend-cap budget exists in preview for some services.</li>
+    <li>Org policy doc: policy at organization, folder, or project; custom allow lists deny everything not listed; format <code>publishers/PUBLISHER/models/MODEL:ACTION</code>; at most 500 values; explicit deny takes precedence.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 15. AGENT ANALYTICS SETUP ==== -->
+<section class="page">
+  <h1>Setting up BigQuery Agent Analytics</h1>
+  <p class="lede">The per-conversation view needs one row per model call with the session id and the token counts. Nothing in Cloud Billing produces that. The Agent Analytics plugin does: register it on the <code class="i">App</code> and every model call, tool call, and agent step writes a row.</p>
+  <p class="codelabel good">google-adk 2.9.0 (pip install 'google-adk[bigquery-analytics]')</p>
+  <pre class="code"><span class="kw">from</span> google.adk.apps.app <span class="kw">import</span> App
+<span class="kw">from</span> google.adk.plugins.bigquery_agent_analytics_plugin <span class="kw">import</span> BigQueryAgentAnalyticsPlugin
+
+analytics = BigQueryAgentAnalyticsPlugin(
+    project_id=<span class="st">"my-project"</span>,
+    dataset_id=<span class="st">"agent_events"</span>,       <span class="cm"># the dataset must already exist</span>
+    table_id=<span class="st">"agent_events"</span>,         <span class="cm"># created on first run if missing, partitioned by day</span>
+    location=<span class="st">"US"</span>,
+    create_views=<span class="kw">True</span>,                <span class="cm"># one view per event type; page 16 queries v_llm_response</span>
+)
+app = App(name=<span class="st">"support_app"</span>, root_agent=agent, plugins=[analytics])</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What you create, what it creates.</b> You create the dataset. On first run the plugin creates the table, partitioned by <code class="i">timestamp</code> per day, and with <code class="i">create_views=True</code> a view per event type. Rows are written through the BigQuery Storage Write API in batches from the agent process.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Who needs what.</b> The identity the agent runs as needs to write the table and create it: <code class="i">roles/bigquery.dataEditor</code> on the dataset. Creating the views runs DDL, which needs <code class="i">roles/bigquery.jobUser</code> on the project <span class="tag guide">guidance</span>. Readers of the dataset can read the <code class="i">content</code> column, which holds what users typed (Module 3).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What it costs.</b> Three BigQuery lines, all small at agent scale: Storage Write API ingestion at $0.025 per GiB after the first 2 TiB a month; active storage at about $0.02 per GiB-month after the first 10 GiB; on-demand queries at $6.25 per TiB scanned after the first 1 TiB a month. Partitioning by day is what keeps the query line small: page 16&rsquo;s query scans one day.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana&rsquo;s support agent on Cloud Run with the plugin above.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> 1,000,000 model calls a month, each writing a row of about 2 KB with content included.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> about 2 GiB a month written through the Storage Write API, stored, and scanned one day at a time by the cost query.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> ingestion inside the free 2 TiB, storage a few cents a month, and the daily query scanning about 70 MiB, inside the free 1 TiB. The rows cost less than one of the conversations they explain <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> one plugin on the <code class="i">App</code>, one dataset you create, two IAM roles, and a BigQuery bill that rounds to cents. That is the whole price of per-conversation cost.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/plugins/bigquery_agent_analytics_plugin.py">bigquery_agent_analytics_plugin.py at v2.9.0</a> (constructor, <code class="i">_ensure_schema_exists</code>, Storage Write API) &middot; <a href="https://adk.dev/observability/bigquery-agent-analytics/">ADK: BigQuery Agent Analytics</a> &middot; <a href="https://cloud.google.com/bigquery/pricing">BigQuery pricing</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Agent Analytics setup">
+  <summary>Speaker notes &mdash; Agent Analytics setup</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: page 16&rsquo;s query is only useful to someone who has the table. Module 3 introduced the plugin as an observability sink; this page is the FinOps-minded setup with its own cost stated.</li>
+    <li>From the 2.9.0 source: the constructor takes <code>project_id</code>, <code>dataset_id</code>, <code>table_id</code>, <code>location</code> (default US), and <code>BigQueryLoggerConfig</code> fields as keyword arguments (<code>batch_size</code>, <code>batch_flush_interval</code>, <code>max_content_length</code>, <code>create_views</code>, <code>view_prefix</code>, <code>enable_otel_correlation</code>). <code>_ensure_schema_exists</code> creates the table with day partitioning on <code>timestamp</code> when it is missing and upgrades the schema additively when <code>auto_schema_upgrade</code> is on; there is no dataset creation. Writes go through <code>BigQueryWriteAsyncClient.append_rows</code>.</li>
+    <li>IAM: the dataEditor and jobUser pairing is standard guidance for &ldquo;write a table and run DDL&rdquo;; the plugin source does not name roles. Tell students to check the adk.dev page for the current recommendation.</li>
+    <li>Prices from the BigQuery pricing page on 2026-09-13: Storage Write API (gRPC) $0.025 per GiB, first 2 TiB per month free; active logical storage $0.000031507 per GiB-hour (about $0.023 per GiB-month), first 10 GiB free; on-demand queries $6.25 per TiB, first 1 TiB per month free.</li>
+    <li>Example arithmetic: 1M rows &times; 2 KB &asymp; 1.9 GiB written and stored per month; a day is about 65 MiB, so the daily query stays under the free query tier.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 16. COST PER CONVERSATION ==== -->
+<section class="page">
+  <h1>Cost per conversation is one query</h1>
+  <p class="lede">Dana wants yesterday&rsquo;s twenty most expensive conversations and why they cost what they did. Billing cannot group by conversation. The table from page 15 can, because every model call wrote a row with its session id and token counts.</p>
+  <p class="codelabel good">BigQuery, over the view the plugin on page 15 created</p>
+  <pre class="code"><span class="cm">-- cost per conversation, yesterday; prices are query parameters in $ per 1M tokens</span>
+<span class="kw">SELECT</span> session_id,
+       <span class="kw">COUNT</span>(*)                                 <span class="kw">AS</span> model_calls,
+       <span class="kw">SUM</span>(usage_prompt_tokens)                 <span class="kw">AS</span> input_tokens,
+       <span class="kw">SUM</span>(<span class="kw">IFNULL</span>(usage_cached_tokens, 0))      <span class="kw">AS</span> cached_tokens,
+       <span class="kw">SUM</span>(usage_completion_tokens)             <span class="kw">AS</span> output_tokens,
+       ( (<span class="kw">SUM</span>(usage_prompt_tokens) - <span class="kw">SUM</span>(<span class="kw">IFNULL</span>(usage_cached_tokens, 0))) * @in_price
+         + <span class="kw">SUM</span>(<span class="kw">IFNULL</span>(usage_cached_tokens, 0)) * @cached_price
+         + <span class="kw">SUM</span>(usage_completion_tokens)        * @out_price ) / 1e6 <span class="kw">AS</span> usd
+<span class="kw">FROM</span>   agent_events.v_llm_response
+<span class="kw">WHERE</span>  <span class="kw">DATE</span>(timestamp) = <span class="kw">DATE_SUB</span>(<span class="kw">CURRENT_DATE</span>(), <span class="kw">INTERVAL</span> 1 <span class="kw">DAY</span>)
+<span class="kw">GROUP BY</span> session_id
+<span class="kw">ORDER BY</span> usd <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> 20;</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What the columns are.</b> <code class="i">usage_prompt_tokens</code> is the whole input including the cached part; <code class="i">usage_cached_tokens</code> is the part billed at the cached price; <code class="i">usage_completion_tokens</code> is the output. Prices are parameters so the query outlives a price change.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>What the top rows are.</b> The long conversations. Page 4 showed why: twelve turns cost twelve times two turns, because every turn re-sends the ones before it.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>What to do with them.</b> Read the trace of the top row (Module 3). Then alert on prompt tokens per session: a conversation past the threshold is one that should have gone to a human, or one where compaction is off.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the query with <code class="i">@in_price=1.50, @cached_price=0.15, @out_price=9.00</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> one row per session summed over its model calls.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the top row is a 31-turn conversation at $1.12, 30&times; the median; its trace shows a tool failing and the model retrying it eleven times. She adds an alert on sessions past 60,000 prompt tokens and fixes the tool <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> cost per conversation comes from the agent&rsquo;s own event rows, not from billing. The expensive conversations are the long ones, and the trace says why they were long.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/plugins/bigquery_agent_analytics_plugin.py">bigquery_agent_analytics_plugin.py at v2.9.0</a> (view columns) &middot; <a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">Agent Platform pricing</a> (verified 2026-09-13).</div>
+</section>
+<details class="notes" data-title="Cost per conversation">
+  <summary>Speaker notes &mdash; Cost per conversation</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: it is the deliverable of the module. Every earlier page is a lever; this is the instrument that says whether a lever worked.</li>
+    <li>Columns on 2.9.0, from the plugin&rsquo;s view definition: <code>usage_prompt_tokens</code>, <code>usage_completion_tokens</code>, <code>usage_total_tokens</code>, <code>usage_cached_tokens</code>, <code>usage_thinking_tokens</code>, <code>usage_tool_use_tokens</code>, all read from the event&rsquo;s <code>usage_metadata</code>. Gemini&rsquo;s prompt token count includes the cached tokens, hence the subtraction.</li>
+    <li>Thinking tokens are billed as output on Gemini 3 models; add <code>usage_thinking_tokens</code> to the output term if the agent uses thinking.</li>
+    <li>Delivery beat: run the query against a real dataset if one exists from Module 3&rsquo;s lab. Otherwise read the illustrative top row and ask what the second query would be. Answer: the same grouping by <code>agent</code> or by the label.</li>
+    <li>The source deck cited &ldquo;a 12-turn conversation costs about nine times a 2-turn one&rdquo; from Module 1; the computed figure on page 4 is 12&times; for this agent&rsquo;s shape.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 17. THE LOOP ==== -->
+<section class="page">
+  <h1>The AI FinOps loop: validate is the step that is different</h1>
+  <p class="lede">Classic FinOps measures, analyzes, and optimizes. An agent adds a fourth step, because a cheaper agent can be a worse one and nothing on the bill will say so.</p>
+  <div class="grid c4">
+    <div class="cell"><h4>Measure</h4><p>Token counts per model call from the Agent Analytics rows (page 15); labels on every model API request (page 14).</p></div>
+    <div class="cell"><h4>Analyze</h4><p>Cost per conversation (page 16), by agent, by label, by day. Find the long sessions and the expensive agents.</p></div>
+    <div class="cell"><h4>Optimize</h4><p>Trim (5), cache (7&ndash;8), compact (9), skip repeated calls (10), right-size (11), route (13). Cheapest lever first.</p></div>
+    <div class="cell green"><h4>Validate</h4><p>Run the eval set (Module 4) on the changed agent. Cheaper and worse is a regression, not a saving.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Dana.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the order-lookup agent moved from Flash to Flash-Lite.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the pipeline runs the eval set before the model id change merges.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> trajectory score 0.91 against a 0.90 threshold, so the change ships and the agent&rsquo;s input price drops 5&times;. Had the score come back 0.86, the saving would have been a regression and the change would not merge <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> every cost change goes through the eval set. The validate step is what makes agent FinOps different from the classic loop.</div>
+</section>
+<details class="notes" data-title="The AI FinOps loop">
+  <summary>Speaker notes &mdash; The AI FinOps loop</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source deck had the same four steps without saying what validation means. For an agent it means the eval set, because correctness has several dimensions (trajectory, response, safety) and cost changes can move any of them.</li>
+    <li>Delivery beat: ask which of the levers on this page they would apply first on Monday. The expected answer is trimming tool declarations; the surprising one is checking <code>usage_cached_tokens</code> to see whether implicit caching is already working.</li>
+    <li>Hand-off: the consequences page turns the module into actions.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 18. CONSEQUENCES ==== -->
+<section class="page">
+  <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
+  <div class="tscroll"><table class="cmp" style="margin-top:14px;">
+    <thead><tr><th>You observed</th><th>Because</th><th>So you&hellip;</th></tr></thead>
+    <tbody>
+      <tr><td>Input tokens are 92% of the bill and grow every turn</td><td>the prefix and history are re-sent on every call (page 4)</td><td>trim tool declarations and retrieval first, then cache, then compact</td></tr>
+      <tr><td><code>usage_cached_tokens</code> is zero on every call although caching is &ldquo;on&rdquo;</td><td>a per-turn value in <code>static_instruction</code>, a changed tool, or a prefix under the model minimum resets the cache (page 8)</td><td>move the varying text to <code>instruction</code>; keep the tool set stable within a session</td></tr>
+      <tr><td>A 40-turn session costs 30&times; the median</td><td>history outweighs the prefix by mid-conversation and nothing bounds it (page 9)</td><td>set <code>token_threshold</code> and <code>event_retention_size</code>; alert on prompt tokens per session</td></tr>
+      <tr><td>The tuned model costs more per request than the base one</td><td>a tuned endpoint bills 1.5&times; per token on Gemini 3 and later, and the prompt still carries the examples (page 12)</td><td>remove the examples the tuning made unnecessary, or drop a tier; recompute the break-even</td></tr>
+      <tr><td>The bill cannot say which agent or conversation spent it</td><td>billing aggregates by SKU and label, never by session (pages 3, 14, 16)</td><td>label every invocation with <code>RunConfig.labels</code>; run the cost-per-conversation query over Agent Analytics</td></tr>
+      <tr><td>The cheaper model shipped and the ticket-resolution rate fell</td><td>cost went through the pipeline without the validate step (page 17)</td><td>gate every model id change on the eval set</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<details class="notes" data-title="Consequences">
+  <summary>Speaker notes &mdash; Consequences</summary>
+  <div class="n-body"><ul><li>Read the third column aloud. This is the module as six actions.</li></ul></div>
+</details>
+
+<!-- ==== 19. REFERENCES ==== -->
+<section class="page">
+  <h1>References</h1>
+  <ul style="margin-top:14px;">
+    <li><a href="https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing">Agent Platform pricing</a> &mdash; token prices, cached-input prices, context cache storage, tuning prices and the tuned-endpoint footnotes, Agent Runtime compute and memory</li>
+    <li><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/context-cache/context-cache-overview">Context cache overview</a> &mdash; implicit and explicit caching, discounts, model minimums</li>
+    <li><a href="https://github.com/google/adk-python/tree/v2.9.0">google/adk-python</a> at tag <code class="i">v2.9.0</code> &mdash; <code class="i">context_cache_config.py</code>, <code class="i">gemini_context_cache_manager.py</code>, <code class="i">apps/_configs.py</code>, <code class="i">llm_agent.py</code>, <code class="i">google_llm.py</code>, <code class="i">run_config.py</code>, <code class="i">bigquery_agent_analytics_plugin.py</code>, samples <code class="i">context_management/static_instruction</code> and <code class="i">cache_analysis</code></li>
+    <li><a href="https://adk.dev/context/caching/">ADK context caching</a> &middot; <a href="https://adk.dev/context/compaction/">ADK context compaction</a> &middot; <a href="https://adk.dev/callbacks/design-patterns-and-best-practices/">callback design patterns</a> &middot; <a href="https://adk.dev/integrations/redis/">adk-redis</a></li>
+    <li><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/add-labels-to-api-calls">Custom metadata labels</a> &middot; <a href="https://cloud.google.com/vertex-ai/generative-ai/docs/control-model-access">Control access to Model Garden models</a> &middot; <a href="https://cloud.google.com/billing/docs/how-to/budgets">Budgets</a> &middot; <a href="https://cloud.google.com/billing/docs/how-to/export-data-bigquery">Billing export to BigQuery</a></li>
+    <li><a href="https://cloud.google.com/vertex-ai/generative-ai/docs/models/gemini-supervised-tuning">Gemini supervised fine-tuning</a> &mdash; training tokens = dataset tokens &times; epochs</li>
+  </ul>
+  <div class="note"><span class="kk">Re-verify before delivery</span>Prices, cache minimums, label limits, default values, and model ids on these pages were checked on 2026-09-13 against the sources above and change without notice. Gemini preview models are renamed or retired on short notice; re-check the ids on pages 3, 11, and 13; re-check the BigQuery prices on page 15.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul><li>Verification date 2026-09-13; baseline google-adk 2.9.0; all prices global endpoint, pay-as-you-go, per 1M tokens.</li></ul></div>
+</details>
+
+</div>
+
+<aside id="notes-panel" aria-label="Speaker notes">
+  <div id="notes-head">Notes &middot; <span id="notes-title"></span><button id="notes-close" aria-label="Close notes">&times;</button></div>
+  <div id="notes-body"></div>
+</aside>
+
+<div class="bar">
+  <div class="name"><a href="index.html">Agent Operations</a> &middot; Module 6 &middot; Applying FinOps to Agent Costs</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous page">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next page">&#8594;</button>
+    <button id="notes-btn" class="pill" aria-expanded="false">Notes</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; N notes &middot; F fullscreen</div>
+</div>
+
+<script>
+(function(){
+  var deck = document.getElementById('deck');
+  var pages = Array.prototype.slice.call(deck.querySelectorAll(':scope > section.page'));
+  var notes = Array.prototype.slice.call(deck.querySelectorAll(':scope > details.notes'));
+  var cnt = document.getElementById('cnt'), panel = document.getElementById('notes-panel');
+  var notesTitle = document.getElementById('notes-title'), notesBody = document.getElementById('notes-body');
+  var notesBtn = document.getElementById('notes-btn');
+  var i = 0;
+  if (notes.length !== pages.length) console.warn('agent_ops: ' + pages.length + ' pages but ' + notes.length + ' notes blocks; notes will pair by index.');
+
+  /* chrome on every page, page number on every non-divider h1 */
+  pages.forEach(function(p, k){
+    var conf = document.createElement('div'); conf.className = 'conf'; conf.textContent = 'Proprietary + Confidential'; p.appendChild(conf);
+    var g = document.createElement('div'); g.className = 'gcloud';
+    g.innerHTML = '<span class="g1">G</span><span class="g2">o</span><span class="g3">o</span><span class="g4">g</span><span class="g5">l</span><span class="g6">e</span> Cloud'; p.appendChild(g);
+    p.id = 's' + String(k+1).padStart(2,'0');
+    var h = p.querySelector('h1');
+    if (h && !p.classList.contains('divider') && !h.querySelector('.n')) {
+      var n = document.createElement('span'); n.className = 'n'; n.textContent = String(k+1).padStart(2,'0'); h.insertBefore(n, h.firstChild);
+    }
+  });
+
+  function clamp(n){ return Math.max(0, Math.min(pages.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    pages.forEach(function(p,k){ p.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + pages.length;
+    deck.scrollTop = 0;
+    while (notesBody.firstChild) notesBody.removeChild(notesBody.firstChild);
+    var src = notes[i];
+    if (src) {
+      notesTitle.textContent = src.getAttribute('data-title') || '';
+      var body = src.querySelector('.n-body');
+      if (body) Array.prototype.forEach.call(body.children, function(c){ notesBody.appendChild(c.cloneNode(true)); });
+      notesBody.scrollTop = 0;
+    }
+    if (history.replaceState) history.replaceState(null, '', '#s' + String(i+1).padStart(2,'0'));
+  }
+  function toggleNotes(force){
+    var open = (force !== undefined) ? force : !panel.classList.contains('open');
+    panel.classList.toggle('open', open);
+    notesBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function toggleFullscreen(){
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen();
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  notesBtn.addEventListener('click', function(){ toggleNotes(); });
+  document.getElementById('notes-close').addEventListener('click', function(){ toggleNotes(false); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') { show(0); e.preventDefault(); }
+    else if (e.key==='End') { show(pages.length-1); e.preventDefault(); }
+    else if (e.key==='n'||e.key==='N') { toggleNotes(); }
+    else if (e.key==='f'||e.key==='F') { toggleFullscreen(); }
+    else if (e.key==='Escape') { toggleNotes(false); }
+  });
+  function fromHash(){
+    var h = location.hash || '', m = h.match(/s?(\d+)/);
+    show(m ? parseInt(m[1],10)-1 : 0);
+    if (/notes/.test(h)) toggleNotes(true);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Operations — Instructor Companion</title>
+<style>
+  :root{
+    --sans:"Google Sans","Product Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    --mono:"Google Sans Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+    --g-blue:#4285f4; --g-blue-deep:#1a73e8; --g-red:#ea4335; --g-red-deep:#c5221f;
+    --g-yellow:#fbbc04; --g-yellow-deep:#b06000; --g-green:#34a853; --g-green-deep:#188038; --g-gray:#5f6368;
+    --bg:#ffffff; --ink:#202124; --ink-2:#5f6368; --ink-3:#9aa0a6; --panel:#f1f3f4; --row:#f8f9fa; --line:#dadce0;
+    --fill-blue:#e8f0fe; --fill-red:#fce8e6; --fill-yellow:#fef7e0; --fill-green:#e6f4ea; --fill-gray:#f1f3f4;
+    --chrome-bg:#ffffff; --chrome-border:#dadce0; --page-bg:#e8eaed;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414;
+  }}
+  :root[data-theme="dark"]{
+    --g-blue-deep:#8ab4f8; --g-red-deep:#f28b82; --g-yellow-deep:#fdd663; --g-green-deep:#81c995;
+    --bg:#1f1f1f; --ink:#e8eaed; --ink-2:#bdc1c6; --ink-3:#80868b; --panel:#2d2e30; --row:#28292c; --line:#3c4043;
+    --fill-blue:#1e2a44; --fill-red:#3d2321; --fill-yellow:#3a3220; --fill-green:#1f3326; --fill-gray:#2a2b2e;
+    --chrome-bg:#2d2e30; --chrome-border:#3c4043; --page-bg:#141414;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{background:var(--page-bg);color:var(--ink);font-family:var(--sans);font-size:20px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  a{color:var(--g-blue-deep);text-decoration:none;} a:hover{text-decoration:underline;}
+  .stage{position:fixed;inset:0 0 54px 0;overflow-y:auto;overflow-x:hidden;}
+  .page{display:none;max-width:1120px;margin:0 auto;padding:40px 48px 72px;background:var(--bg);min-height:100%;}
+  .page.on{display:block;}
+  @media (min-width:1200px){ .page{margin:22px auto;min-height:calc(100% - 44px);border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,.14);} }
+
+  h1,h2,h3{margin:0;font-weight:500;letter-spacing:-.01em;text-wrap:balance;}
+  .page h1{font-size:32px;line-height:1.25;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;}
+  .page h1 .n{font-family:var(--mono);font-size:20px;color:var(--ink-3);flex:none;font-weight:400;}
+  .claim{margin:12px 0 0;font-size:18px;font-style:italic;color:var(--ink-2);line-height:1.5;border-left:3px solid var(--line);padding-left:14px;}
+  h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
+  h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
+  h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
+  b,strong{font-weight:600;color:var(--ink);}
+  .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
+  code.i{font-family:var(--mono);font-size:.88em;background:var(--panel);border-radius:4px;padding:1px 6px;}
+
+  /* badges next to the title (only when needed) */
+  .bdg{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:3px 9px;vertical-align:4px;text-transform:uppercase;}
+  .bdg.fix{color:var(--g-red-deep);background:var(--fill-red);}
+  .bdg.skip{color:var(--ink-2);background:var(--fill-gray);}
+  .bdg.add{color:var(--g-yellow-deep);background:var(--fill-yellow);}
+
+  /* callouts */
+  .note{background:var(--fill-yellow);border-left:4px solid var(--g-yellow);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .note.blue{background:var(--fill-blue);border-left-color:var(--g-blue);}
+  .note.red{background:var(--fill-red);border-left-color:var(--g-red);}
+  .note.green{background:var(--fill-green);border-left-color:var(--g-green);}
+  .note.gray{background:var(--fill-gray);border-left-color:var(--ink-3);}
+  .note .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px;}
+  .note.blue .kk{color:var(--g-blue-deep);} .note.green .kk{color:var(--g-green-deep);} .note.red .kk{color:var(--g-red-deep);} .note .kk{color:var(--g-yellow-deep);} .note.gray .kk{color:var(--ink-2);}
+  .note p{margin:5px 0;}
+  .takeaway{margin:26px 0 0;background:#1a73e8;color:#fff;border-radius:8px;padding:14px 20px;font-size:20px;line-height:1.45;}
+  .takeaway b{color:#fff;font-weight:700;} .takeaway code.i{background:rgba(255,255,255,.18);color:#fff;}
+
+  /* check rows (MAS) */
+  .checks{display:flex;flex-direction:column;margin:8px 0;position:relative;}
+  .checkrow{display:flex;gap:14px;align-items:flex-start;position:relative;padding:7px 0;}
+  .checkrow::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:1px;background:var(--line);}
+  .checkrow:first-child::before{top:50%;} .checkrow:last-child::before{bottom:50%;} .checkrow:only-child::before{display:none;}
+  .cdot{width:24px;height:24px;border-radius:50%;background:var(--g-blue);flex:0 0 24px;position:relative;z-index:1;margin-top:3px;}
+  .cdot::after{content:"";position:absolute;left:7px;top:7px;width:8px;height:4px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:rotate(-45deg);}
+  .cdot.red{background:var(--g-red);} .cdot.green{background:var(--g-green);} .cdot.gray{background:var(--ink-3);}
+  .checkrow p{margin:2px 0 0;line-height:1.45;}
+
+  /* numbered rows (MAS) */
+  .numrows{display:flex;flex-direction:column;gap:8px;margin:10px 0;}
+  .numrow{display:flex;align-items:center;}
+  .numrow .n{font-family:var(--mono);font-size:20px;color:var(--g-blue-deep);width:52px;flex:0 0 52px;font-weight:500;}
+  .numrow .body{flex:1;background:var(--row);border-left:3px solid #c6dafc;padding:9px 14px;font-size:18.5px;}
+  .numrow.bad .n{color:var(--g-red-deep);} .numrow.bad .body{border-left-color:var(--g-red);background:var(--fill-red);}
+  .numrow.good .n{color:var(--g-green-deep);} .numrow.good .body{border-left-color:var(--g-green);background:var(--fill-green);}
+
+  /* card grid (MAS) */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:12px 0;}
+  .grid.c2{grid-template-columns:repeat(2,1fr);} .grid.c4{grid-template-columns:repeat(4,1fr);}
+  .cell{background:var(--row);border:1px solid var(--line);border-radius:8px;padding:12px 15px;border-top:3px solid var(--g-blue);}
+  .cell.green{border-top-color:var(--g-green);} .cell.red{border-top-color:var(--g-red);} .cell.yellow{border-top-color:var(--g-yellow);} .cell.gray{border-top-color:var(--ink-3);}
+  .cell h4{margin:0 0 4px;font-size:17px;font-weight:600;color:var(--ink);}
+  .cell p{margin:0;font-size:16px;line-height:1.45;color:var(--ink-2);}
+  .cell p b{color:var(--ink);}
+  @media (max-width:900px){ .grid,.grid.c4{grid-template-columns:1fr 1fr;} }
+
+  /* example card */
+  .ex{background:var(--fill-green);border-left:4px solid var(--g-green);border-radius:0 8px 8px 0;padding:12px 18px;margin:14px 0;font-size:18.5px;line-height:1.5;}
+  .ex .kk{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-green-deep);margin-bottom:4px;}
+  .ex p{margin:5px 0;} .ex .lbl{font-weight:700;color:var(--g-green-deep);}
+  .ex .lbl.bad{color:var(--g-red-deep);}
+
+  /* comparison table (MAS) */
+  table.cmp{border-collapse:collapse;width:100%;font-size:17.5px;margin:12px 0;}
+  table.cmp th{text-align:left;font-size:12.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:8px 12px;border-bottom:2px solid var(--line);}
+  table.cmp td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.45;}
+  table.cmp td:first-child{color:var(--ink-2);}
+  table.cmp td.m,table.cmp code{font-family:var(--mono);font-size:15.5px;background:var(--panel);border-radius:4px;padding:1px 5px;}
+  table.cmp tr.hl td{background:var(--fill-green);} table.cmp tr.bad td{background:var(--fill-red);}
+  table.cmp .yes{color:var(--g-green-deep);font-weight:600;} table.cmp .no{color:var(--g-red-deep);font-weight:600;}
+  .tscroll{overflow-x:auto;}
+
+  pre.code{background:var(--panel);border-radius:8px;padding:14px 18px;margin:10px 0;font-family:var(--mono);font-size:15.5px;line-height:1.55;white-space:pre;overflow-x:auto;color:var(--ink);}
+  pre.code .kw{color:var(--g-blue-deep);} pre.code .cm{color:var(--g-green-deep);} pre.code .st{color:var(--g-red-deep);} pre.code .chg{background:var(--fill-yellow);border-radius:3px;padding:0 3px;}
+  .codelabel{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 -4px;}
+  .codelabel.bad{color:var(--g-red-deep);} .codelabel.good{color:var(--g-green-deep);}
+
+  figure{margin:16px 0;} figure svg{display:block;max-width:100%;height:auto;margin:0 auto;}
+  figcaption{font-size:15.5px;color:var(--ink-2);margin-top:8px;line-height:1.45;text-align:center;}
+  .cols{display:flex;gap:28px;align-items:flex-start;margin:10px 0;} .cols>div{flex:1;min-width:0;}
+  @media (max-width:900px){ .cols{flex-direction:column;} }
+
+  .src{margin-top:26px;padding-top:10px;border-top:1px solid var(--line);font-size:15px;color:var(--ink-2);}
+  ol.mods{padding-left:0;list-style:none;margin:14px 0 0;display:grid;gap:10px;}
+  ol.mods li a{display:flex;align-items:center;gap:14px;padding:12px 16px;background:var(--row);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-size:20px;}
+  ol.mods li a:hover{border-color:var(--g-blue);background:var(--fill-blue);text-decoration:none;}
+  ol.mods .num{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--g-blue);color:#fff;font-weight:600;font-size:16px;}
+
+  .bar{position:fixed;left:0;right:0;bottom:0;height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;background:var(--chrome-bg);border-top:1px solid var(--chrome-border);color:var(--ink-2);font-size:15px;white-space:nowrap;}
+  .bar .name{overflow:hidden;text-overflow:ellipsis;font-weight:500;} .bar .name a{color:var(--ink-2);}
+  .bar .ctr{display:flex;align-items:center;gap:12px;}
+  .bar button{background:none;border:1px solid var(--chrome-border);color:var(--ink);border-radius:6px;width:38px;height:32px;font-size:17px;cursor:pointer;line-height:1;}
+  .bar button:hover{background:var(--panel);} .bar .cnt{font-family:var(--mono);font-size:15px;min-width:9ch;text-align:center;} .bar .hint{font-size:14px;color:var(--ink-3);}
+  @media (max-width:820px){ .bar .hint{display:none;} .page{padding:26px 22px 70px;} body{font-size:18.5px;} }
+  @media print{ body{overflow:visible;background:#fff;} .stage{position:static;overflow:visible;} .page{display:block;break-after:page;page-break-after:always;box-shadow:none;margin:0 auto;} .bar{display:none;}
+    .note,.ex,.takeaway,.cell{-webkit-print-color-adjust:exact;print-color-adjust:exact;} }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+<section class="page" id="s01">
+  <h1>Agent Operations on Google Cloud: instructor companion</h1>
+  <p class="claim">One file per module. Each pages through the deck one slide at a time (arrow keys or the buttons below); a page holds the supplementary content for that slide and scrolls if it is tall.</p>
+  <ol class="mods">
+    <li><a href="m1.html"><span class="num">1</span>Introduction to AgentOps</a></li>
+    <li><a href="m2.html"><span class="num">2</span>CI/CD for Agent Deployments</a></li>
+    <li><a href="m3.html"><span class="num">3</span>Observability for Debugging and Improvement</a></li>
+    <li><a href="m4.html"><span class="num">4</span>Agent Evaluation and Quality Assurance</a></li>
+    <li><a href="m5.html"><span class="num">5</span>Security and Governance</a></li>
+    <li><a href="m6.html"><span class="num">6</span>Applying FinOps to Agent Costs</a></li>
+  </ol>
+  <div class="grid c4">
+    <div class="cell"><h4>Blue</h4><p>key point, the concept</p></div>
+    <div class="cell green"><h4>Green</h4><p>example, recommended pattern</p></div>
+    <div class="cell red"><h4>Red</h4><p>correction, the problem case</p></div>
+    <div class="cell yellow"><h4>Yellow</h4><p>caveat, something to add</p></div>
+  </div>
+  <h2><span class="k"></span>What is different for agents</h2>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Mechanism</th><th>Consequence</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Model output is non-deterministic</td><td>equivalent runs differ in wording and trajectory; tests compare semantically, with thresholds</td><td><a href="m1.html#s06">M1 s6</a>, <a href="m4.html#s14">M4 s14</a></td></tr>
+      <tr><td>Correctness has several dimensions</td><td>final answer, tool choice and arguments, grounding, safety, latency, cost; "good" is a written rubric</td><td><a href="m1.html#s06">M1 s6</a>, <a href="m4.html#s25">M4 s25</a></td></tr>
+      <tr><td>The model is an external dependency</td><td>versions and retirement dates, shared throughput and 429s, regional availability</td><td><a href="m1.html#s05">M1 s5</a>, <a href="m2.html#s21">M2 s21</a></td></tr>
+      <tr><td>Cost is per token and grows with context</td><td>every turn resends instruction, tools, and history</td><td><a href="m1.html#s09">M1 s9</a>, <a href="m6.html#s08">M6 s8</a></td></tr>
+      <tr><td>The model follows instructions in any text it reads</td><td>injection through documents and tool results; the agent's permissions bound what an injection can do</td><td><a href="m1.html#s07">M1 s7</a>, <a href="m5.html#s04">M5 s4</a></td></tr>
+      <tr><td>Debugging needs the trajectory; telemetry carries user text</td><td>which tool, which arguments, tokens per call; prompt text is on spans by default</td><td><a href="m3.html#s08">M3 s8</a>, <a href="m3.html#s25">M3 s25</a></td></tr>
+      <tr><td>Session and memory are runtime-managed data</td><td>one conversation's events vs facts across conversations; residency and retention</td><td><a href="m2.html#s10">M2 s10</a></td></tr>
+      <tr><td>The eval set is a maintained artifact</td><td>production failures become cases; new versions are compared with the baseline</td><td><a href="m1.html#s15">M1 s15</a>, <a href="m4.html#s34">M4 s34</a></td></tr>
+    </tbody>
+  </table></div>
+  <h2><span class="k"></span>Names that changed</h2>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Deck says</th><th>Current</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="m">Vertex AI</td><td>Gemini Enterprise Agent Platform</td><td>April 2026</td></tr>
+      <tr><td class="m">Agent Engine</td><td>Agent Runtime</td><td>CLI token still <code>agent_engine</code>; resource still <code>reasoningEngines</code></td></tr>
+      <tr class="hl"><td class="m">Data Studio</td><td>Data Studio</td><td>correct; Looker Studio reverted to this name in April 2026</td></tr>
+      <tr><td class="m">Log Analytics</td><td>Observability Analytics</td><td></td></tr>
+      <tr><td class="m">vertexai.generative_models</td><td>google-genai SDK</td><td>old modules removed after 2026-06-24</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small">API facts pinned to google-adk 2.7.1 and Google Cloud documentation as of 2026-08-25. Pricing figures are labeled illustrative.</p>
+  <div class="src">Copyright © 2026 Jeff Davis. All rights reserved. Proprietary; use requires written approval.</div>
+</section>
+</div>
+<div class="bar">
+  <div class="name"><a href="index.html">Agent Operations companion</a> &middot; course index</div>
+  <div class="ctr">
+    <button id="prev" aria-label="Previous slide">&#8592;</button>
+    <div class="cnt" id="cnt">1 / 1</div>
+    <button id="next" aria-label="Next slide">&#8594;</button>
+  </div>
+  <div class="hint">&#8592; &#8594; keys &middot; Home/End &middot; slide number = deck page</div>
+</div>
+<script>
+(function(){
+  var pages = Array.prototype.slice.call(document.querySelectorAll('.page'));
+  var stage = document.getElementById('stage');
+  var i = 0, cnt = document.getElementById('cnt');
+  function clamp(n){ return Math.max(0, Math.min(pages.length-1, n)); }
+  function show(n){
+    i = clamp(n);
+    pages.forEach(function(p,k){ p.classList.toggle('on', k===i); });
+    cnt.textContent = (i+1) + ' / ' + pages.length;
+    stage.scrollTop = 0;
+    if (history.replaceState) history.replaceState(null,'','#s'+String(i+1).padStart(2,'0'));
+  }
+  document.getElementById('prev').addEventListener('click', function(){ show(i-1); });
+  document.getElementById('next').addEventListener('click', function(){ show(i+1); });
+  document.addEventListener('keydown', function(e){
+    if (e.target && /INPUT|TEXTAREA/.test(e.target.tagName)) return;
+    if (e.key==='ArrowRight'||e.key==='PageDown') { show(i+1); e.preventDefault(); }
+    else if (e.key==='ArrowLeft'||e.key==='PageUp') { show(i-1); e.preventDefault(); }
+    else if (e.key==='Home') { show(0); e.preventDefault(); }
+    else if (e.key==='End') { show(pages.length-1); e.preventDefault(); }
+  });
+  function fromHash(){
+    var m = (location.hash||'').match(/s?(\d+)/);
+    show(m ? parseInt(m[1],10)-1 : 0);
+  }
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>
