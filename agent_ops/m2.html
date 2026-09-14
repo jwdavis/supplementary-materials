@@ -297,7 +297,14 @@
     <figcaption>Two sets is the common case &mdash; the local one and the gate. The scheduled run is the optional third, for teams whose full set is too slow to run on every pull request.</figcaption>
   </figure>
   <div class="note blue"><span class="kk">Rule</span>Building a container image is a <i>release</i> step, not a per-commit one. Evals do not wait for it &mdash; they run against the agent in your working tree, or against the merge result, long before anything is packaged.</div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> Priya. <span class="lbl">Input:</span> the instruction changes from &ldquo;offer a refund when appropriate&rdquo; to &ldquo;only offer a refund after confirming the order shipped.&rdquo; <span class="lbl">Mechanism:</span> she runs a dozen cases locally and two fail, so she fixes the wording and opens a pull request; the PR job runs the larger set against the merge result. <span class="lbl">Result:</span> three unshipped-order cases the local dozen never covered fail at the PR, and the merge is blocked <span class="tag illus">illustrative</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the instruction changes from &ldquo;offer a refund when appropriate&rdquo; to &ldquo;only offer a refund after confirming the order shipped.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> she runs a dozen cases locally and two fail, so she fixes the wording and opens a pull request; the PR job runs the larger set against the merge result.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> three unshipped-order cases the local dozen never covered fail at the PR, and the merge is blocked <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> the same kind of check runs at two or three cadences with different breadths &mdash; and none of them needs an image built first.</div>
   <div class="src">Sources: companion <a href="../agent_operations/m2.html">M2 &sect;04</a> &middot; <a href="https://martinfowler.com/articles/continuousIntegration.html">martinfowler.com, Continuous Integration</a> (verified 2026-09-12).</div>
 </section>
@@ -322,12 +329,18 @@
     <tbody>
       <tr><td class="m">pytest tests/unit</td><td>your functions; model mocked or absent</td><td>logic bugs, schema errors, bad parsing</td><td>anything the model decides</td></tr>
       <tr><td class="m">pytest tests/integration</td><td>the agent, against the <b>real model</b></td><td>wiring: does a turn complete and come back with text</td><td>whether the answer was <i>right</i></td></tr>
-      <tr><td class="m">adk test</td><td>recorded events replayed, model <b>mocked</b></td><td>regressions against a fixture, deterministically</td><td>anything not already in the fixture</td></tr>
-      <tr class="hl"><td>eval run</td><td>the agent, real model, output <b>graded</b></td><td class="yes">wrong tool, wrong trajectory, wrong or unsafe answer</td><td>determinism &mdash; scores move between runs</td></tr>
+      <tr class="hl"><td>Evaluation<div class="small" style="margin-top:4px;"><code class="i">adk web</code> in the loop &middot; <code class="i">adk eval</code> or <code class="i">agents-cli eval</code> from a script &middot; <code class="i">pytest</code> + <code class="i">AgentEvaluator</code> in CI</div></td><td>the agent, against the <b>real model</b>, and the output is <b>graded</b> case by case</td><td class="yes">wrong tool, wrong trajectory, wrong or unsafe answer</td><td>determinism &mdash; scores move between runs</td></tr>
     </tbody>
   </table></div>
   <div class="note blue"><span class="kk">Rule</span>An eval is not a slower unit test. A unit test asserts; an eval scores &mdash; and a score is only a pass or a fail once you choose a threshold.</div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> the scaffolded integration test that ships with a new project. <span class="lbl">Input:</span> the prompt &ldquo;Why is the sky blue?&rdquo; <span class="lbl">Mechanism:</span> it runs the real agent and asserts that at least one event came back carrying text. <span class="lbl">Result:</span> it passes whether the agent explained Rayleigh scattering or replied &ldquo;I cannot help with that.&rdquo; It is a wiring check, and it is not pretending to be more.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> the scaffolded integration test that ships with a new project.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the prompt &ldquo;Why is the sky blue?&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> it runs the real agent and asserts that at least one event came back carrying text.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Result:</span> it passes whether the agent explained Rayleigh scattering or replied &ldquo;I cannot help with that.&rdquo; A wiring check, and not pretending to be more.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> unit and integration tests tell you the agent <i>ran</i>. Only the eval tells you what it <i>decided</i>.</div>
   <div class="src">Sources: <code class="i">agent_test_runner.py</code> (mocks <code class="i">BaseLlm</code>) and the scaffolded <code class="i">tests/integration/test_agent.py</code>, google-adk 2.9.0 / google-agents-cli 1.5.0 (verified 2026-09-12).</div>
 </section>
@@ -336,7 +349,8 @@
   <div class="n-body"><ul>
     <li>Why this page exists: &ldquo;eval&rdquo; has to be a defined term before the next page can correct how it is wired. Define it by contrast, against the two things the room already has.</li>
     <li>Delivery beat: read the scaffolded integration test&rsquo;s assertion aloud &mdash; <code>assert len(events) &gt; 0</code> and &ldquo;at least one part has text.&rdquo; It reliably gets a reaction, and it makes the point that a passing integration suite says nothing about quality.</li>
-    <li><code>adk test</code> is the one people miss: it mocks the model and replays recorded events, so it is a deterministic regression harness, not an evaluation. <code>adk test --rebuild</code> re-records the fixtures by running the real agent.</li>
+    <li>Unpack the evaluation row when you read it: same mechanism at three cadences, and page 8 is the page that separates them. <code>adk web</code> for the case you are building, <code>adk eval</code> or <code>agents-cli eval</code> for a scripted run you read, <code>pytest</code> with <code>AgentEvaluator</code> for the one that fails a build. Slide 4&rsquo;s three lanes are the same three.</li>
+    <li>Kept off the face, and worth having ready because someone will ask: <code>adk test &lt;folder&gt;</code> runs pytest over agent test JSON files, replaying recorded interactions against a mocked model, and <code>--rebuild</code> re-records them by running the real agent. There is a separate <code>adk conformance</code> group (<code>record</code>, <code>test</code>) doing the same job. It is a deterministic regression harness, not an evaluation &mdash; it never grades a decision, which is why it does not earn a row on a page about what each check catches.</li>
     <li>Gotcha for the last column: eval scores move between runs because the model is non-deterministic. The fixes are <code>temperature=0</code>, rubric-based metrics, or several samples &mdash; not deleting the case. A flaky eval is signal about the agent.</li>
   </ul></div>
 </details>
@@ -362,7 +376,14 @@ $ echo $?
 $ echo $?
 <span class="lbl">1</span>   &lt;-- the build stops here</pre>
   <div class="note blue"><span class="kk">Why this works</span>The threshold lives in the eval config (<code class="i">response_match_score: 0.9</code>). <code class="i">AgentEvaluator</code> compares each score against it and raises <code class="i">AssertionError</code> when one falls short &mdash; so pytest fails, and the build fails with it. Comparing a score against a threshold is the gate; the only question is whether something does it.</div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> one agent whose model always replies &ldquo;I cannot help with that.&rdquo; <span class="lbl">Input:</span> one eval case expecting &ldquo;Your refund is issued,&rdquo; with a threshold of 0.9. <span class="lbl">Mechanism:</span> the same case run both ways on google-adk 2.9.0. <span class="lbl">Result:</span> both report the failure; <code class="i">adk eval</code> exits <b>0</b> and pytest exits <b>1</b> &mdash; the difference is entirely in who checks the score <span class="tag illus">reproduced</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> one agent whose model always replies &ldquo;I cannot help with that.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> one eval case expecting &ldquo;Your refund is issued,&rdquo; with a threshold of 0.9.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the same case run both ways on google-adk 2.9.0.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Result:</span> both report the failure; <code class="i">adk eval</code> exits <b>0</b> and pytest exits <b>1</b> &mdash; the difference is entirely in who checks the score <span class="tag illus">reproduced</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> something has to compare the score to a threshold and fail. Wrap the eval in a test, or read the results file and check it yourself &mdash; but never trust the command&rsquo;s exit code.</div>
   <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/cli/cli_tools_click.py">cli_tools_click.py</a> (<code class="i">cli_eval</code>) and <a href="https://github.com/google/adk-python/blob/v2.9.0/src/google/adk/evaluation/agent_evaluator.py">agent_evaluator.py</a> at tag <code class="i">v2.9.0</code> &middot; agents-cli eval guide: &ldquo;eval run exits 0 whatever the scores are, so the numbers you paste are the gate, not the exit code&rdquo; (verified 2026-09-12).</div>
 </section>
@@ -395,7 +416,14 @@ $ echo $?
     <div class="checkrow"><div class="cdot"></div><p><b>They differ in comprehensiveness, not in kind.</b> Same format, same metrics, same gate mechanics &mdash; only the breadth and the cadence change.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Failing production conversations become new cases.</b> That is how the sets grow, and why the large one drifts away from the small one over time.</p></div>
   </div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> a four-person team shipping about ten pull requests a day. <span class="lbl">Input:</span> a 12-case smoke set, a 60-case PR suite, a 400-case nightly set. <span class="lbl">Mechanism:</span> the smoke set runs locally in about 40 seconds; the PR suite runs beside the unit tests in about six minutes; the nightly set runs through <code class="i">agents-cli eval submit</code>, the managed asynchronous path documented for large or CI-driven runs. <span class="lbl">Result:</span> a broken trajectory is caught in the loop, at the PR, or overnight &mdash; three nets with different mesh <span class="tag illus">illustrative</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> a four-person team shipping about ten pull requests a day.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> a 12-case smoke set, a 60-case PR suite, a 400-case nightly set.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the smoke set runs locally in about 40 seconds; the PR suite runs beside the unit tests in about six minutes; the nightly set runs through <code class="i">agents-cli eval submit</code>, the managed asynchronous path documented for large or CI-driven runs.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> a broken trajectory is caught in the loop, at the PR, or overnight &mdash; three nets with different mesh <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> two eval sets, maybe three, differing in size and cadence &mdash; and every one of them needs its own gate.</div>
   <div class="src">Sources: agents-cli eval guide, <code class="i">eval submit</code> / <code class="i">eval results</code> for &ldquo;large or CI-driven runs&rdquo; (google-agents-cli 1.5.0, verified 2026-09-12).</div>
 </section>
@@ -424,7 +452,14 @@ $ echo $?
     </tbody>
   </table></div>
   <div class="note blue"><span class="kk">adk eval vs. agents-cli eval</span>Different lineages, not versions of each other. <code class="i">adk eval</code> runs an ADK eval set against a local agent module, and grades it in your process. <code class="i">agents-cli eval</code> splits the job into <code class="i">generate</code> (run the agent, record traces) and <code class="i">grade</code> &mdash; and <b>grading calls the Agent Platform evaluation service</b>, so it needs a project and an eval-supported region, and its built-in metrics are the service&rsquo;s. That is also what buys custom LLM judges, a deployed target via <code class="i">--url</code>, and the managed path via <code class="i">eval submit</code>. The two dataset formats are not interchangeable.</div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> Priya, adding a case for a bug just reported. <span class="lbl">Input:</span> the conversation that misbehaved. <span class="lbl">Mechanism:</span> she reproduces it in <code class="i">adk web</code>, saves the session into the eval set with one click, then runs <code class="i">pytest tests/eval</code> to confirm it fails. <span class="lbl">Result:</span> a regression case that came from a real conversation, and a gate that now blocks it &mdash; the same file the PR job will run <span class="tag illus">illustrative</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, adding a case for a bug just reported.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the conversation that misbehaved.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> she reproduces it in <code class="i">adk web</code>, saves the session into the eval set with one click, then runs <code class="i">pytest tests/eval</code> to confirm it fails.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> a regression case that came from a real conversation, and a gate that now blocks it &mdash; the same file the PR job will run <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> use the UI to build cases, a CLI to explore scores, and pytest where something must actually fail.</div>
   <div class="src">Sources: <code class="i">adk eval --help</code>, the dev-server eval routes (<code class="i">.../eval-sets/&lcub;id&rcub;/add-session</code>, <code class="i">/run</code>), google-adk 2.9.0 &middot; <code class="i">agents-cli eval --help</code>, google-agents-cli 1.5.0 (verified 2026-09-12).</div>
 </section>
@@ -436,7 +471,7 @@ $ echo $?
     <li>Delivery beat: ask how they would turn a bug report into a regression test. That is the example.</li>
     <li>Choosing between the two CLIs: ADK format, local module, grading in-process, no GCP project needed &rarr; <code>adk eval</code>. Service metrics, custom judges, a deployed target, or the managed cloud run &rarr; <code>agents-cli eval</code>. A team usually settles on one; the cost of mixing is two dataset formats to maintain.</li><li>The service dependency has practical consequences: <code>eval grade</code> defaults to the <code>global</code> endpoint rather than your manifest region, only some regions are supported, and it is rate-limited (hence <code>--qps</code>). For data-residency cases where no eval region fits, a local <code>custom_function</code> metric grades in-process instead.</li>
     <li>For the PR job specifically: <code>pytest tests/eval</code> is the recommendation, because it needs no extra threshold-checking code. The alternative is <code>agents-cli eval run</code> followed by a script that reads <code>results_&lt;timestamp&gt;.json</code> and exits non-zero &mdash; fine, just more to maintain.</li>
-    <li><code>adk test</code> is deliberately not in this table &mdash; it replays fixtures against a mocked model, so it is regression testing rather than evaluation. Page 5 covers it.</li>
+    <li><code>adk test</code> is deliberately in neither this table nor page 5&rsquo;s &mdash; it replays recorded interactions against a mocked model, so it is regression testing rather than evaluation. Page 5&rsquo;s notes carry the detail if it comes up.</li>
   </ul></div>
 </details>
 
@@ -458,7 +493,14 @@ $ echo $?
     <div class="checkrow"><div class="cdot"></div><p><b>What to add:</b> the eval gate at the CI stage, beside the unit and integration tests that are already there.</p></div>
   </div>
   <div class="note blue"><span class="kk">What the PR trigger already gives you</span>The CI stage runs on <code class="i">on: pull_request</code>, and <code class="i">actions/checkout</code> then checks out <code class="i">GITHUB_REF</code> &mdash; the merge branch. So everything at this stage, evals included, runs against <b>your branch merged into main</b>, not against your branch tip.</div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> Marco and Priya, on separate branches. <span class="lbl">Input:</span> Marco renames the tool <code class="i">get_order</code> to <code class="i">lookup_order</code>; Priya&rsquo;s new instruction says &ldquo;call <code class="i">get_order</code> to confirm the order shipped.&rdquo; <span class="lbl">Mechanism:</span> each branch passes its evals alone, and git reports no conflict &mdash; one change is in a tool module, the other in an instruction file. The PR job evaluates the merge result, where the instruction names a tool that no longer exists. <span class="lbl">Result:</span> caught on the pull request instead of after the merge, with one diff to read rather than two people&rsquo;s work to bisect <span class="tag illus">illustrative</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco and Priya, on separate branches.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> Marco renames the tool <code class="i">get_order</code> to <code class="i">lookup_order</code>; Priya&rsquo;s new instruction says &ldquo;call <code class="i">get_order</code> to confirm the order shipped.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> each branch passes its evals alone, and git reports no conflict &mdash; one change is in a tool module, the other in an instruction file. The PR job evaluates the merge result, where the instruction names a tool that no longer exists.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> caught on the pull request instead of after the merge, with one diff to read rather than two people&rsquo;s work to bisect <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> the scaffold gives you the pipeline and the eval artifacts and does not connect them &mdash; that is the one edit to make on day one, and the PR trigger already evaluates the merge result for free.</div>
   <div class="src">Sources: google-agents-cli 1.5.0 scaffold templates (<code class="i">.cloudbuild/</code>, <code class="i">.github/workflows/</code>) &middot; agents-cli deployment guide, CI/CD pipeline stages &middot; <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows">GitHub Actions: events that trigger workflows</a> (verified 2026-09-12).</div>
 </section>
@@ -548,7 +590,7 @@ $ echo $?
     <thead><tr><th></th><th>Agent Runtime</th><th>Cloud Run</th><th>GKE</th></tr></thead>
     <tbody>
       <tr><td>What you hand over</td><td colspan="3"><b>Depends on the tool, not the target.</b> <code>adk deploy</code> and <code>agents-cli deploy</code> take your source and build the image (Agent Engine builds it for Agent Runtime; <code>gcloud run deploy --source</code> builds it for Cloud Run; <code>agents-cli</code> skips the build only if you pass <code>--image</code>). Agent Runtime alone also accepts a Developer Connect repo <span class="tag guide">recommended</span>, a Dockerfile, a prebuilt image, or an in-memory agent object via the SDK.</td></tr>
-      <tr><td>How callers reach it</td><td>a Vertex AI resource, <code>reasoningEngines/NNN</code>, called with a Google access token</td><td>an HTTPS endpoint you configure: ingress, IAM invoker, IAP, custom domain, Cloud Armor</td><td>whatever you configure: Service, Ingress or Gateway, your own certificates and policy</td></tr>
+      <tr><td>How callers reach it</td><td>a Gemini Enterprise Agent Platform resource, <code>reasoningEngines/NNN</code>, called with a Google access token</td><td>an HTTPS endpoint you configure: ingress, IAM invoker, IAP, custom domain, Cloud Armor</td><td>whatever you configure: Service, Ingress or Gateway, your own certificates and policy</td></tr>
       <tr><td>What you operate</td><td>your code; build, serving, scaling and the endpoint are the platform&rsquo;s</td><td>the service: revisions, traffic split, networking</td><td>the cluster: nodes, manifests, autoscalers, upgrades</td></tr>
       <tr><td>Sessions</td><td><code>VertexAiSessionService</code> on the engine&rsquo;s own instance &mdash; the deploy tool writes the URI for you (below)</td><td colspan="2"><code>VertexAiSessionService</code> on any Agent Engine instance: <code>--session_service_uri=agentengine://&lt;id&gt;</code> on <code>adk deploy cloud_run</code>, or the scaffold&rsquo;s <code>agent_platform_sessions</code> mode. Otherwise <code>DatabaseSessionService</code> over a Postgres/MySQL/SQLite URL, or in-memory for dev</td></tr>
       <tr><td>Isolating model-written code</td><td>Code Execution sandbox <span class="tag guide">preview</span></td><td>Cloud Run sandboxes <span class="tag guide">preview</span></td><td>GKE Agent Sandbox, gVisor <span class="tag limit">GA</span></td></tr>
@@ -556,9 +598,16 @@ $ echo $?
     </tbody>
   </table></div>
   <div class="note blue"><span class="kk">How sessions get wired &mdash; one mechanism, every target</span><p>ADK&rsquo;s service registry maps the URI scheme <code class="i">agentengine://&lt;engine&gt;</code> to <code class="i">VertexAiSessionService</code> (and the memory scheme to <code class="i">VertexAiMemoryBankService</code>). On Agent Runtime, <code class="i">adk deploy agent_engine</code> names the engine it just created and writes <code class="i">--session_service_uri=agentengine://&lt;engine&gt;</code> into the container&rsquo;s start command, so nothing is left to configure. On Cloud Run or GKE you pass the same flag with any engine id, and the agent uses managed sessions there too. A server you write yourself calls the registry, or constructs the service, itself.</p></div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> a two-person team with no infrastructure owner. <span class="lbl">Input:</span> an ADK agent directory, no Dockerfile. <span class="lbl">Mechanism:</span> <code class="i">adk deploy agent_engine</code> creates the engine, generates a Dockerfile whose start command names that engine as the session store, and hands the source to Agent Engine to build and run. <span class="lbl">Result:</span> callers reach it with a Google token, and every conversation is already in managed Sessions. When security later requires a company domain behind Cloud Armor, the target moves to Cloud Run with <code class="i">adk deploy cloud_run --session_service_uri=agentengine://&lt;same id&gt;</code> &mdash; same source, same session store <span class="tag illus">illustrative</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> a two-person team with no infrastructure owner.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> an ADK agent directory, no Dockerfile.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> <code class="i">adk deploy agent_engine</code> creates the engine, generates a Dockerfile whose start command names that engine as the session store, and hands the source to Agent Engine to build and run.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> callers reach it with a Google token, and every conversation is already in managed Sessions. When security later requires a company domain behind Cloud Armor, the target moves to Cloud Run with <code class="i">adk deploy cloud_run --session_service_uri=agentengine://&lt;same id&gt;</code> &mdash; same source, same session store <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> the tool builds the image and can wire managed sessions on any target; choose the target on what you need in front of the container and how much of it you want to operate.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">Deploy an agent</a> (the five methods) &middot; <code class="i">cli_deploy.py</code> <code class="i">create_dockerfile_for_agent_engine</code> and <code class="i">service_registry.py</code> (<code class="i">agentengine://</code>), google-adk 2.9.0 &middot; <code class="i">agentplatform/agent_engines/templates/adk.py</code> (session builder default) &middot; Cloud Run sandboxes &middot; GKE Agent Sandbox (verified 2026-09-12).</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">Deploy an agent</a> (the five methods) &middot; <code class="i">cli_deploy.py</code> <code class="i">create_dockerfile_for_agent_engine</code> and <code class="i">service_registry.py</code> (<code class="i">agentengine://</code>), google-adk 2.9.0 &middot; <code class="i">agentplatform/frameworks/adk.py</code> (<code class="i">AdkApp</code>, session builder default), google-cloud-agentplatform 2.1.0 &middot; Cloud Run sandboxes &middot; GKE Agent Sandbox (verified 2026-09-12).</div>
 </section>
 <details class="notes" data-title="Choosing a deployment target">
   <summary>Speaker notes &mdash; Choosing a deployment target</summary>
@@ -581,7 +630,7 @@ $ echo $?
   <div class="tscroll"><table class="cmp">
     <thead><tr><th style="width:19%">Path</th><th style="width:30%">Turn export on</th><th style="width:29%">Content in the export, by default</th><th>Where your variables go</th></tr></thead>
     <tbody>
-      <tr><td><code>adk deploy agent_engine</code></td><td><code>--otel_to_cloud</code>. The deploy writes <code>GOOGLE_CLOUD_AGENT_ENGINE_<wbr>ENABLE_TELEMETRY=true</code> into the deployment and the flag into the container&rsquo;s start command. <code>ENABLE_TELEMETRY=true</code> in <code>./app/.env</code> turns the flag on the same way</td><td>ADK span attributes <span class="no">off</span>, and <b>not settable to on</b> &mdash; the deploy writes <code>false</code> unless <code>.env</code> sets it, and then the Vertex SDK&rsquo;s <code>AdkApp</code> overwrites the variable with <code>false</code> at container startup either way. GenAI events <span class="no">off</span> &mdash; unset</td><td><code>./app/.env</code> only. There is no <code>--env</code>, and your shell is never read</td></tr>
+      <tr><td><code>adk deploy agent_engine</code></td><td><code>--otel_to_cloud</code>. The deploy writes <code>GOOGLE_CLOUD_AGENT_ENGINE_<wbr>ENABLE_TELEMETRY=true</code> into the deployment and the flag into the container&rsquo;s start command. <code>ENABLE_TELEMETRY=true</code> in <code>./app/.env</code> turns the flag on the same way</td><td>ADK span attributes <span class="no">off</span>, and <b>not settable to on</b> &mdash; the deploy writes <code>false</code> unless <code>.env</code> sets it, and then the platform SDK&rsquo;s <code>AdkApp</code> overwrites the variable with <code>false</code> at container startup either way. GenAI events <span class="no">off</span> &mdash; unset</td><td><code>./app/.env</code> only. There is no <code>--env</code>, and your shell is never read</td></tr>
       <tr><td><code>agents-cli deploy</code> &rarr; Agent Runtime</td><td>Nothing to pass. The deploy sets <code>ENABLE_TELEMETRY=true</code>; the scaffolded server reads it and passes <code>otel_to_cloud</code> to <code>get_fast_api_app</code></td><td>ADK span attributes <span class="no">off</span>, GenAI events <span class="no">off</span> (<code>NO_CONTENT</code>) &mdash; both written by the deploy</td><td><code>.env</code>, then <code>--update-env-vars K=V</code> on top; Terraform <code>service.tf</code> when managed</td></tr>
       <tr><td><code>adk deploy cloud_run</code> / <code>gke</code></td><td><code>--otel_to_cloud</code> &mdash; the flag in the start command, nothing else</td><td>ADK span attributes <span class="yes">on</span> &mdash; the library default, the deploy does not touch it. GenAI events <span class="no">off</span></td><td>Cloud Run: <code>--env K=V</code>, repeatable (becomes <code>gcloud run deploy --update-env-vars</code>). GKE: no <code>--env</code>; the deploy applies its own manifest, so set them afterwards with <code>kubectl set env</code></td></tr>
       <tr><td><code>agents-cli deploy</code> &rarr; Cloud Run / GKE</td><td>Nothing to pass. The scaffolded server calls <code>get_fast_api_app(<wbr>otel_to_cloud=True)</code> unconditionally</td><td>ADK span attributes <span class="no">off</span> &mdash; the deploy writes <code>false</code>. GenAI events <span class="no">off</span> (Terraform sets <code>NO_CONTENT</code>)</td><td>Same: <code>.env</code>, <code>--update-env-vars</code>, Terraform</td></tr>
@@ -597,7 +646,14 @@ hooks = google_cloud.get_gcp_exporters(
 )
 maybe_set_otel_providers(otel_hooks_to_setup=[hooks])  <span class="cm"># global OTel providers; Runner spans now export</span></pre>
   <div class="note blue"><span class="kk">The three content variables &mdash; read from the environment on every path</span><p>Neither variable adds or removes a span; each decides whether attributes on spans that exist anyway carry text or a placeholder. <code class="i">ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=true</code> fills the <code class="i">gcp.vertex.agent.llm_request</code>, <code class="i">llm_response</code>, <code class="i">tool_call_args</code> and <code class="i">tool_response</code> attributes on the <code class="i">call_llm</code> and <code class="i">execute_tool</code> spans; <code class="i">false</code> writes <code class="i">{}</code>. <code class="i">OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY</code> puts them in the GenAI log events instead of <code class="i">&lt;elided&gt;</code> &mdash; and under the semconv opt-in its <code class="i">SPAN_ONLY</code> and <code class="i">SPAN_AND_EVENT</code> modes put them on the <code class="i">generate_content</code> span as well, so this variable is not &ldquo;the events one.&rdquo; <code class="i">OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code> selects the current event shape. <code class="i">GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY</code> is <b>not</b> one of them: it is Agent Runtime&rsquo;s export switch, the one the Console toggle sets. It never puts content anywhere.</p></div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> Priya, moving the refund agent from Agent Runtime to Cloud Run to put it behind a company domain. <span class="lbl">Input:</span> the same <code class="i">./app</code> and <code class="i">.env</code>; <code class="i">adk deploy agent_engine --otel_to_cloud</code> becomes <code class="i">adk deploy cloud_run --otel_to_cloud</code>. <span class="lbl">Mechanism:</span> the Agent Runtime deploy had been writing <code class="i">ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code> for her; the Cloud Run deploy writes nothing, so the library default applies. <span class="lbl">Result:</span> the first Cloud Run trace has full prompts on every <code class="i">call_llm</code> span. She adds <code class="i">--env ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code> and redeploys <span class="tag illus">illustrative</span>.</p></div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, moving the refund agent from Agent Runtime to Cloud Run to put it behind a company domain.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the same <code class="i">./app</code> and <code class="i">.env</code>; <code class="i">adk deploy agent_engine --otel_to_cloud</code> becomes <code class="i">adk deploy cloud_run --otel_to_cloud</code>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the Agent Runtime deploy had been writing <code class="i">ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code> for her; the Cloud Run deploy writes nothing, so the library default applies.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Result:</span> the first Cloud Run trace has full prompts on every <code class="i">call_llm</code> span. She adds <code class="i">--env ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code> and redeploys <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
   <div class="takeaway"><b>Takeaway:</b> export is a flag on <code class="i">adk deploy</code>, a variable the scaffolded server reads on <code class="i">agents-cli deploy</code>, and four lines of startup code in a runtime you wrote. Content is the same three variables on every path, and only the two Agent Runtime deploys and <code class="i">agents-cli</code> turn it off for you &mdash; on a native Agent Runtime deploy they turn it off whether you like it or not.</div>
   <div class="src">Sources: <code class="i">cli/cli_deploy.py</code> (<code class="i">to_agent_engine</code>, <code class="i">to_cloud_run</code>, <code class="i">to_gke</code>), <code class="i">cli/deployers/_cloud_run_deployer.py</code>, <code class="i">cli/api_server.py</code>, <code class="i">telemetry/context.py</code>, <code class="i">telemetry/setup.py</code>, <code class="i">telemetry/google_cloud.py</code>, google-adk 2.9.0 &middot; <code class="i">deploy/agent_runtime.py</code>, <code class="i">deploy/cmd_deploy.py</code>, scaffold <code class="i">app/fast_api_app.py</code> and <code class="i">service.tf</code>, google-agents-cli 1.5.0 &middot; <code class="i">frameworks/adk.py</code>, google-cloud-agentplatform 2.1.0 &middot; <a href="https://adk.dev/integrations/cloud-trace/">ADK: Cloud Trace</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing">Agent Runtime: set up tracing</a> (verified 2026-09-12).</div>
 </section>
@@ -608,7 +664,7 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])  <span class="cm"># global
     <li>What <code>--otel_to_cloud</code> does, on every <code>adk deploy</code> target: it lands in the container&rsquo;s <code>CMD adk api_server &hellip; --otel_to_cloud</code>, and at boot <code>_setup_gcp_telemetry</code> calls <code>google.auth.default()</code>, builds OTLP exporters for traces, metrics and logs to <code>telemetry.googleapis.com</code>, and installs them as the global providers. <code>adk deploy agent_engine</code> additionally writes <code>GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true</code> into the deployment environment, and reads that variable from <code>./app/.env</code> as a way to turn the flag on; if both are present the flag wins with a notice. Note that <code>adk api_server</code> itself never reads the variable &mdash; in this path the exporters come from the flag, and the variable is what the platform and Console see.</li>
     <li>Is <code>ENABLE_TELEMETRY</code> the same as the OTel variables? No. It is an on/off switch for export on Agent Runtime, read by the platform, by the SDK&rsquo;s <code>AdkApp</code> (<code>frameworks/adk.py</code>, <code>_telemetry_enabled</code>), and by the agents-cli scaffold&rsquo;s <code>fast_api_app.py</code>. The <code>OTEL_INSTRUMENTATION_GENAI_*</code> variables decide what content is inside the export. The docs&rsquo; three-variable example sets both kinds side by side, which is what makes them look interchangeable.</li>
     <li>What <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=true</code> shows, from <code>tracing.py</code>: <code>gcp.vertex.agent.llm_request</code> and <code>llm_response</code> on <code>call_llm</code>, <code>tool_call_args</code> and <code>tool_response</code> on <code>execute_tool</code>, <code>gcp.vertex.agent.data</code> on send-data spans. When false they are <code>{}</code> or <code>N/A</code>. The GenAI variable is separate: <code>EVENT_ONLY</code> and <code>SPAN_AND_EVENT</code> fill the <code>gen_ai.*</code> log events; <code>SPAN_ONLY</code> and <code>SPAN_AND_EVENT</code> put content on the <code>generate_content</code> span only under the semconv opt-in; unset or unrecognised means <code>NO_CONTENT</code>; <code>true</code> is a back-compat alias for <code>EVENT_ONLY</code>.</li>
-    <li>Precedence on <code>adk deploy agent_engine</code>, and why the row says &ldquo;not settable to on.&rdquo; Two things happen at two different times, and the second one wins. <b>At deploy time:</b> <code>dotenv_values(&lt;agent_dir&gt;/.env)</code> is the only source for the deployment environment, then <code>if 'ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS' not in env_vars: env_vars[&hellip;] = 'false'</code>. The deploy fills a gap in the file and never overrides a value in it, so <code>true</code> in <code>.env</code> really is written into the deployment and you can see it on the resource. <b>At runtime:</b> the platform wraps your agent in the Vertex SDK&rsquo;s <code>AdkApp</code>, whose <code>set_up</code> runs on every container start and does an unconditional <code>os.environ["ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS"] = "false"</code> (<code>templates/adk.py:990-996</code>, google-cloud-aiplatform 2.1.0) unless the deprecated <code>enable_tracing=True</code> was passed. ADK re-reads the variable per turn, so the overwrite is what every turn sees. Net effect on a <b>native</b> deploy: the value in the deployment environment is cosmetic and content stays off. This is the only path where that is true &mdash; on Cloud Run, GKE, BYOC, and any runtime you wrote, nothing overwrites it and <code>.env</code> decides. Verified on a live 2.9.0 <code>--otel_to_cloud</code> deploy, 2026-09-12: the resource carries <code>GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true</code> and <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code>.</li>
+    <li>Precedence on <code>adk deploy agent_engine</code>, and why the row says &ldquo;not settable to on.&rdquo; Two things happen at two different times, and the second one wins. <b>At deploy time:</b> <code>dotenv_values(&lt;agent_dir&gt;/.env)</code> is the only source for the deployment environment, then <code>if 'ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS' not in env_vars: env_vars[&hellip;] = 'false'</code>. The deploy fills a gap in the file and never overrides a value in it, so <code>true</code> in <code>.env</code> really is written into the deployment and you can see it on the resource. <b>At runtime:</b> the platform wraps your agent in the platform SDK&rsquo;s <code>AdkApp</code>, whose <code>set_up</code> runs on every container start and writes the variable unconditionally &mdash; an <code>if/else</code> that sets <code>"true"</code> when the deprecated <code>enable_tracing=True</code> was passed and <code>"false"</code> in every other case, including when you never mention the flag (<code>agentplatform/frameworks/adk.py:1013-1016</code>, google-cloud-agentplatform 2.1.0; the comment above it reads &ldquo;Disable content capture in custom ADK spans unless user enabled tracing explicitly with the old flag&rdquo;). ADK re-reads the variable per turn, so the overwrite is what every turn sees. Net effect on a <b>native</b> deploy: the value in the deployment environment is cosmetic and content stays off. This is the only path where that is true &mdash; on Cloud Run, GKE, BYOC, and any runtime you wrote, nothing overwrites it and <code>.env</code> decides. Verified on a live 2.9.0 <code>--otel_to_cloud</code> deploy, 2026-09-12: the resource carries <code>GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true</code> and <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code>.</li>
     <li>agents-cli to Agent Runtime, precisely (<code>deploy/agent_runtime.py</code>): <code>.env</code> is read, <code>--update-env-vars</code> is merged on top, then <code>setdefault</code> for <code>ENABLE_TELEMETRY=true</code>, <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT</code> and <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code>. Same shape on Cloud Run and GKE (<code>cmd_deploy.py</code>) except only the ADK variable is defaulted there. If someone asks why rows 1 and 2 differ when both land on Agent Runtime: an <code>agents-cli</code> deployment ships a container running the scaffold&rsquo;s own FastAPI server, so the SDK&rsquo;s <code>AdkApp</code> wrapper never runs and never overwrites the content variable. The outcome matches row 1 anyway because the deploy writes <code>false</code> explicitly &mdash; same answer, different reason, and here <code>--update-env-vars</code> can genuinely turn it back on. The scaffolded server passes <code>otel_to_cloud=True</code> on Cloud Run and GKE, and on Agent Runtime derives it from <code>ENABLE_TELEMETRY</code>, so the Console toggle really turns export off in that container. When the project is Terraform-managed, <code>service.tf</code> also sets <code>OTEL_SEMCONV_STABILITY_OPT_IN</code> and the upload hook that writes full completions to a GCS bucket &mdash; that tier ignores the content variable, so &ldquo;no content in traces&rdquo; does not mean &ldquo;no content stored.&rdquo;</li>
     <li>The SDK path, for completeness: <code>client.agent_engines.create(agent=AdkApp(&hellip;), env_vars={"GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY": "true", &hellip;})</code>. The SDK adds the variable as <code>"unspecified"</code> if you omit it so the Console can own the toggle. This is the same <code>AdkApp</code> whose startup overwrite is described three bullets up &mdash; the SDK path and <code>adk deploy agent_engine</code> land in the same container wrapper, which is why the content answer is the same for both.</li>
     <li>Where the variables go, in detail: Cloud Run&rsquo;s deployer reads <code>.env</code> only for project and region; <code>adk deploy gke</code> has no <code>--env</code>; it writes a Deployment manifest carrying only project, location and the enterprise flag and runs <code>kubectl apply</code> on it, so variables go on afterwards with <code>kubectl set env deployment/&lt;service_name&gt; K=V</code>, which rolls the pods. On every target ADK also runs <code>load_dotenv_for_agent</code> at startup, so a <code>.env</code> that shipped inside the image is read too, with values already in the environment preserved &mdash; but the deploys honour <code>.gitignore</code> and <code>.gcloudignore</code>, and most repos ignore <code>.env</code>, so do not rely on it.</li>
@@ -619,40 +675,263 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])  <span class="cm"># global
 <!-- ==== 15. CONFIGURING A DEPLOYMENT: SECRETS, IDENTITY, SIZE ==== -->
 <section class="page">
   <h1>Configuring a deployment: secrets, identity, size</h1>
-  <p class="lede">Three more decisions, each one flag &mdash; and one of them is the flag people get wrong at three in the morning.</p>
+  <p class="lede">Three more decisions. On <code class="i">agents-cli deploy</code> each is one flag. On <code class="i">adk deploy</code> none of them has a flag of its own &mdash; you hand them through to <code class="i">gcloud</code>, or patch them on afterwards.</p>
   <div class="tscroll"><table class="cmp">
-    <thead><tr><th>What you want</th><th>How</th><th>Notes</th></tr></thead>
+    <thead><tr><th style="width:17%">What you want</th><th style="width:25%"><code>agents-cli deploy</code></th><th style="width:25%"><code>adk deploy</code></th><th>What actually happens</th></tr></thead>
     <tbody>
-      <tr><td>A tool credential</td><td class="m">agents-cli deploy --secrets "PAY_KEY=payments-api-key:3"</td><td>resolves the Secret Manager version at deploy time into an environment variable; the repo holds only the name. Agent Runtime and Cloud Run</td></tr>
-      <tr><td>The same, on GKE</td><td>a Kubernetes <code>Secret</code>, or Secret Manager through Workload Identity</td><td>the deploy flag does not apply; the manifest mounts it as a file or an env var</td></tr>
-      <tr><td>An identity for the agent</td><td class="m">--service-account SA_EMAIL</td><td>what the agent authenticates as; grant it only the tools&rsquo; permissions</td></tr>
-      <tr><td>A per-agent principal</td><td class="m">--agent-identity</td><td>Agent Runtime only, and only settable at create <span class="tag guide">preview</span></td></tr>
+      <tr><td>A tool credential, on Agent Runtime or Cloud Run</td><td class="m">--secrets "PAY_KEY=payments-api-key:3"</td><td><span class="no">no flag of its own.</span> On <code>cloud_run</code>, hand it to gcloud &mdash; after the <code>--</code> separator, or as <code class="i">--provider-args</code>: <code class="i">-- --set-secrets PAY_KEY=payments-api-key:3</code>. On <code>agent_engine</code> there is no mechanism at all &mdash; the only environment that path reads is <code class="i">./app/.env</code></td><td>the deploy stores a <b>reference</b> &mdash; secret id and version, never the value. The runtime resolves it at container start, and it arrives as <code class="i">os.environ["PAY_KEY"]</code>. Version is optional and defaults to <code>latest</code>; pin it</td></tr>
+      <tr><td>The same, on GKE</td><td><span class="no">not supported.</span> A Kubernetes <code>Secret</code> in the Terraform under <code class="i">deployment/terraform/</code></td><td><span class="no">no flag.</span> <code class="i">adk deploy gke</code> writes and applies its own Deployment and Service, so patch after with <code class="i">kubectl set env</code> or own the manifests yourself</td><td>either the kubelet mounts a Kubernetes <code>Secret</code> as a file or a variable, or the agent calls the Secret Manager API itself through Workload Identity</td></tr>
+      <tr class="hl"><td>A runtime identity</td><td class="m">--service-account SA_EMAIL</td><td><span class="no">no flag of its own.</span> Cloud Run: <code class="i">-- --service-account=SA_EMAIL</code>, or the same through <code class="i">--provider-args</code>. GKE: the Workload Identity annotation, in a manifest you own</td><td class="yes">this is what the agent&rsquo;s own API calls authenticate as &mdash; the Cloud Run service runs as it, the Agent Runtime container runs as it, the GKE pod is bound to it. Grant it the tools&rsquo; permissions and nothing more</td></tr>
+      <tr><td>A per-agent principal</td><td class="m">--agent-identity</td><td><span class="no">not available</span></td><td>the agent gets a principal of its own instead of sharing a service account, so access is granted to <b>the agent</b>. Agent Runtime only, settable only at create <span class="tag guide">preview</span></td></tr>
     </tbody>
   </table></div>
+  <div class="note"><span class="kk">Caveat &mdash; who needs the accessor role</span>Resolution happens at run time, so the grant goes on the <b>runtime</b> identity, not on whoever ran the deploy. On Cloud Run and GKE that is your <code class="i">app_sa</code>. On Agent Runtime it is the platform-managed <code class="i">service-&lt;PROJECT_NUMBER&gt;@gcp-sa-aiplatform-re.iam<wbr>.gserviceaccount.com</code> &mdash; a different principal from the one you passed to <code class="i">--service-account</code>, and the usual reason a deploy succeeds and the first request 403s.</div>
+  <div class="note blue"><span class="kk">Why a per-agent principal is a create-time decision</span>Binding an agent to an Agent Gateway &mdash; <code class="i">--agent-gateway-ingress</code> or <code class="i">--agent-gateway-egress</code>, which is how ingress and egress become governed &mdash; requires Agent Identity. It cannot be added to an existing agent, so declining it at create means redeploying as a new agent to get governed traffic later.</div>
   <p class="codelabel">Sizing &mdash; the defaults, and the one that bites</p>
   <pre class="term">$ agents-cli deploy <span class="flag">--cpu</span> 1 <span class="flag">--memory</span> 4Gi <span class="flag">--concurrency</span> 8 <span class="flag">--min-instances</span> 0 <span class="flag">--max-instances</span> 10
 <span class="lbl">                    ^ all four are the defaults; --min-instances 0 scales to zero,</span>
 <span class="lbl">                      but the generated Terraform pins 1 to avoid cold starts</span>
 
 <span class="lbl"># the adk equivalent, for a project without the agents-cli manifest:</span>
-$ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="flag">--region</span> us-central1 \
-    <span class="flag">--provider-args</span> <span class="st">"--cpu=4,--memory=16Gi,--concurrency=16,--max-instances=20"</span> ./app</pre>
+<span class="lbl"># adk has no sizing flags of its own. Two ways through to gcloud, and they concatenate:</span>
+<span class="lbl"># everything after --, and/or a repeated --provider-args, one flag per occurrence</span>
+$ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="flag">--region</span> us-central1 ./app \
+    <span class="chg">--</span> <span class="flag">--cpu</span>=4 <span class="flag">--memory</span>=16Gi <span class="flag">--concurrency</span>=16 <span class="flag">--max-instances</span>=20</pre>
   <div class="note"><span class="kk">Caveat</span>The sizing parameters are coupled. Each in-flight request holds its whole context window in memory while it waits on the model, so peak memory is roughly base plus concurrency &times; per-request memory. Raising <code class="i">--concurrency</code> without raising <code class="i">--memory</code> is the usual cause of OOM restarts <span class="tag heur">heuristic</span>.</div>
-  <div class="takeaway"><b>Takeaway:</b> secrets and identity are one flag each; sizing is where you have to think, because memory bounds concurrency.</div>
-  <div class="src">Sources: <code class="i">agents-cli deploy --help</code> (1.5.0) &middot; agents-cli deployment guide, &ldquo;Sizing a deployment&rdquo; &middot; <code class="i">adk deploy cloud_run --help</code>, google-adk 2.9.0 (verified 2026-09-12).</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, wiring the refund agent&rsquo;s payments tool on Cloud Run.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> the API key already in Secret Manager as <code class="i">payments-api-key</code>, version 3.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">What he did first:</span> <code class="i">agents-cli deploy --secrets "PAY_KEY=payments-api-key:3"</code> and nothing else. The deploy reported success, and the first request failed on <code class="i">secretmanager.versions.access</code> &mdash; the service was still running as the default compute account, because <code class="i">deploy</code> does not pick up the Terraform-created <code class="i">app_sa</code> unless you name it.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">What worked:</span> the same command plus <code class="i">--service-account app-sa@&hellip;</code>, with <code class="i">roles/secretmanager.secretAccessor</code> on <code class="i">app_sa</code>. Same secret, same flag &mdash; the value now arrives in <code class="i">os.environ["PAY_KEY"]</code> at container start <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> on <code class="i">agents-cli</code> these are three flags; on <code class="i">adk deploy</code> they are a gcloud passthrough on Cloud Run and manifest work on GKE. Whichever tool, the secret is resolved at run time &mdash; so the runtime identity is what has to be allowed to read it.</div>
+  <div class="src">Sources: <code class="i">agents-cli deploy --help</code> (1.5.0, flag table re-checked against 1.4.1 locally) &middot; agents-cli deployment guide, &ldquo;Secret Manager,&rdquo; &ldquo;Service Account Architecture,&rdquo; &ldquo;Sizing a deployment&rdquo; &middot; <code class="i">adk deploy cloud_run --help</code> and <code class="i">deployers/_cloud_run_deployer.py</code>, installed google-adk 2.9.0 (the <code class="i">--</code> and <code class="i">--provider-args</code> passthroughs, and the adk-managed flags they reject) &middot; <code class="i">adk deploy gke --help</code> (no passthrough, no <code class="i">--env</code>) &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/agent-identity">Agent Identity</a> (verified 2026-09-14).</div>
 </section>
 <details class="notes" data-title="Configuring a deployment: secrets, identity, size">
   <summary>Speaker notes &mdash; Configuring a deployment: secrets, identity, size</summary>
   <div class="n-body"><ul>
+    <li>Why this page exists: the brief asks what each target needs configured, and these three are where the two tools diverge most. Read the table by column, not by row &mdash; the <code>adk deploy</code> column is mostly &ldquo;no flag,&rdquo; and that is the finding, not an omission.</li>
+    <li>The &ldquo;reference, not value&rdquo; point is the one to land, because it explains a class of failure. <code>--secrets</code> writes the secret id and version into the deployment; nothing reads the secret until the container starts, and the principal that reads it is the runtime identity. So &ldquo;my deploy worked and my agent 403s&rdquo; is almost always a missing <code>secretAccessor</code> on the wrong principal. On Agent Runtime it is the platform-managed <code>service-&lt;PROJECT_NUMBER&gt;@gcp-sa-aiplatform-re.iam.gserviceaccount.com</code>, which surprises people who granted it to their own SA.</li>
+    <li>The corollary worth saying out loud: nothing secret is ever in the repo, the image, or the diff &mdash; only an id and a version number. That is what makes rotation a redeploy rather than a commit.</li>
     <li>Rotation, if asked: add a new secret version, redeploy pointing at it, verify, then disable the old one. No commit and no rebuild &mdash; the diff is a version number in the deploy command, and the previous version is still there to switch back to.</li>
     <li>Pin the secret version (<code>:3</code>) rather than taking <code>latest</code>, for the same reason you pin a model id: otherwise the thing your agent authenticates with can change without a deploy.</li>
-    <li><code>adk deploy</code> has no first-class sizing flags &mdash; <code>--provider-args</code> passes them through to <code>gcloud run deploy</code>. On GKE the sizing flags are rejected outright; size in the manifests and the HorizontalPodAutoscaler.</li>
+    <li>The <code>agent_engine</code> gap is worth naming if someone is on <code>adk deploy</code>: that path reads only <code>./app/.env</code>, so there is no secret-reference mechanism at all and a credential put there is a plaintext credential. Either move to <code>agents-cli deploy</code>, or have the agent call the Secret Manager API itself at startup using its own service account.</li>
+    <li>Row 2 in full, because it is the row that compresses the most. What it is trying to say is: <b>on GKE nothing hands you a secret &mdash; you build the path yourself, and there are two of them.</b> The <code>--secrets</code> flag is Agent Runtime and Cloud Run only, so neither tool wires anything up for you here.
+      <ul>
+        <li><b>Path A, the Kubernetes way.</b> Put the value in a Kubernetes <code>Secret</code> object in the cluster, then reference it from the pod spec &mdash; either <code>env[].valueFrom.secretKeyRef</code>, which lands it in the environment like <code>--secrets</code> would, or <code>volumes[].secret</code>, which mounts it as a file the agent reads. The kubelet does the resolving at pod start. This is what the agents-cli scaffold does, in the Terraform under <code>deployment/terraform/</code>.</li>
+        <li><b>Path B, skip Kubernetes entirely.</b> Have the agent call the Secret Manager API itself at startup. No <code>Secret</code> object exists; the pod authenticates as <code>app_sa</code> through Workload Identity and fetches the version directly. More code, but the secret never has a second copy sitting in etcd.</li>
+        <li>Either way <code>app_sa</code> needs <code>roles/secretmanager.secretAccessor</code> &mdash; Path A because Terraform reads the secret to create the Kubernetes object, Path B because the agent reads it at run time.</li>
+        <li><b>And the <code>adk deploy gke</code> wrinkle:</b> it generates a Deployment and a Service manifest and <code>kubectl apply</code>s them itself. You never see those manifests before they are applied, and there is no flag to inject anything into them &mdash; no <code>--env</code>, no <code>--provider-args</code>, no <code>--</code> passthrough. So neither path is reachable at deploy time. You either patch afterwards (<code>kubectl set env deployment/&lt;name&gt; --from=secret/&lt;name&gt;</code>, which rolls the pods) or stop using <code>adk deploy gke</code> for anything but a first look and own the manifests. That is the real content of the &ldquo;or own the manifests yourself&rdquo; clause on the face.</li>
+      </ul></li>
+    <li>Service accounts, precisely. A scaffolded project has two: <code>app_sa</code>, the runtime identity, with its roles in <code>deployment/terraform/iam.tf</code>; and <code>cicd_runner_sa</code>, which the pipeline runs as and which needs permissions in both staging and prod. The classic 403s map cleanly &mdash; &ldquo;cannot act as service account&rdquo; is a missing <code>iam.serviceAccountUser</code> on <code>app_sa</code>; &ldquo;secret access denied&rdquo; is <code>secretAccessor</code>; &ldquo;permission denied on Cloud Run&rdquo; is the runner missing a deploy role in the target project.</li>
+    <li>Agent Identity vs. a service account, if pressed: a service account is a shared workload identity &mdash; several agents can run as one, and an audit log then says only that <i>something</i> acting as <code>app_sa</code> called the tool. Agent Identity gives this agent its own principal, so the grant and the audit trail name the agent. It is Preview, Agent Runtime only, and create-time only, which is why it belongs in the deployment design rather than in a later hardening pass.</li>
+    <li><code>adk deploy cloud_run</code> has no sizing flags of its own, and <b>two</b> ways through to gcloud that are simply concatenated in <code>_cloud_run_deployer.py</code>: everything after a bare <code>--</code> separator, and a repeatable <code>--provider-args</code> (one flag per occurrence &mdash; not a comma-joined string). The <code>--</code> form is what the command&rsquo;s own <code>--help</code> examples use, so that is what the page shows. Either way is also how you reach <code>--set-secrets</code> and <code>--service-account</code>, since neither has a first-class adk flag.</li>
+    <li>Gotcha if someone tries to pass everything that way: the deployer rejects the arguments it manages itself &mdash; <code>--source</code>, <code>--project</code>, <code>--region</code>, <code>--port</code>, <code>--verbosity</code> and <code>--update-env-vars</code>. That last one is why <code>--env</code> exists as a separate repeatable flag on <code>cloud_run</code>. Verified against installed google-adk 2.9.0, 2026-09-14.</li>
+    <li>On GKE and <code>agent_engine</code> there is no passthrough at all &mdash; no <code>--env</code>, no <code>--provider-args</code>, no <code>--</code> separator. Size GKE in the manifests and the HorizontalPodAutoscaler.</li>
+    <li>Sizing shape, if it comes up: the container is one async <code>uvicorn</code> process, so throughput comes from <code>--concurrency</code> and <code>--max-instances</code>, not from more workers. Raise <code>--cpu</code> only when profiling shows the event loop or a synchronous tool call is CPU-bound.</li>
     <li>The <code>min-instances</code> inconsistency is worth naming: the CLI default is 0, the generated Terraform pins 1. Two defaults for one setting, depending on the path you deploy through.</li>
     <li>Concurrency 8 is conservative because per-request memory is agent-specific. Light agents go to 16&ndash;32 after load testing &mdash; and the staging stage&rsquo;s load test is exactly that tool.</li>
   </ul></div>
 </details>
 
-<!-- ==== 16. THE PIPELINE, CORRECTED ==== -->
+<!-- ==== 16. SECTION 2 RECAP ==== -->
+<section class="page">
+  <h1>Section 2 recap</h1>
+  <div class="checks" style="margin-top:14px;">
+    <div class="checkrow"><div class="cdot green"></div><p>Four routes to production; for a scaffolded project, <code class="i">agents-cli deploy</code> off a manifest is the default.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Choose the target on URL ownership, session wiring, and code-execution isolation &mdash; not on accelerators.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Telemetry, secrets, and identity are one flag each on <code class="i">agents-cli deploy</code>; on <code class="i">adk deploy</code> they go through to <code class="i">gcloud</code>, or through the manifest. Sizing is coupled, and memory is what bounds concurrency.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>A secret is resolved at run time, so the runtime identity is the principal that has to be allowed to read it.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Tag images with the commit, so a running revision names the commit that built it &mdash; the appendix has the Cloud Build file that does it.</p></div>
+  </div>
+</section>
+<details class="notes" data-title="Section 2 recap">
+  <summary>Speaker notes &mdash; Section 2 recap</summary>
+  <div class="n-body"><ul>
+    <li>Point at the appendix here rather than teaching it: the corrected Cloud Build file is the last two pages, and it is where the gate from section 1 becomes a line of YAML.</li>
+    <li>Hand-off: the pipeline is built and the agent is deployed. Section 3 is about the two inputs that change its behavior without changing any of that.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 17. SECTION DIVIDER 3 ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">3</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Section 3 of 3</div>
+      <h1>Governing what the model reads</h1>
+      <div class="dsub">The model decides from two things you control: which model it is, and what your tools say they do.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Section 3 divider">
+  <summary>Speaker notes &mdash; Section 3 divider</summary>
+  <div class="n-body"><ul>
+    <li>Framing: governance here is not paperwork. Both of these inputs change agent behavior at runtime without a code change, which is exactly why they need the pipeline.</li>
+    <li>This section is deliberately short &mdash; two pages and a tour. The brief marks it as secondary to evaluation and deployment.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 18. MODEL GOVERNANCE ==== -->
+<section class="page">
+  <h1>Model governance</h1>
+  <p class="lede">You deploy on Tuesday against <code class="i">gemini-flash-latest</code> and run the full eval set: green. Nothing is deployed on Thursday. On Thursday the agent starts formatting tool calls differently.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot red"></div><p><b>An alias is a moving target.</b> <code class="i">-latest</code> is documented to be hot-swapped with every new release of that model variation. Your deployment did not change &mdash; the thing it points at did.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Pin a version, and change it deliberately.</b> The model id is a source file like any other: change it, run the eval set, compare against the recorded baseline, canary, promote.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Promote one version through the environments.</b> Staging exists to test the version production is about to run &mdash; so they match by the end of a release, not by accident in the middle of one.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Model families retire on a schedule.</b> The upgrade is a matter of when, not whether, so rehearse it rather than meeting it as an incident.</p></div>
+  </div>
+  <div class="note blue"><span class="kk">Where Model Registry fits</span>Agent Platform&rsquo;s Model Registry versions models <b>you</b> register &mdash; a tuned or custom model &mdash; with version aliases, lineage and stage labels, and it is what a deployment or an approval gate points at. If your agent calls a Google foundation model by id, you are not registering anything: the pinning rule above is the whole practice. Register when you tune.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> the refund agent, pinned to <code class="i">gemini-3.5-flash</code> <span class="tag guide">verify the current id</span>.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> a pull request that changes the id to the next version.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> the PR job runs the eval set against the merge result; tool-call accuracy drops on five cases where the new version formats arguments differently.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> blocked at the gate. The instruction is adjusted and re-run, and the new version reaches staging and production as one promoted change rather than a surprise <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> pin the version so the model changes only when you change it &mdash; then put that change through the same gate as any other.</div>
+  <div class="src">Sources: Gemini model version aliases (<code class="i">-latest</code> is hot-swapped on each release) &middot; Model Registry versioning and aliases &middot; companion <a href="../agent_operations/m2.html">M2 &sect;21</a> (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Model governance">
+  <summary>Speaker notes &mdash; Model governance</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: the source spends two slides on lineage, hyperparameters and semantic versioning &mdash; advice for teams training models. Almost nobody in the room is. The alias problem is what will actually bite them.</li>
+    <li>The lede is the whole argument, and the timing is the point: nothing was deployed between the green eval run and the behavior change. That is what makes it hard to debug &mdash; there is no diff to look at.</li>
+    <li>Say explicitly that pinning does <i>not</i> mean staging and production run different versions as a steady state. Staging runs the candidate first, briefly; when the release promotes, they match. A permanent skew between environments means staging is testing something production will never run.</li>
+    <li>Verify the current model id before delivery &mdash; the Gemini line moves fast, and the deck names one only as an example.</li>
+    <li>ADK 2.9.0 adds <code>FallbackModel</code> for automatic failover to a backup model on error. Availability, not governance &mdash; but note the implication: with a fallback configured, the model that answered may not be the one you pinned, so the traces need to record which one served the turn.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 19. TOOL AND MCP GOVERNANCE ==== -->
+<section class="page">
+  <h1>Governing tools and MCP servers</h1>
+  <p class="lede">Your agent&rsquo;s tools are an MCP server another team deploys on their own schedule. Nothing in your repository changes when they add, rename, or repurpose one.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot red"></div><p><b>A tool you do not own is a dependency that moves.</b> A remote MCP server&rsquo;s tool list and descriptions are read at runtime, so its release changes your agent&rsquo;s behavior without touching your pipeline.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Agent Registry is the inventory and the control point.</b> It catalogs MCP servers, tools, and agents across the organization, with search, IAM, audit logging, and auth bindings for connecting an agent to a tool.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Register what you publish, and pin what you consume.</b> Register your deployed agent with <code class="i">agents-cli publish</code>; consume tools through a registered server rather than an arbitrary URL, so access is governed and revocable.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Put the tool surface in the eval set.</b> Your gate is the only thing that notices when a dependency&rsquo;s description changes &mdash; run it on a schedule, not only on your own commits.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <div class="checks" style="margin-top:8px;">
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> the payments team, who own the MCP server your refund agent uses.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Input:</span> they reword <code class="i">issue_refund</code> from &ldquo;Issue a refund&rdquo; to &ldquo;Issue a refund or store credit&rdquo; and ship it on a Wednesday.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Mechanism:</span> your agent reads tool descriptions from the server at runtime, so it starts offering store credit &mdash; with no commit, no deploy, and no pipeline run on your side. The nightly eval set is what fails.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Result:</span> the registry entry names the owning team and the server version, so the conversation takes minutes instead of a day of bisecting <span class="tag illus">illustrative</span>.</p></div>
+    </div>
+  </div>
+  <div class="note gray"><span class="kk">Publishing your own</span>Apigee can expose an existing API as an MCP server with no code; MCP Toolbox for Databases gives governed access to Cloud SQL, AlloyDB, Spanner and BigQuery without a hand-written tool per query. Both land in the registry the same way.</div>
+  <div class="takeaway"><b>Takeaway:</b> a tool the agent reads at runtime is an undeployed dependency &mdash; catalog it in Agent Registry so you know who owns it, and let a scheduled eval run tell you when it changes.</div>
+  <div class="src">Sources: Agent Registry overview (agents, MCP servers, tools, skills; auth bindings and audit logging) &middot; <code class="i">agents-cli publish</code> &middot; companion <a href="../agent_operations/m2.html">M2 &sect;24&ndash;25</a> (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="Governing tools and MCP servers">
+  <summary>Speaker notes &mdash; Governing tools and MCP servers</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: it is the CI/CD-shaped part of tool governance. &ldquo;Write good docstrings&rdquo; and &ldquo;use least privilege&rdquo; are ordinary engineering; what is specific here is that a tool description is an input the <i>model</i> reads, and a remote one can change without any event in your pipeline.</li>
+    <li>Delivery beat: ask what in their current setup would notice the Wednesday change. Usually nothing until a customer complains &mdash; which is the argument for the scheduled tier from page 7.</li>
+    <li>If your tools are in your own repository, the story is simpler: the description is a diff, review it like code, and the PR gate catches the behavior change. The hard case is the one on the page &mdash; a dependency you do not deploy.</li>
+    <li>Agent Registry specifics worth having ready: it holds Agent, McpServer, Endpoint and Skill resources; supports keyword and prefix search across the org; and Agent Gateway reads it to enforce access policy, which is how &ldquo;registered&rdquo; becomes &ldquo;governed&rdquo; rather than just &ldquo;listed.&rdquo; Module 5 covers the policy side.</li>
+    <li>A2A discovery (well-known URI, curated registries, direct configuration) is a source slide here &mdash; multi-agent architecture, not CI/CD. Point at the registry and move on unless asked.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 20. THE SUPPORTING CAST ==== -->
+<section class="page">
+  <h1>The supporting cast</h1>
+  <p class="lede">Four services the pipeline leans on. If you already know them, this is a checkpoint rather than a lesson.</p>
+  <div class="grid c4">
+    <div class="cell"><h4>Artifact Registry</h4><p>Stores the built image; scans it for vulnerabilities on push.</p></div>
+    <div class="cell"><h4>Cloud Build</h4><p>Runs the steps on a trigger; serverless, and the trigger can be a pull request.</p></div>
+    <div class="cell"><h4>Cloud Deploy</h4><p>Staged promotion with approvals for Cloud Run and GKE; Agent Runtime needs a custom target.</p></div>
+    <div class="cell"><h4>Secret Manager</h4><p>Tool credentials and API keys, versioned and audited. Never in the repository.</p></div>
+  </div>
+  <div class="note blue"><span class="kk">The one specific worth keeping</span>Carry the commit in two places. Tag the image with it &mdash; <code class="i">agent:$COMMIT_SHA</code> &mdash; so <code class="i">gcloud run revisions list</code> names the commit that built what is serving. And stamp it on the telemetry, so a trace does too:
+  <pre class="term" style="margin-top:10px;">$ agents-cli deploy <span class="flag">--update-env-vars</span> <span class="st">"OTEL_RESOURCE_ATTRIBUTES=service.version=$COMMIT_SHA"</span></pre>
+  Every span the deployment emits then carries <code class="i">service.version</code>, so a bad trace in Cloud Trace points at a commit without going via the revision. This is what the shipped staging pipeline does.</div>
+  <div class="takeaway"><b>Takeaway:</b> generic CI/CD services used generically &mdash; the habit worth keeping is stamping the commit on both the image and the telemetry, so a behavioral regression is a diff you can find from either end.</div>
+  <div class="src">Sources: companion <a href="../agent_operations/m2.html">M2 &sect;15&ndash;18</a> (verified 2026-09-12).</div>
+</section>
+<details class="notes" data-title="The supporting cast">
+  <summary>Speaker notes &mdash; The supporting cast</summary>
+  <div class="n-body"><ul>
+    <li>This page is a tour by explicit instruction &mdash; keep it to a couple of minutes and do not expand it. Its job is to make sure nobody is lost on a product name, not to teach the products.</li>
+    <li>The commit-stamping habit is the only thing on this page worth remembering, which is why it is the note rather than a card. <code>OTEL_RESOURCE_ATTRIBUTES</code> is the standard OpenTelemetry resource variable, so it works on any target and any OTLP backend &mdash; not a Google-specific trick. Module 3 uses <code>service.version</code> when it reads traces.</li>
+    <li>Terraform: the lab covers it. One detail worth having ready &mdash; the Agent Runtime resource uses <code>lifecycle.ignore_changes</code> on the container and source spec, so Terraform owns the infrastructure while the pipeline owns the agent version.</li>
+    <li>Secret rotation, if asked: add a new secret version, redeploy pointing at it, verify, then disable the old version. No commit, no rebuild &mdash; the diff is one version number in the deploy command.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 21. CONSEQUENCES ==== -->
+<section class="page">
+  <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
+  <div class="tscroll"><table class="cmp" style="margin-top:14px;">
+    <thead><tr><th>You observed</th><th>Because</th><th>So you&hellip;</th></tr></thead>
+    <tbody>
+      <tr><td>The build is green and the agent still regressed</td><td><code>adk eval</code> exits 0 whatever the scores are</td><td>gate on a pytest assertion or a score check, not on the command&rsquo;s exit code</td></tr>
+      <tr><td>The PR eval failed, but neither branch failed on its own</td><td>the two changes only conflict in behavior &mdash; an instruction naming a tool the other branch renamed</td><td>read it as the gate working: the merge result is what was tested. Fix the pair, not either branch</td></tr>
+      <tr><td>The eval suite is too slow to run on every PR</td><td>one set is being asked to do every job</td><td>split it: small on demand, medium on the PR, the full set nightly</td></tr>
+      <tr><td>Behavior changed on a day nothing was deployed</td><td>the model id is an alias, and the alias was hot-swapped to a new version</td><td>pin the version, and change it through the pipeline like any other source edit</td></tr>
+      <tr><td>The agent calls a tool for a question it should have answered itself</td><td>the model chose from the tool&rsquo;s description, and it was vague</td><td>rewrite the description and re-run the evals &mdash; nothing else needs to change</td></tr>
+      <tr><td>A revision misbehaves and nobody can find the commit</td><td>the image carries a floating tag</td><td>tag with <code>$COMMIT_SHA</code>, so the revision names its own commit</td></tr>
+      <tr><td>Instances restart under load, and the logs end mid-request</td><td>the container ran out of memory: every concurrent request holds its whole context window while it waits on the model</td><td>raise <code>--memory</code> whenever you raise <code>--concurrency</code>, then re-run the staging load test to confirm</td></tr>
+    </tbody>
+  </table></div>
+</section>
+<details class="notes" data-title="Consequences">
+  <summary>Speaker notes &mdash; Consequences</summary>
+  <div class="n-body"><ul>
+    <li>This is the page that converts the module into actions. Read the third column aloud, top to bottom.</li>
+    <li>Rows one and two are the ones people have actually lived through; if the room is quiet, ask which of these symptoms they have seen.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 22. REFERENCES ==== -->
+<section class="page">
+  <h1>References</h1>
+  <ul style="margin-top:14px;">
+    <li><a href="https://github.com/google/adk-python">google/adk-python</a> at tag <code class="i">v2.9.0</code> &mdash; <code class="i">cli_tools_click.py</code> (eval exit behavior), <code class="i">agent_evaluator.py</code> (the assertion), <code class="i">fast_api.py</code> (<code class="i">otel_to_cloud</code>)</li>
+    <li><code class="i">google-agents-cli</code> 1.5.0 &mdash; <code class="i">deploy</code> and <code class="i">eval</code> command surfaces, and the scaffolded pipeline templates</li>
+    <li><a href="https://docs.cloud.google.com/run/docs/configuring/services/sandboxes">Cloud Run sandboxes</a> &middot; <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox">GKE Agent Sandbox</a> &mdash; isolating model-written code</li>
+    <li><a href="https://docs.cloud.google.com/agent-registry/overview">Agent Registry</a> &middot; <a href="https://docs.cloud.google.com/vertex-ai/docs/model-registry/model-alias">Model Registry version aliases</a></li>
+    <li><a href="https://docs.cloud.google.com/build/docs/configuring-builds/substitute-variable-values">Cloud Build substitutions</a> &middot; <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows">GitHub Actions: events that trigger workflows</a></li>
+    <li><a href="https://martinfowler.com/articles/continuousIntegration.html">martinfowler.com, Continuous Integration</a> &mdash; the definition the source slide gives half of</li>
+    <li>Companion <a href="../agent_operations/m2.html">agent_operations/m2.html</a> &mdash; slide-by-slide corrections, verified 2026-08-25</li>
+  </ul>
+  <div class="note"><span class="kk">Re-verify before delivery</span>Product names, launch stages (Cloud Run sandboxes and Agent Runtime Code Execution were <b>Preview</b>), CLI flags, and default values were checked on <b>2026-09-12</b> against google-adk 2.9.0 and google-agents-cli 1.5.0. The eval exit-code behavior on page 6 was reproduced on that baseline. All of it changes without notice.</div>
+</section>
+<details class="notes" data-title="References">
+  <summary>Speaker notes &mdash; References</summary>
+  <div class="n-body"><ul>
+    <li>Baseline: google-adk 2.9.0 (released 2026-09-10), google-agents-cli 1.5.0, verified 2026-09-12.</li>
+    <li>The two claims most likely to age: launch stages on the sandbox row of page 13, and the eval exit-code behavior on page 6 &mdash; if ADK ever adds a <code>--fail-on</code> flag, page 6 needs rewriting. Re-run the reproduction before each delivery.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 23. APPENDIX DIVIDER ==== -->
+<section class="page divider">
+  <div class="wrap">
+    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">A</div><div class="sh red"></div></div>
+    <div>
+      <div class="kicker">Appendix</div>
+      <h1>The pipeline, corrected</h1>
+      <div class="dsub">A worked Cloud Build file, for reference after the module &mdash; the widely-copied example with its three defects fixed and the eval gate wired in.</div>
+    </div>
+  </div>
+</section>
+<details class="notes" data-title="Appendix divider">
+  <summary>Speaker notes &mdash; Appendix divider</summary>
+  <div class="n-body"><ul>
+    <li>Not delivered in the session. Point at it when someone asks what the gate looks like as YAML, and leave them to read it.</li>
+    <li>If time does allow one page of it, read step 2 and nothing else &mdash; <code>pytest tests/eval</code>, not <code>adk eval</code>. That is the whole appendix in one line.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 24. THE PIPELINE, CORRECTED (APPENDIX) ==== -->
 <section class="page">
   <h1>The pipeline, corrected</h1>
   <p class="lede">The widely-copied example pipeline for deploying an agent has three defects, and two of them are silent.</p>
@@ -696,166 +975,6 @@ $ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="
     <li><code>$COMMIT_SHA</code> is empty for a manual <code>gcloud builds submit</code>, because there is no commit context &mdash; an image tagged with it then gets an empty tag. Only trigger-started builds have it, along with <code>$BRANCH_NAME</code>, <code>$TAG_NAME</code> and <code>$SHORT_SHA</code>.</li>
     <li>For Agent Runtime, step 4 is <code>agents-cli deploy</code>; there is no <code>gcloud</code> equivalent. The <code>images:</code> block (omitted here for room) is worth adding so Cloud Build records the tagged image as the build&rsquo;s artifact.</li>
     <li>Worker pools, if asked: the default pool cannot reach private IPs, so a private pool is what you need when an eval step calls a tool backed by, say, a Cloud SQL instance with no public address.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 17. SECTION 2 RECAP ==== -->
-<section class="page">
-  <h1>Section 2 recap</h1>
-  <div class="checks" style="margin-top:14px;">
-    <div class="checkrow"><div class="cdot green"></div><p>Four routes to production; for a scaffolded project, <code class="i">agents-cli deploy</code> off a manifest is the default.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Choose the target on URL ownership, session wiring, and code-execution isolation &mdash; not on accelerators.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Telemetry, secrets, and identity are one flag each; sizing is coupled, and memory is what bounds concurrency.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Tag images with the commit, so a running revision names the commit that built it.</p></div>
-  </div>
-</section>
-<details class="notes" data-title="Section 2 recap">
-  <summary>Speaker notes &mdash; Section 2 recap</summary>
-  <div class="n-body"><ul>
-    <li>Hand-off: the pipeline is built and the agent is deployed. Section 3 is about the two inputs that change its behavior without changing any of that.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 18. SECTION DIVIDER 3 ==== -->
-<section class="page divider">
-  <div class="wrap">
-    <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">3</div><div class="sh red"></div></div>
-    <div>
-      <div class="kicker">Section 3 of 3</div>
-      <h1>Governing what the model reads</h1>
-      <div class="dsub">The model decides from two things you control: which model it is, and what your tools say they do.</div>
-    </div>
-  </div>
-</section>
-<details class="notes" data-title="Section 3 divider">
-  <summary>Speaker notes &mdash; Section 3 divider</summary>
-  <div class="n-body"><ul>
-    <li>Framing: governance here is not paperwork. Both of these inputs change agent behavior at runtime without a code change, which is exactly why they need the pipeline.</li>
-    <li>This section is deliberately short &mdash; two pages and a tour. The brief marks it as secondary to evaluation and deployment.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 19. MODEL GOVERNANCE ==== -->
-<section class="page">
-  <h1>Model governance</h1>
-  <p class="lede">You deploy on Tuesday against <code class="i">gemini-flash-latest</code> and run the full eval set: green. Nothing is deployed on Thursday. On Thursday the agent starts formatting tool calls differently.</p>
-  <div class="checks">
-    <div class="checkrow"><div class="cdot red"></div><p><b>An alias is a moving target.</b> <code class="i">-latest</code> is documented to be hot-swapped with every new release of that model variation. Your deployment did not change &mdash; the thing it points at did.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p><b>Pin a version, and change it deliberately.</b> The model id is a source file like any other: change it, run the eval set, compare against the recorded baseline, canary, promote.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Promote one version through the environments.</b> Staging exists to test the version production is about to run &mdash; so they match by the end of a release, not by accident in the middle of one.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Model families retire on a schedule.</b> The upgrade is a matter of when, not whether, so rehearse it rather than meeting it as an incident.</p></div>
-  </div>
-  <div class="note blue"><span class="kk">Where Model Registry fits</span>Agent Platform&rsquo;s Model Registry versions models <b>you</b> register &mdash; a tuned or custom model &mdash; with version aliases, lineage and stage labels, and it is what a deployment or an approval gate points at. If your agent calls a Google foundation model by id, you are not registering anything: the pinning rule above is the whole practice. Register when you tune.</div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> the refund agent, pinned to <code class="i">gemini-3.5-flash</code> <span class="tag guide">verify the current id</span>. <span class="lbl">Input:</span> a pull request that changes the id to the next version. <span class="lbl">Mechanism:</span> the PR job runs the eval set against the merge result; tool-call accuracy drops on five cases where the new version formats arguments differently. <span class="lbl">Result:</span> blocked at the gate. The instruction is adjusted and re-run, and the new version reaches staging and production as one promoted change rather than a surprise <span class="tag illus">illustrative</span>.</p></div>
-  <div class="takeaway"><b>Takeaway:</b> pin the version so the model changes only when you change it &mdash; then put that change through the same gate as any other.</div>
-  <div class="src">Sources: Gemini model version aliases (<code class="i">-latest</code> is hot-swapped on each release) &middot; Model Registry versioning and aliases &middot; companion <a href="../agent_operations/m2.html">M2 &sect;21</a> (verified 2026-09-12).</div>
-</section>
-<details class="notes" data-title="Model governance">
-  <summary>Speaker notes &mdash; Model governance</summary>
-  <div class="n-body"><ul>
-    <li>Why this page exists: the source spends two slides on lineage, hyperparameters and semantic versioning &mdash; advice for teams training models. Almost nobody in the room is. The alias problem is what will actually bite them.</li>
-    <li>The lede is the whole argument, and the timing is the point: nothing was deployed between the green eval run and the behavior change. That is what makes it hard to debug &mdash; there is no diff to look at.</li>
-    <li>Say explicitly that pinning does <i>not</i> mean staging and production run different versions as a steady state. Staging runs the candidate first, briefly; when the release promotes, they match. A permanent skew between environments means staging is testing something production will never run.</li>
-    <li>Verify the current model id before delivery &mdash; the Gemini line moves fast, and the deck names one only as an example.</li>
-    <li>ADK 2.9.0 adds <code>FallbackModel</code> for automatic failover to a backup model on error. Availability, not governance &mdash; but note the implication: with a fallback configured, the model that answered may not be the one you pinned, so the traces need to record which one served the turn.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 20. TOOL AND MCP GOVERNANCE ==== -->
-<section class="page">
-  <h1>Governing tools and MCP servers</h1>
-  <p class="lede">Your agent&rsquo;s tools are an MCP server another team deploys on their own schedule. Nothing in your repository changes when they add, rename, or repurpose one.</p>
-  <div class="checks">
-    <div class="checkrow"><div class="cdot red"></div><p><b>A tool you do not own is a dependency that moves.</b> A remote MCP server&rsquo;s tool list and descriptions are read at runtime, so its release changes your agent&rsquo;s behavior without touching your pipeline.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Agent Registry is the inventory and the control point.</b> It catalogs MCP servers, tools, and agents across the organization, with search, IAM, audit logging, and auth bindings for connecting an agent to a tool.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p><b>Register what you publish, and pin what you consume.</b> Register your deployed agent with <code class="i">agents-cli publish</code>; consume tools through a registered server rather than an arbitrary URL, so access is governed and revocable.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p><b>Put the tool surface in the eval set.</b> Your gate is the only thing that notices when a dependency&rsquo;s description changes &mdash; run it on a schedule, not only on your own commits.</p></div>
-  </div>
-  <div class="ex"><span class="kk">Example</span><p><span class="lbl">Actor:</span> the payments team, who own the MCP server your refund agent uses. <span class="lbl">Input:</span> they reword <code class="i">issue_refund</code> from &ldquo;Issue a refund&rdquo; to &ldquo;Issue a refund or store credit&rdquo; and ship it on a Wednesday. <span class="lbl">Mechanism:</span> your agent reads tool descriptions from the server at runtime, so it starts offering store credit &mdash; with no commit, no deploy, and no pipeline run on your side. The nightly eval set is what fails. <span class="lbl">Result:</span> the registry entry names the owning team and the server version, so the conversation takes minutes instead of a day of bisecting <span class="tag illus">illustrative</span>.</p></div>
-  <div class="note gray"><span class="kk">Publishing your own</span>Apigee can expose an existing API as an MCP server with no code; MCP Toolbox for Databases gives governed access to Cloud SQL, AlloyDB, Spanner and BigQuery without a hand-written tool per query. Both land in the registry the same way.</div>
-  <div class="takeaway"><b>Takeaway:</b> a tool the agent reads at runtime is an undeployed dependency &mdash; catalog it in Agent Registry so you know who owns it, and let a scheduled eval run tell you when it changes.</div>
-  <div class="src">Sources: Agent Registry overview (agents, MCP servers, tools, skills; auth bindings and audit logging) &middot; <code class="i">agents-cli publish</code> &middot; companion <a href="../agent_operations/m2.html">M2 &sect;24&ndash;25</a> (verified 2026-09-12).</div>
-</section>
-<details class="notes" data-title="Governing tools and MCP servers">
-  <summary>Speaker notes &mdash; Governing tools and MCP servers</summary>
-  <div class="n-body"><ul>
-    <li>Why this page exists: it is the CI/CD-shaped part of tool governance. &ldquo;Write good docstrings&rdquo; and &ldquo;use least privilege&rdquo; are ordinary engineering; what is specific here is that a tool description is an input the <i>model</i> reads, and a remote one can change without any event in your pipeline.</li>
-    <li>Delivery beat: ask what in their current setup would notice the Wednesday change. Usually nothing until a customer complains &mdash; which is the argument for the scheduled tier from page 7.</li>
-    <li>If your tools are in your own repository, the story is simpler: the description is a diff, review it like code, and the PR gate catches the behavior change. The hard case is the one on the page &mdash; a dependency you do not deploy.</li>
-    <li>Agent Registry specifics worth having ready: it holds Agent, McpServer, Endpoint and Skill resources; supports keyword and prefix search across the org; and Agent Gateway reads it to enforce access policy, which is how &ldquo;registered&rdquo; becomes &ldquo;governed&rdquo; rather than just &ldquo;listed.&rdquo; Module 5 covers the policy side.</li>
-    <li>A2A discovery (well-known URI, curated registries, direct configuration) is a source slide here &mdash; multi-agent architecture, not CI/CD. Point at the registry and move on unless asked.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 21. THE SUPPORTING CAST ==== -->
-<section class="page">
-  <h1>The supporting cast</h1>
-  <p class="lede">Four services the pipeline leans on. If you already know them, this is a checkpoint rather than a lesson.</p>
-  <div class="grid c4">
-    <div class="cell"><h4>Artifact Registry</h4><p>Stores the built image; scans it for vulnerabilities on push.</p></div>
-    <div class="cell"><h4>Cloud Build</h4><p>Runs the steps on a trigger; serverless, and the trigger can be a pull request.</p></div>
-    <div class="cell"><h4>Cloud Deploy</h4><p>Staged promotion with approvals for Cloud Run and GKE; Agent Runtime needs a custom target.</p></div>
-    <div class="cell"><h4>Secret Manager</h4><p>Tool credentials and API keys, versioned and audited. Never in the repository.</p></div>
-  </div>
-  <div class="note blue"><span class="kk">The one specific worth keeping</span>Carry the commit in two places. Tag the image with it &mdash; <code class="i">agent:$COMMIT_SHA</code> &mdash; so <code class="i">gcloud run revisions list</code> names the commit that built what is serving. And stamp it on the telemetry, so a trace does too:
-  <pre class="term" style="margin-top:10px;">$ agents-cli deploy <span class="flag">--update-env-vars</span> <span class="st">"OTEL_RESOURCE_ATTRIBUTES=service.version=$COMMIT_SHA"</span></pre>
-  Every span the deployment emits then carries <code class="i">service.version</code>, so a bad trace in Cloud Trace points at a commit without going via the revision. This is what the shipped staging pipeline does.</div>
-  <div class="takeaway"><b>Takeaway:</b> generic CI/CD services used generically &mdash; the habit worth keeping is stamping the commit on both the image and the telemetry, so a behavioral regression is a diff you can find from either end.</div>
-  <div class="src">Sources: companion <a href="../agent_operations/m2.html">M2 &sect;15&ndash;18</a> (verified 2026-09-12).</div>
-</section>
-<details class="notes" data-title="The supporting cast">
-  <summary>Speaker notes &mdash; The supporting cast</summary>
-  <div class="n-body"><ul>
-    <li>This page is a tour by explicit instruction &mdash; keep it to a couple of minutes and do not expand it. Its job is to make sure nobody is lost on a product name, not to teach the products.</li>
-    <li>The commit-stamping habit is the only thing on this page worth remembering, which is why it is the note rather than a card. <code>OTEL_RESOURCE_ATTRIBUTES</code> is the standard OpenTelemetry resource variable, so it works on any target and any OTLP backend &mdash; not a Google-specific trick. Module 3 uses <code>service.version</code> when it reads traces.</li>
-    <li>Terraform: the lab covers it. One detail worth having ready &mdash; the Agent Runtime resource uses <code>lifecycle.ignore_changes</code> on the container and source spec, so Terraform owns the infrastructure while the pipeline owns the agent version.</li>
-    <li>Secret rotation, if asked: add a new secret version, redeploy pointing at it, verify, then disable the old version. No commit, no rebuild &mdash; the diff is one version number in the deploy command.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 22. CONSEQUENCES ==== -->
-<section class="page">
-  <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
-  <div class="tscroll"><table class="cmp" style="margin-top:14px;">
-    <thead><tr><th>You observed</th><th>Because</th><th>So you&hellip;</th></tr></thead>
-    <tbody>
-      <tr><td>The build is green and the agent still regressed</td><td><code>adk eval</code> exits 0 whatever the scores are</td><td>gate on a pytest assertion or a score check, not on the command&rsquo;s exit code</td></tr>
-      <tr><td>The PR eval failed, but neither branch failed on its own</td><td>the two changes only conflict in behavior &mdash; an instruction naming a tool the other branch renamed</td><td>read it as the gate working: the merge result is what was tested. Fix the pair, not either branch</td></tr>
-      <tr><td>The eval suite is too slow to run on every PR</td><td>one set is being asked to do every job</td><td>split it: small on demand, medium on the PR, the full set nightly</td></tr>
-      <tr><td>Behavior changed on a day nothing was deployed</td><td>the model id is an alias, and the alias was hot-swapped to a new version</td><td>pin the version, and change it through the pipeline like any other source edit</td></tr>
-      <tr><td>The agent calls a tool for a question it should have answered itself</td><td>the model chose from the tool&rsquo;s description, and it was vague</td><td>rewrite the description and re-run the evals &mdash; nothing else needs to change</td></tr>
-      <tr><td>A revision misbehaves and nobody can find the commit</td><td>the image carries a floating tag</td><td>tag with <code>$COMMIT_SHA</code>, so the revision names its own commit</td></tr>
-      <tr><td>Instances restart under load, and the logs end mid-request</td><td>the container ran out of memory: every concurrent request holds its whole context window while it waits on the model</td><td>raise <code>--memory</code> whenever you raise <code>--concurrency</code>, then re-run the staging load test to confirm</td></tr>
-    </tbody>
-  </table></div>
-</section>
-<details class="notes" data-title="Consequences">
-  <summary>Speaker notes &mdash; Consequences</summary>
-  <div class="n-body"><ul>
-    <li>This is the page that converts the module into actions. Read the third column aloud, top to bottom.</li>
-    <li>Rows one and two are the ones people have actually lived through; if the room is quiet, ask which of these symptoms they have seen.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 23. REFERENCES ==== -->
-<section class="page">
-  <h1>References</h1>
-  <ul style="margin-top:14px;">
-    <li><a href="https://github.com/google/adk-python">google/adk-python</a> at tag <code class="i">v2.9.0</code> &mdash; <code class="i">cli_tools_click.py</code> (eval exit behavior), <code class="i">agent_evaluator.py</code> (the assertion), <code class="i">fast_api.py</code> (<code class="i">otel_to_cloud</code>)</li>
-    <li><code class="i">google-agents-cli</code> 1.5.0 &mdash; <code class="i">deploy</code> and <code class="i">eval</code> command surfaces, and the scaffolded pipeline templates</li>
-    <li><a href="https://docs.cloud.google.com/run/docs/configuring/services/sandboxes">Cloud Run sandboxes</a> &middot; <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox">GKE Agent Sandbox</a> &mdash; isolating model-written code</li>
-    <li><a href="https://docs.cloud.google.com/agent-registry/overview">Agent Registry</a> &middot; <a href="https://docs.cloud.google.com/vertex-ai/docs/model-registry/model-alias">Model Registry version aliases</a></li>
-    <li><a href="https://docs.cloud.google.com/build/docs/configuring-builds/substitute-variable-values">Cloud Build substitutions</a> &middot; <a href="https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows">GitHub Actions: events that trigger workflows</a></li>
-    <li><a href="https://martinfowler.com/articles/continuousIntegration.html">martinfowler.com, Continuous Integration</a> &mdash; the definition the source slide gives half of</li>
-    <li>Companion <a href="../agent_operations/m2.html">agent_operations/m2.html</a> &mdash; slide-by-slide corrections, verified 2026-08-25</li>
-  </ul>
-  <div class="note"><span class="kk">Re-verify before delivery</span>Product names, launch stages (Cloud Run sandboxes and Agent Runtime Code Execution were <b>Preview</b>), CLI flags, and default values were checked on <b>2026-09-12</b> against google-adk 2.9.0 and google-agents-cli 1.5.0. The eval exit-code behavior on page 6 was reproduced on that baseline. All of it changes without notice.</div>
-</section>
-<details class="notes" data-title="References">
-  <summary>Speaker notes &mdash; References</summary>
-  <div class="n-body"><ul>
-    <li>Baseline: google-adk 2.9.0 (released 2026-09-10), google-agents-cli 1.5.0, verified 2026-09-12.</li>
-    <li>The two claims most likely to age: launch stages on the sandbox row of page 13, and the eval exit-code behavior on page 6 &mdash; if ADK ever adds a <code>--fail-on</code> flag, page 6 needs rewriting. Re-run the reproduction before each delivery.</li>
   </ul></div>
 </details>
 
