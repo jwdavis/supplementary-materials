@@ -501,9 +501,9 @@
   <p class="lede">A floor is configured, the filters are on, an injection prompt goes to Gemini and is answered normally. Nothing is broken: a floor detects by default and blocks only when told to.</p>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p>Both settings are fields on the <b>floor setting resource itself</b>, under <code class="i">aiPlatformFloorSetting</code> &mdash; the part of the floor that governs Gemini calls.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">inspectOnly</code></b> (the default) &mdash; a filter match is recorded. The prompt still reaches the model and the reply still reaches the user.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">inspectOnly</code></b> &mdash; what gcloud sets for you if you enable a service without naming an enforcement type, and it warns you when it does. A filter match is recorded. The prompt still reaches the model and the reply still reaches the user.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b><code class="i">inspectAndBlock</code></b> &mdash; a filter match stops the call. <code class="i">gcloud model-armor floorsettings update --vertex-ai-enforcement-type=INSPECT_AND_BLOCK</code></p></div>
-    <div class="checkrow"><div class="cdot red"></div><p><b><code class="i">enableCloudLogging</code></b> &mdash; also off by default, and also a field on the floor. Until it is on, &ldquo;recorded&rdquo; means recorded nowhere you can read.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b><code class="i">enableCloudLogging</code></b> &mdash; also a field on the floor, and <b>on by default if you built the floor in the console, off if you built it with gcloud</b>. Check which before you assume: until it is on, &ldquo;recorded&rdquo; means recorded nowhere you can read.</p></div>
   </div>
   <div class="note red"><span class="kk">What logging writes</span>Each screened call becomes a <code class="i">SanitizeOperationLogEntry</code> in Cloud Logging carrying the full text alongside the filter results &mdash; and the text is the <b>whole request</b>, your system instruction included. Observed 2026-09-13: <code class="i">"Answer in one or two sentences.\n\nYou are an agent. Your internal name is \"plain\".\nMy card number is &hellip;"</code>. Measuring detections means retaining every prompt your users typed, and your own instructions with them.</div>
   <div class="ex"><span class="kk">Example</span>
@@ -515,7 +515,7 @@
       <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">The cost of week one:</span> that log now holds a week of customer prompts. Route it to an access-controlled sink, or turn logging back off once tuned.</p></div>
     </div>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> a new floor detects and does not block, and records nothing readable until you enable logging &mdash; which starts keeping the prompts themselves.</div>
+  <div class="takeaway"><b>Takeaway:</b> a new floor detects and does not block. Whether it is <i>already</i> logging depends on how you created it &mdash; the console turns Agent Platform logging on for you, gcloud does not &mdash; and logging keeps the prompts themselves.</div>
   <div class="src">Sources: <a href="https://docs.cloud.google.com/security-command-center/docs/configure-model-armor-floor-settings">floor settings</a> &middot; <a href="https://docs.cloud.google.com/security-command-center/docs/configure-logging-model-armor">Configure logging for Model Armor</a> &middot; Model Armor v1 discovery document, <code class="i">AiPlatformFloorSetting</code> &middot; observed run 2026-09-13 (verified 2026-09-13).</div>
 </section>
 <details class="notes" data-title="Detecting and blocking are two settings">
@@ -686,21 +686,22 @@ agent = Agent(
     </tbody>
   </table></div>
   <div class="note"><span class="kk">The one that bites</span>Streaming, because it is a UI decision. <code class="i">/run_sse</code> and the <code class="i">adk web</code> toggle both default <b>off</b>, so a default agent is covered &mdash; and the day someone turns token streaming on to make the UI feel faster, the screening silently stops.</div>
-  <div class="ex"><span class="kk">Example &mdash; observed 2026-09-13</span>
+  <div class="ex"><span class="kk">Example &mdash; measured 2026-09-14</span>
     <div class="checks" style="margin-top:8px;">
-      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Setup:</span> one agent, one floor at <code class="i">inspectAndBlock</code>, the same three prompts, run twice.</p></div>
-      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Non-streaming:</span> injection and card prompts blocked; four rows in Cloud Logging.</p></div>
-      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">With <code class="i">streaming_mode=SSE</code>:</span> all three prompts reached Gemini, no block, <b>and no log rows at all</b>. Nothing recorded the difference.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Setup:</span> two agents identical but for <code class="i">RunConfig.streaming_mode</code>, one project floor at <code class="i">inspectAndBlock</code> with the injection filter on, the same prompt, three trials each.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">Non-streaming:</span> blocked <b>3 of 3</b> &mdash; <code class="i">error_code=MODEL_ARMOR</code>, &ldquo;Blocked by Model Armor Floor Setting.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">With <code class="i">streaming_mode=SSE</code>:</span> answered <b>3 of 3</b>, no block. Six turns produced <b>three</b> Cloud Logging rows &mdash; all three from the non-streaming agent.</p></div>
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Why it looked fine:</span> the model declined the injection on its own. That is the model&rsquo;s judgement, not a control &mdash; and it is not something to rely on.</p></div>
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> the floor covers non-streaming Gemini API calls in this project. Anything outside that needs a screen you control &mdash; the next page.</div>
-  <div class="src">Sources: observed run 2026-09-13 &middot; <a href="https://docs.cloud.google.com/model-armor/model-armor-vertex-integration">Model Armor with the Gemini API</a> (non-streaming, fail-open behaviour) &middot; google-adk 2.9.0 <code class="i">base_llm_flow.py:1076</code>, <code class="i">api_server.py:527</code>, <code class="i">models/registry.py</code> (verified 2026-09-13).</div>
+  <div class="src">Sources: measured run 2026-09-14, reproducible &mdash; two agents differing only in <code class="i">streaming_mode</code> against a live blocking floor, 3 trials each, with Cloud Logging read over the same window (scripts: <code class="i">wip/m5-probes/</code>) &middot; <a href="https://docs.cloud.google.com/model-armor/model-armor-vertex-integration">Model Armor with the Gemini API</a> (&ldquo;for the <code class="i">generateContent</code> method&rdquo;; fail-open behaviour) &middot; google-adk 2.9.0 <code class="i">base_llm_flow.py:1076</code>, <code class="i">api_server.py:527</code>, <code class="i">models/registry.py</code> (verified 2026-09-13).</div>
 </section>
 <details class="notes" data-title="Where the floor stops">
   <summary>Speaker notes &mdash; Where the floor stops</summary>
   <div class="n-body"><ul>
-    <li>Row 1 is observed, not inferred: under SSE the same three prompts produced no block and no Cloud Logging row, while the non-streaming run produced four rows.</li>
+    <li>Row 1 is measured, and the measurement is reproducible: two agents differing only in <code>streaming_mode</code>, one jailbreak prompt, three trials each against a live blocking floor. Non-streaming blocked 3/3 with <code>error_code=MODEL_ARMOR</code>; SSE answered 3/3. Cloud Logging over the same six turns: three rows, all from the non-streaming agent. Scripts are in <code>wip/m5-probes/</code>.</li>
+    <li>Worth knowing if you run it yourself: the floor also turns out to be <b>endpoint-scoped</b>. A floor at <code>locations/global</code> did not screen the same project&rsquo;s calls to <code>us-central1-aiplatform.googleapis.com</code> &mdash; non-streaming calls sailed straight through. Pin <code>GOOGLE_CLOUD_LOCATION=global</code> or the control silently passes and the test looks like a null result. Whether a regional floor covers regional traffic is unresolved &mdash; reading one returns <code>500</code> &mdash; so it is deliberately off the face.</li>
     <li>Row 2 was confirmed by resolving the model names in ADK 2.9.0: <code>gemini-3.7-flash</code> resolves to <code>google_llm.Gemini</code>, which calls the Gemini API; <code>openai/gpt-4o</code> and <code>anthropic/claude-sonnet-4</code> resolve to <code>lite_llm.LiteLlm</code>, which calls the provider directly. No Agent Platform request means no floor, by construction rather than by omission.</li>
     <li>Two things kept off the face. First, <b>permissions</b>: the Agent Platform service agent needs <code>roles/modelarmor.user</code> for the per-request template path, and without it the call fails <code>403</code> &mdash; loudly, so it is not a silent gap. Second, <b>regions</b>: a per-request template is documented for five regions, none in the US, and in a US test roughly half the calls failed <code>TEMPLATE_NOT_FOUND</code> because the request was served from a region the template did not exist in. The floor needs no template lookup and did not show this &mdash; another reason to teach the floor first.</li>
     <li>The old version of this page listed &ldquo;a template weaker than the floor&rdquo; as a gap. It is not: that template cannot be created at all (page 7), so it never reaches a deployment.</li>
@@ -1287,7 +1288,7 @@ claims = id_token.verify_token(
   <div class="n-body"><ul>
     <li>SPIFFE is the open standard underneath. Say it once: Google issues and attests the identity, and nobody in this room runs a SPIFFE server to get it. The source deck&rsquo;s two SPIRE slides are replaced by this page.</li>
     <li>The same standard shows up elsewhere on Google Cloud: managed workload identities for GKE (Preview) issue SPIFFE X.509 certificates from CA Service. Different product, same framework.</li>
-    <li>Kept off the face: agent identities cannot hold legacy Cloud Storage bucket roles; an organization is required for the trust domain; the certificate-bound (DPoP) token is what makes a stolen token unreplayable from another machine.</li>
+    <li>Kept off the face: agent identities cannot hold legacy Cloud Storage bucket roles; an organization is <i>not</i> required &mdash; the trust domain is <code>agents.global.org-ORGANIZATION_ID.system.id.goog</code> for a project in an organization and <code>agents.global.proj-PROJECT_NUMBER.system.id.goog</code> for one without; the certificate-bound (DPoP) token is what makes a stolen token unreplayable from another machine.</li>
     <li>The lifecycle note is the practical one. An inactive grant referencing a deleted agent is a policy-hygiene problem you must clean up by hand as part of decommissioning.</li>
     <li>Delivery beat: ask what happens to their IAM bindings when CI redeploys twice a day.</li>
   </ul></div>
@@ -1476,7 +1477,7 @@ toolset = McpToolset(
   <div class="tscroll"><table class="cmp" style="margin-top:14px;">
     <thead><tr><th>You observed</th><th>Because</th><th>So you&hellip;</th></tr></thead>
     <tbody>
-      <tr><td>The floor is on and nothing is blocked</td><td>enforcement defaults to <code>INSPECT_ONLY</code>, and logging is a separate switch</td><td>set <code>INSPECT_AND_BLOCK</code>, and enable logging knowing it keeps the prompts</td></tr>
+      <tr><td>The floor is on and nothing is blocked</td><td>gcloud set <code>INSPECT_ONLY</code> when the service was enabled, and logging is a separate switch</td><td>set <code>INSPECT_AND_BLOCK</code>, and check whether logging is already on &mdash; it keeps the prompts</td></tr>
       <tr><td>Injection went straight through after you enabled token streaming</td><td>ADK now calls <code>generate_content_stream</code>; the inline path is non-streaming only</td><td>add the plugin</td></tr>
       <tr><td>Model Armor had an outage and the agent kept answering</td><td>the Agent Platform path fails open</td><td>use the plugin with <code>block_on_screening_failure=True</code></td></tr>
       <tr><td>The plugin blocked nothing when the poisoned text came from a tool</td><td>it screens user text and model text only</td><td>screen tool output in an <code>after_tool_callback</code>, or use the MCP floor</td></tr>

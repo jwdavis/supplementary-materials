@@ -329,7 +329,7 @@
     <tbody>
       <tr><td class="m">pytest tests/unit</td><td>your functions; model mocked or absent</td><td>logic bugs, schema errors, bad parsing</td><td>anything the model decides</td></tr>
       <tr><td class="m">pytest tests/integration</td><td>the agent, against the <b>real model</b></td><td>wiring: does a turn complete and come back with text</td><td>whether the answer was <i>right</i></td></tr>
-      <tr class="hl"><td>Evaluation<div class="small" style="margin-top:4px;"><code class="i">adk web</code> in the loop &middot; <code class="i">adk eval</code> or <code class="i">agents-cli eval</code> from a script &middot; <code class="i">pytest</code> + <code class="i">AgentEvaluator</code> in CI</div></td><td>the agent, against the <b>real model</b>, and the output is <b>graded</b> case by case</td><td class="yes">wrong tool, wrong trajectory, wrong or unsafe answer</td><td>determinism &mdash; scores move between runs</td></tr>
+      <tr class="hl"><td>Evaluation<div class="small" style="margin-top:4px;"><code class="i">adk web</code> in the loop &middot; <code class="i">adk eval</code> or <code class="i">agents-cli eval run</code> from a script &middot; <code class="i">pytest</code> + <code class="i">AgentEvaluator</code> in CI</div></td><td>the agent, against the <b>real model</b>, and the output is <b>graded</b> case by case</td><td class="yes">wrong tool, wrong trajectory, wrong or unsafe answer</td><td>determinism &mdash; scores move between runs</td></tr>
     </tbody>
   </table></div>
   <div class="note blue"><span class="kk">Rule</span>An eval is not a slower unit test. A unit test asserts; an eval scores &mdash; and a score is only a pass or a fail once you choose a threshold.</div>
@@ -349,7 +349,7 @@
   <div class="n-body"><ul>
     <li>Why this page exists: &ldquo;eval&rdquo; has to be a defined term before the next page can correct how it is wired. Define it by contrast, against the two things the room already has.</li>
     <li>Delivery beat: read the scaffolded integration test&rsquo;s assertion aloud &mdash; <code>assert len(events) &gt; 0</code> and &ldquo;at least one part has text.&rdquo; It reliably gets a reaction, and it makes the point that a passing integration suite says nothing about quality.</li>
-    <li>Unpack the evaluation row when you read it: same mechanism at three cadences, and page 8 is the page that separates them. <code>adk web</code> for the case you are building, <code>adk eval</code> or <code>agents-cli eval</code> for a scripted run you read, <code>pytest</code> with <code>AgentEvaluator</code> for the one that fails a build. Slide 4&rsquo;s three lanes are the same three.</li>
+    <li>Unpack the evaluation row when you read it: same mechanism at three cadences, and page 8 is the page that separates them. <code>adk web</code> for the case you are building, <code>adk eval</code> or <code>agents-cli eval run</code> for a scripted run you read, <code>pytest</code> with <code>AgentEvaluator</code> for the one that fails a build. Slide 4&rsquo;s three lanes are the same three.</li>
     <li>Kept off the face, and worth having ready because someone will ask: <code>adk test &lt;folder&gt;</code> runs pytest over agent test JSON files, replaying recorded interactions against a mocked model, and <code>--rebuild</code> re-records them by running the real agent. There is a separate <code>adk conformance</code> group (<code>record</code>, <code>test</code>) doing the same job. It is a deterministic regression harness, not an evaluation &mdash; it never grades a decision, which is why it does not earn a row on a page about what each check catches.</li>
     <li>Gotcha for the last column: eval scores move between runs because the model is non-deterministic. The fixes are <code>temperature=0</code>, rubric-based metrics, or several samples &mdash; not deleting the case. A flaky eval is signal about the agent.</li>
   </ul></div>
@@ -523,7 +523,7 @@ $ echo $?
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>The instruction, the tool definitions, and the model id are source files &mdash; and a few words of English in them can change behavior as much as a rewritten function.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Unit tests say it ran, integration says a turn completed &mdash; only the eval says what it decided.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Evals run at three moments &mdash; in the loop, on push, on the pull request &mdash; each wider than the last, and none of them waits for an image build.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Evals run at three moments &mdash; in the loop, on the pull request, on a schedule &mdash; each wider than the last, and none of them waits for an image build.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Four ways to run one; only <code class="i">pytest</code> with <code class="i">AgentEvaluator</code> fails a build by itself. The CLIs exit 0 whatever the scores.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>On a pull request, evaluate the merge result &mdash; which is what <code class="i">on: pull_request</code> already gives you.</p></div>
   </div>
@@ -689,7 +689,7 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])  <span class="cm"># global
   <div class="note blue"><span class="kk">Why a per-agent principal is a create-time decision</span>Binding an agent to an Agent Gateway &mdash; <code class="i">--agent-gateway-ingress</code> or <code class="i">--agent-gateway-egress</code>, which is how ingress and egress become governed &mdash; requires Agent Identity. It cannot be added to an existing agent, so declining it at create means redeploying as a new agent to get governed traffic later.</div>
   <p class="codelabel">Sizing &mdash; the defaults, and the one that bites</p>
   <pre class="term">$ agents-cli deploy <span class="flag">--cpu</span> 1 <span class="flag">--memory</span> 4Gi <span class="flag">--concurrency</span> 8 <span class="flag">--min-instances</span> 0 <span class="flag">--max-instances</span> 10
-<span class="lbl">                    ^ all four are the defaults; --min-instances 0 scales to zero,</span>
+<span class="lbl">                    ^ all five are the defaults; --min-instances 0 scales to zero,</span>
 <span class="lbl">                      but the generated Terraform pins 1 to avoid cold starts</span>
 
 <span class="lbl"># the adk equivalent, for a project without the agents-cli manifest:</span>
@@ -742,7 +742,7 @@ $ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>Four routes to production; for a scaffolded project, <code class="i">agents-cli deploy</code> off a manifest is the default.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Choose the target on URL ownership, session wiring, and code-execution isolation &mdash; not on accelerators.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Telemetry, secrets, and identity are one flag each on <code class="i">agents-cli deploy</code>; on <code class="i">adk deploy</code> they go through to <code class="i">gcloud</code>, or through the manifest. Sizing is coupled, and memory is what bounds concurrency.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Secrets and identity are one flag each on <code class="i">agents-cli deploy</code>; on <code class="i">adk deploy</code> they go through to <code class="i">gcloud</code>, or through the manifest. Telemetry needs nothing on <code class="i">agents-cli deploy</code> and is a first-class <code class="i">--otel_to_cloud</code> on <code class="i">adk deploy</code>. Sizing is coupled, and memory is what bounds concurrency.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>A secret is resolved at run time, so the runtime identity is the principal that has to be allowed to read it.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Tag images with the commit, so a running revision names the commit that built it &mdash; the appendix has the Cloud Build file that does it.</p></div>
   </div>
