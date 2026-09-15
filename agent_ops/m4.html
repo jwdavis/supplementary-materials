@@ -1135,7 +1135,8 @@ run = client.evals.create_evaluation_run(
 <span class="cm"># import is a long-running operation; poll until op.done,</span>
 <span class="cm"># then op.response.evaluation_set is the set's resource name</span></pre>
   <p class="codelabel">Step 2 &mdash; run metrics over the imported set</p>
-  <pre class="code">run = client.evals.<span class="fn">create_evaluation_run</span>(
+  <pre class="code">EVAL_SET = op.response.evaluation_set  <span class="cm"># the set created by step 1</span>
+run = client.evals.<span class="fn">create_evaluation_run</span>(
     dataset=types.EvaluationRunDataSource(evaluation_set=EVAL_SET),
     metrics=[types.RubricMetric.<span class="fn">TOOL_USE_QUALITY</span>(version=<span class="st">"v1"</span>),
              types.RubricMetric.<span class="fn">HALLUCINATION</span>(version=<span class="st">"v1"</span>)],
