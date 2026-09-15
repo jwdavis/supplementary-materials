@@ -309,13 +309,13 @@
     </svg>
     <figcaption>Streams 1&ndash;3 are Python <code>logging</code> and land on stdout. Stream 4 is OpenTelemetry: it never touches stdout, and reaches Cloud Logging through its own exporter.</figcaption>
   </figure>
-  <div class="note blue"><span class="kk">dictConfig</span><code class="i">logging.config.dictConfig</code> is the Python standard-library call that configures every logger, handler and formatter in the process from one dictionary. It is how you reach streams 1&ndash;3 at once; page 9 uses it.</div>
+  <div class="note blue"><span class="kk">dictConfig</span><code class="i">logging.config.dictConfig</code> is the Python standard-library call that configures every logger, handler and formatter in the process from one dictionary. It is how you reach streams 1 and 2 at once; page 9 uses it. Not stream 3 &mdash; under <code class="i">adk web</code> and <code class="i">adk api_server</code>, uvicorn re-applies its own configuration to <code class="i">uvicorn.access</code> when it starts, after yours has run.</div>
   <div class="ex"><span class="kk">Example &mdash; one request, four sources</span>
     <div class="checks" style="margin-top:8px;">
       <div class="checkrow"><div class="cdot"></div><p><code class="i">google_adk</code>: <code class="i">Sending out request, model: gemini-3.7-flash</code></p></div>
       <div class="checkrow"><div class="cdot"></div><p>your tool: <code class="i">tool get_weather called for city='London'</code></p></div>
       <div class="checkrow"><div class="cdot"></div><p><code class="i">uvicorn.access</code>: <code class="i">INFO: "POST /run HTTP/1.1" 200 OK</code></p></div>
-      <div class="checkrow"><div class="cdot"></div><p>OpenTelemetry: a <code class="i">gen_ai.client.inference.operation.details</code> event &mdash; only if a <code class="i">LoggerProvider</code> is installed</p></div>
+      <div class="checkrow"><div class="cdot"></div><p>OpenTelemetry: a <code class="i">gen_ai.user.message</code> / <code class="i">gen_ai.choice</code> event &mdash; only if a <code class="i">LoggerProvider</code> is installed, and only as <code class="i">gen_ai.client.inference.operation.details</code> if you also opt in to the experimental semantic conventions</p></div>
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> configuring one stream does not configure the others. Know which of the four a line came from before you try to change it.</div>
@@ -327,6 +327,7 @@
     <li>Why this page is first: every later question in this section &mdash; what level, what format, why is that line still printing &mdash; depends on knowing which stream produced the line.</li>
     <li><b>Generic.</b> Any Python process with a web server has streams 1&ndash;3. Stream 4 is the agent-specific one: it carries the trajectory, and section 2 is about it.</li>
     <li><b>Stream 4 does not go to stdout.</b> <code>get_gcp_exporters</code> wires OTel log records to an OTLP exporter aimed at <code>telemetry.googleapis.com</code>. On a native Agent Engine deploy they historically went to <code>reasoning_engine_stdout</code>, which is why the code still carries a comment about it &mdash; but on 2.9.0 the OTLP path is what runs.</li>
+    <li><b>Which event names stream 4 produces</b> depends on a second variable. A <code>LoggerProvider</code> on its own gives you <code>gen_ai.system.message</code>, <code>gen_ai.user.message</code> and <code>gen_ai.choice</code>. Set <code>OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental</code> and the same turn produces <code>gen_ai.client.inference.operation.details</code> instead &mdash; one record per call rather than one per message. Worth knowing before anyone greps for a name and finds nothing.</li>
     <li>The <code>--log_level</code> flag reaches streams 1 and 2 (it sets the root logger and <code>google_adk</code>) and not stream 3, because uvicorn configures its own access logger at startup. That is page 10&rsquo;s subject; here it is only an example of &ldquo;configured somewhere different.&rdquo;</li>
     <li>Delivery beat: ask which of the four they have ever deliberately configured. Usually only stream 2.</li>
   </ul></div>
@@ -340,18 +341,18 @@
     <div class="checkrow"><div class="cdot"></div><p><b>Text, not JSON.</b> <code class="i">2026-09-03 21:51:45,037 - INFO - agent.py:53 - tool get_weather called for city='London'</code></p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Captured with no setup</b> on Cloud Run, GKE and Agent Engine &mdash; all three collect container stdout and stderr.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Stored as <code class="i">textPayload</code> with severity <code class="i">DEFAULT</code>.</b> The word <code class="i">INFO</code> in that line is text ADK printed. Cloud Logging does not read a level out of it.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Stderr does not change that.</b> Cloud Run and Agent Engine both map stderr to <code class="i">DEFAULT</code> as well, so a Python traceback is stored at the same severity as a startup message.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Stderr does not change that.</b> Cloud Run maps stderr to <code class="i">DEFAULT</code> too, so the stream carries no level either. The one exception is a real stack trace, which Cloud Run parses into a single <code class="i">ERROR</code> entry &mdash; on stdout as readily as on stderr.</p></div>
   </div>
-  <div class="note blue"><span class="kk">DEFAULT severity, and what an alert does with it</span>Cloud Logging severities run <code class="i">DEFAULT</code> (0), <code class="i">DEBUG</code>, <code class="i">INFO</code>, <code class="i">NOTICE</code>, <code class="i">WARNING</code>, <code class="i">ERROR</code>, <code class="i">CRITICAL</code>, <code class="i">ALERT</code>, <code class="i">EMERGENCY</code> (800). <code class="i">DEFAULT</code> means &ldquo;unspecified&rdquo; and sits below all of them. A log-based alert is built from a filter, and the filter <code class="i">severity&gt;=ERROR</code> matches no ADK line, because none of them carry a severity at all.</div>
+  <div class="note blue"><span class="kk">DEFAULT severity, and what an alert does with it</span>Cloud Logging severities run <code class="i">DEFAULT</code> (0), <code class="i">DEBUG</code>, <code class="i">INFO</code>, <code class="i">NOTICE</code>, <code class="i">WARNING</code>, <code class="i">ERROR</code>, <code class="i">CRITICAL</code>, <code class="i">ALERT</code>, <code class="i">EMERGENCY</code> (800). <code class="i">DEFAULT</code> means &ldquo;unspecified&rdquo; and sits below all of them. A log-based alert is built from a filter, and the filter <code class="i">severity&gt;=ERROR</code> matches no ADK-formatted line, because none of them carry a severity at all. An uncaught traceback is the exception: Cloud Run stores that at <code class="i">ERROR</code>.</div>
   <div class="ex"><span class="kk">Example</span>
     <div class="checks" style="margin-top:8px;">
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, on call for a weather agent on Cloud Run.</p></div>
-      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> be paged when the forecast tool starts throwing.</p></div>
-      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">What he did first:</span> a log-based alert on <code class="i">resource.type="cloud_run_revision" AND severity&gt;=ERROR</code>. The tool threw for six hours; the alert never fired, because the traceback is stored at <code class="i">DEFAULT</code>.</p></div>
-      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">What worked:</span> a counter log-based metric on <code class="i">textPayload:"Traceback"</code>, with an alert when it exceeds zero over five minutes.</p></div>
+      <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> be paged when the forecast tool starts failing.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">What he did first:</span> a log-based alert on <code class="i">resource.type="cloud_run_revision" AND severity&gt;=ERROR</code>. The tool failed for six hours; the alert never fired, because the tool caught its own errors and logged them &mdash; an ADK-formatted line, stored at <code class="i">DEFAULT</code>. Had it crashed instead, the alert would have fired.</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">What worked:</span> a counter log-based metric on <code class="i">textPayload:"tool failed"</code>, with an alert when it exceeds zero over five minutes.</p></div>
     </div>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> ADK&rsquo;s own lines carry no severity, so alert on their content &mdash; or emit your own <code class="i">severity</code> field and alert on that instead.</div>
+  <div class="takeaway"><b>Takeaway:</b> <code class="i">severity&gt;=ERROR</code> catches the crash and nothing else. For every error you handle, alert on the line&rsquo;s content &mdash; or emit your own <code class="i">severity</code> field and alert on that instead.</div>
   <div class="src">Sources: logging tutorial 1.4, 1.5, 1.6 (Cloud Run Job, Cloud Run service, Agent Engine; captured 2026-09-03) &middot; <a href="https://docs.cloud.google.com/logging/docs/reference/v2/rest/v2/LogEntry#logseverity">Cloud Logging: LogSeverity</a> &middot; <a href="https://docs.cloud.google.com/logging/docs/logs-based-metrics">Cloud Logging: log-based metrics</a> (verified 2026-09-12).</div>
 </section>
 <details class="notes" data-title="What ADK logs on its own">
@@ -359,8 +360,9 @@
   <div class="n-body"><ul>
     <li><b>Generic.</b> This is container stdout capture, not something ADK does &mdash; but it is the first thing people trip over when they try to alert on an agent.</li>
     <li>The confusion to defuse: students see <code>INFO</code> in the line and assume Cloud Logging knows the level. It does not. The whole line, timestamp and level word included, is one <code>textPayload</code> string.</li>
-    <li><b>The counter-metric route in detail</b>, since Marco&rsquo;s fix is the one people copy: Logging &rarr; Log-based Metrics &rarr; Create, type Counter, filter <code>textPayload:"Traceback"</code>, then an alert policy on that metric with a threshold above 0. It works today and needs no code change, and it breaks when the text changes &mdash; which is the argument for page 9.</li>
-    <li>GKE behaves the same when the cluster has Cloud Logging enabled, which is the default on Autopilot and Standard. A cluster with logging turned off collects nothing at all.</li>
+    <li><b>The one promotion, if asked.</b> Cloud Run parses a real stack trace and stores it as a single <code>ERROR</code> entry. Measured: the stream does not matter (a traceback on stdout is <code>ERROR</code> too), multi-line text on its own is not enough (three indented lines stayed three <code>DEFAULT</code> entries), and neither is the word (a prose line containing &ldquo;Traceback (most recent call last):&rdquo; stayed <code>DEFAULT</code>). It is stack-trace detection, nothing looser.</li>
+    <li><b>The counter-metric route in detail</b>, since Marco&rsquo;s fix is the one people copy: Logging &rarr; Log-based Metrics &rarr; Create, type Counter, filter <code>textPayload:"tool failed"</code>, then an alert policy on that metric with a threshold above 0. It works today and needs no code change, and it breaks when the text changes &mdash; which is the argument for page 9.</li>
+    <li><b>GKE does not behave the same</b>, and the difference is the useful teaching point. Its logging agent documents the opposite default: stdout is stored at <code>INFO</code> and stderr at <code>ERROR</code>. So the same container that produces <code>DEFAULT</code> lines on Cloud Run produces <code>INFO</code> and <code>ERROR</code> lines on GKE, and <code>severity&gt;=ERROR</code> behaves completely differently on the two &mdash; which is the concrete argument for emitting your own <code>severity</code> instead of relying on the platform&rsquo;s. Cloud Logging is on by default on Autopilot and Standard; a cluster with logging turned off collects nothing at all.</li>
   </ul></div>
 </details>
 
@@ -438,7 +440,7 @@
       </ul>
       So <code>extra=</code> is where the data enters, the LogRecord is where it waits, and the formatter decides whether it survives. Page 9 supplies step 3.</li>
     <li>The regex-extractor route is real and supported, so do not tell people it is impossible. Tell them it couples their alerting to their message wording.</li>
-    <li>Field naming matters: avoid <code>message</code>, <code>severity</code>, and anything starting <code>logging.googleapis.com/</code> as your own field names &mdash; Cloud Logging reserves those and will lift them out of the payload. Page 9 uses them deliberately.</li>
+    <li>Field naming matters, in two different ways. <code>severity</code> and anything starting <code>logging.googleapis.com/</code> are <b>lifted out</b> of the payload into the entry&rsquo;s own fields, so they stop being yours. <code>message</code> stays in <code>jsonPayload</code>, but Cloud Logging claims it as the entry&rsquo;s display text, so a <code>message</code> of your own shows up where the log line should be. Avoid all three as your own field names; page 9 uses them deliberately.</li>
     <li>The numbers in the block are from a captured turn, not invented.</li>
   </ul></div>
 </details>
@@ -479,8 +481,8 @@
 
 <!-- ==== 9. ONE FORMATTER FOR EVERY STREAM ==== -->
 <section class="page">
-  <h1>One formatter for every stream</h1>
-  <p class="lede">A JSON formatter on the root handler applies to streams 1&ndash;3 at once, so the framework&rsquo;s lines and the server&rsquo;s come out in the same shape as yours.</p>
+  <h1>One formatter for your lines and the framework&rsquo;s</h1>
+  <p class="lede">A JSON formatter on the root handler applies to streams 1 and 2 at once, so the framework&rsquo;s lines come out in the same shape as yours.</p>
   <p class="codelabel good">Configure once at startup &mdash; tested against google-adk 2.9.0</p>
   <pre class="code"><span class="kw">import</span> logging, logging.config, json, contextvars
 
@@ -522,16 +524,16 @@ logging.config.dictConfig({
   <span class="st">"agent"</span>: <span class="st">"billing_agent"</span>, <span class="st">"input_tokens"</span>: 141, <span class="st">"output_tokens"</span>: 6
 }</pre>
   <div class="note blue"><span class="kk">Two reserved keys do the lifting</span><code class="i">severity</code> and <code class="i">logging.googleapis.com/trace</code> are pulled out of the JSON into the entry&rsquo;s own fields. Everything else lands under <code class="i">jsonPayload</code>, where <code class="i">jsonPayload.input_tokens</code> is a number you can chart or sum.</div>
-  <div class="takeaway"><b>Takeaway:</b> one <code class="i">dictConfig</code> call turns every Python log line in the process into a queryable record, including the ones you did not write.</div>
+  <div class="takeaway"><b>Takeaway:</b> one <code class="i">dictConfig</code> call turns every line the root logger can see into a queryable record &mdash; the framework&rsquo;s as well as yours. The access log is configured separately.</div>
   <div class="src">Sources: <a href="https://docs.cloud.google.com/logging/docs/structured-logging">Cloud Logging: structured logging</a> (reserved fields) &middot; <code class="i">logging.config</code>, <code class="i">contextvars</code> (Python stdlib) &middot; logging tutorial 4.2, 4.3 (captured 2026-09-04); formatter re-tested 2026-09-12.</div>
 </section>
-<details class="notes" data-title="One formatter for every stream">
-  <summary>Speaker notes &mdash; One formatter for every stream</summary>
+<details class="notes" data-title="One formatter for your lines and the framework’s">
+  <summary>Speaker notes &mdash; One formatter for your lines and the framework&rsquo;s</summary>
   <div class="n-body"><ul>
     <li><b>This page is step 3 of the chain from page 7.</b> There, <code>extra=</code> put the keys on the <code>LogRecord</code> and the default formatter ignored them. Here the <code>JsonFormatter</code> walks <code>record.__dict__</code>, subtracts the built-in attributes, and writes the remainder into the JSON &mdash; which is the step that makes <code>extra=</code> actually reach Cloud Logging. The second code block is the producer; the first is what renders it.</li>
     <li><b>Why <code>_STD</code> exists:</b> <code>extra=</code> merges your keys into <code>record.__dict__</code> alongside roughly twenty built-ins. Subtracting a throwaway record&rsquo;s attribute names is what isolates yours. A formatter that forgets this either emits nothing extra or dumps <code>pathname</code>, <code>lineno</code> and the rest into every entry.</li>
     <li><b><code>ContextVar</code></b> is a standard-library variable scoped to the current task rather than the process, so concurrent requests each see their own value. Set the trace id into it once when a request starts and every line logged during that request picks it up &mdash; including <code>google_adk</code>&rsquo;s own lines, which is the point.</li>
-    <li>The trace value must be the full resource name, <code>projects/&lt;project&gt;/traces/&lt;32-hex&gt;</code>. A bare trace id is silently ignored.</li>
+    <li>The trace value here is the full resource name, <code>projects/&lt;project&gt;/traces/&lt;32-hex&gt;</code>, which is what the code block builds.</li>
     <li>To place a log line <i>under a span</i> in Trace you also need <code>logging.googleapis.com/spanId</code>. Page 23 covers the handler that fills both in for you.</li>
   </ul></div>
 </details>
@@ -609,7 +611,7 @@ logging.config.dictConfig({
     <div class="checkrow"><div class="cdot green"></div><p><b>Four streams, configured in four places.</b> Three are Python <code class="i">logging</code> and land on stdout; OpenTelemetry has its own exporter.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>ADK&rsquo;s own logs are plain text stored at <code class="i">DEFAULT</code> severity.</b> Match on content, or emit a <code class="i">severity</code> field.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Agent callbacks cover one agent; a plugin covers the app.</b> Both hand you objects, so pass the values through as fields.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p><b>One <code class="i">dictConfig</code> makes every Python stream JSON</b>, with <code class="i">severity</code> and the trace id lifted into the entry.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>One <code class="i">dictConfig</code> makes the framework&rsquo;s lines and yours JSON</b>, with <code class="i">severity</code> and the trace id lifted into the entry. The access log is configured separately.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Whoever installs a handler first owns the format</b> &mdash; the platform on a native Agent Engine deploy, you everywhere else.</p></div>
   </div>
 </section>
@@ -845,73 +847,91 @@ logging.config.dictConfig({
   </ul></div>
 </details>
 
-<!-- ==== 17. A FAILED TOOL IN A GREEN TRACE ==== -->
+<!-- ==== 17. WHY A FAILED TOOL SHOWS NO ERROR ==== -->
 <section class="page">
-  <h1>A failed tool in a green trace</h1>
-  <p class="lede">A tool that returns <code class="i">{"status": "error"}</code> leaves no mark on the trace. Every span is green, and the user was told there is no data.</p>
+  <h1>Why a failed tool shows no error</h1>
+  <p class="lede">A tool returns <code class="i">{"status": "error"}</code> and the model tells the user there is no data for that city. In Cloud Trace the <code class="i">execute_tool</code> span carries the same status as a successful call, and no span in the turn carries an <code class="i">error.type</code> attribute.</p>
   <figure>
-    <svg viewBox="0 0 1000 320" width="1000" height="320" role="img" aria-label="The same turn with a plain FunctionTool showing every span OK, and with error detection showing the tool span red">
-      <text x="20" y="20" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" font-weight="600">Plain <tspan font-family="var(--mono)" font-size="13">FunctionTool</tspan> &mdash; the default</text>
+    <svg viewBox="0 0 1000 360" width="1000" height="360" role="img" aria-label="The same turn twice. With a plain FunctionTool every span status is UNSET. With the error detector overridden, the tool span is ERROR and the parent spans are still UNSET">
+      <text x="20" y="20" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" font-weight="600">Default &mdash; the tool returns <tspan font-family="var(--mono)" font-size="13">{"status": "error"}</tspan></text>
+      <text x="880" y="20" font-family="var(--sans)" font-size="13" fill="var(--ink-3)">span status</text>
       <line x1="300" y1="28" x2="300" y2="140" stroke="var(--line)" stroke-width="1"/>
       <text x="20" y="48" font-family="var(--mono)" font-size="13" fill="var(--ink)">invoke_agent weather_agent</text>
-      <rect x="300" y="34" width="560" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="49" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <rect x="300" y="34" width="560" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="49" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
       <text x="38" y="74" font-family="var(--mono)" font-size="13" fill="var(--ink)">call_llm</text>
-      <rect x="300" y="60" width="300" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="75" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <rect x="300" y="60" width="300" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="75" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
       <text x="56" y="100" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">generate_content</text>
-      <rect x="300" y="86" width="250" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="101" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
+      <rect x="300" y="86" width="250" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="101" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
       <text x="56" y="126" font-family="var(--mono)" font-size="13" fill="var(--ink)">execute_tool get_weather</text>
-      <rect x="552" y="112" width="46" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="127" font-family="var(--mono)" font-size="12" fill="var(--ink-3)">UNSET</text>
-      <text x="300" y="156" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)">Nothing is red. There is no <tspan font-family="var(--mono)" font-size="12">error.type</tspan> anywhere in this trace to search for.</text>
+      <rect x="552" y="112" width="46" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="127" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
+      <text x="20" y="160" font-family="var(--sans)" font-size="13" fill="var(--ink-2)">Every span carries the same status a successful call gets, and no <tspan font-family="var(--mono)" font-size="13">error.type</tspan> is written anywhere in the trace.</text>
 
-      <line x1="20" y1="176" x2="980" y2="176" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="20" y1="182" x2="980" y2="182" stroke="var(--line)" stroke-width="1" stroke-dasharray="4 4"/>
 
-      <text x="20" y="204" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" font-weight="600">With <tspan font-family="var(--mono)" font-size="13">_detect_error_in_response</tspan> overridden</text>
-      <line x1="300" y1="212" x2="300" y2="324" stroke="var(--line)" stroke-width="1"/>
-      <text x="20" y="232" font-family="var(--mono)" font-size="13" fill="var(--ink)">invoke_agent weather_agent</text>
-      <rect x="300" y="218" width="560" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="233" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
-      <text x="38" y="258" font-family="var(--mono)" font-size="13" fill="var(--ink)">call_llm</text>
-      <rect x="300" y="244" width="300" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="259" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
-      <text x="56" y="284" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">generate_content</text>
-      <rect x="300" y="270" width="250" height="20" rx="4" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="1.3"/>
-      <text x="880" y="285" font-family="var(--mono)" font-size="12" fill="var(--g-green-deep)">OK</text>
-      <text x="56" y="310" font-family="var(--mono)" font-size="13" fill="var(--ink)">execute_tool get_weather</text>
-      <rect x="552" y="296" width="46" height="20" rx="4" fill="var(--fill-red)" stroke="var(--g-red)" stroke-width="1.5"/>
-      <text x="880" y="311" font-family="var(--mono)" font-size="12" fill="var(--g-red-deep)">ERROR</text>
-      <text x="612" y="311" font-family="var(--mono)" font-size="12" fill="var(--g-red-deep)">error.type="lookup_failed"</text>
+      <text x="20" y="210" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" font-weight="600">Same turn, with <tspan font-family="var(--mono)" font-size="13">_detect_error_in_response</tspan> overridden on the tool</text>
+      <line x1="300" y1="218" x2="300" y2="322" stroke="var(--line)" stroke-width="1"/>
+      <text x="20" y="238" font-family="var(--mono)" font-size="13" fill="var(--ink)">invoke_agent weather_agent</text>
+      <rect x="300" y="224" width="560" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="239" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
+      <text x="38" y="264" font-family="var(--mono)" font-size="13" fill="var(--ink)">call_llm</text>
+      <rect x="300" y="250" width="300" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="265" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
+      <text x="56" y="290" font-family="var(--mono)" font-size="13" fill="var(--ink-2)">generate_content</text>
+      <rect x="300" y="276" width="250" height="20" rx="4" fill="var(--fill-gray)" stroke="var(--g-gray)" stroke-width="1.3"/>
+      <text x="880" y="291" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">UNSET</text>
+      <text x="56" y="316" font-family="var(--mono)" font-size="13" fill="var(--ink)">execute_tool get_weather</text>
+      <rect x="552" y="302" width="46" height="20" rx="4" fill="var(--fill-red)" stroke="var(--g-red)" stroke-width="1.5"/>
+      <text x="880" y="317" font-family="var(--mono)" font-size="13" fill="var(--g-red-deep)">ERROR</text>
+      <text x="612" y="317" font-family="var(--mono)" font-size="13" fill="var(--g-red-deep)">error.type="lookup_failed"</text>
+      <text x="20" y="350" font-family="var(--sans)" font-size="13" fill="var(--ink-2)">Only the tool span changes. The parents keep the status they had, because the turn completed and the user got a reply.</text>
     </svg>
-    <figcaption>Same turn, same tool result. Only the tool span changes &mdash; the parents stay green in both, because the turn really did complete and the user really did get a reply.</figcaption>
+    <figcaption>The tool returned the same value in both halves. The only difference is whether the tool class reports that value as a failure. A trace filter can find the second turn and cannot find the first.</figcaption>
   </figure>
   <div class="checks">
-    <div class="checkrow"><div class="cdot"></div><p><b>ADK cannot tell that your dict means failure.</b> <code class="i">{"status": "error"}</code> is an ordinary return value; the convention is yours, not the framework&rsquo;s.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>So it asks the tool class.</b> Every tool has a <code class="i">_detect_error_in_response</code> method; <code class="i">FunctionTool</code>&rsquo;s returns <code class="i">None</code>, meaning &ldquo;not an error,&rdquo; for every response.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p><b>Override it</b> to return a short string for your failure shape. That string becomes <code class="i">error.type</code> and turns the span red.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>ADK does inspect what a tool returns, but it recognizes one shape.</b> After each tool call, ADK looks for a <code class="i">_detect_error_in_response</code> method on the tool object and calls it with the value the tool returned. On <code class="i">FunctionTool</code>, the class that wraps a plain Python function, that method returns the string <code class="i">"TOOL_ERROR"</code> when the value is a dict with a truthy <code class="i">error</code> key, and <code class="i">None</code> for every other value.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b><code class="i">{"status": "error"}</code> has no <code class="i">error</code> key, so the method returns <code class="i">None</code>.</b> <code class="i">None</code> means &ldquo;no error found&rdquo;: ADK writes no <code class="i">error.type</code> attribute and leaves the span status at <code class="i">UNSET</code>. Putting the word <i>error</i> in a field named <code class="i">status</code> is a convention your team chose, and nothing in ADK reads that field.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Subclass the tool and override the method</b> to return a short identifier for the failure shape your tools use. The string you return becomes <code class="i">error.type</code> on the <code class="i">execute_tool</code> span and sets that span&rsquo;s status to ERROR.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Parent spans are unaffected, and that is correct.</b> The turn ran to completion and the user got a reply, so <code class="i">call_llm</code>, <code class="i">invoke_agent</code> and <code class="i">invocation</code> record no error. One step failed inside a turn that succeeded.</p></div>
   </div>
+  <p class="codelabel">The method ADK calls with every tool&rsquo;s return value</p>
+  <pre class="code"><span class="cm"># ADK's version, inherited by every FunctionTool</span>
+<span class="kw">def</span> <span class="fn">_detect_error_in_response</span>(self, response):
+    <span class="kw">if</span> isinstance(response, <span class="kw">dict</span>) <span class="kw">and</span> response.get(<span class="st">"error"</span>):
+        <span class="kw">return</span> <span class="st">"TOOL_ERROR"</span>
+    <span class="kw">return</span> <span class="kw">None</span>
+
+<span class="cm"># yours, for tools that report failure in a "status" field</span>
+<span class="kw">class</span> <span class="fn">StatusAwareTool</span>(FunctionTool):
+    <span class="kw">def</span> <span class="fn">_detect_error_in_response</span>(self, response):
+        <span class="kw">if</span> isinstance(response, <span class="kw">dict</span>) <span class="kw">and</span> response.get(<span class="st">"status"</span>) == <span class="st">"error"</span>:
+            <span class="kw">return</span> <span class="st">"lookup_failed"</span>
+        <span class="kw">return</span> <span class="kw">None</span></pre>
   <div class="ex"><span class="kk">Example</span>
     <div class="checks" style="margin-top:8px;">
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, after a support ticket saying the agent does not know about a newly launched region.</p></div>
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> find out how often the lookup is failing and for which cities.</p></div>
-      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">With the default:</span> Cloud Trace shows no failed spans at all, so there is no filter that finds these turns. He is reduced to reading traces one at a time.</p></div>
+      <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">With the default:</span> no span in any of those turns is marked as an error, so no trace filter selects them. He has to open traces one at a time and read each tool response.</p></div>
       <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">After overriding:</span> filter on <code class="i">error.type="lookup_failed"</code>, group by hour, and read the failing city off each tool span.</p></div>
     </div>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> tell ADK what failure looks like in your tools, or the failures stay invisible to every trace query you write.</div>
-  <div class="src">Sources: <code class="i">tools/functions.py:88</code> (<code class="i">_detect_error_in_response</code> returns <code class="i">None</code> on <code class="i">FunctionTool</code>), google-adk 2.9.0 &middot; tracing tutorial 1.4, three failure modes (captured 2026-09-07).</div>
+  <div class="takeaway"><b>Takeaway:</b> ADK marks a tool span as an error only when the tool class reports the response as one. Override <code class="i">_detect_error_in_response</code> for your failure shape, or these turns are indistinguishable from successful ones in every trace query.</div>
+  <div class="src">Sources: <code class="i">tools/function_tool.py:313-317</code> (the inherited method; <code class="i">"TOOL_ERROR"</code> only for a truthy <code class="i">error</code> key) &middot; <code class="i">flows/llm_flows/_tool_error_handler.py:37-69</code> and <code class="i">_tool_caller.py:825</code> (where ADK calls it) &middot; <code class="i">telemetry/_instrumentation.py</code> sets ERROR and never OK &mdash; google-adk 2.9.0, re-read 2026-09-14 &middot; span statuses observed on a local run, tracing tutorial 1.4 (2026-09-07).</div>
 </section>
-<details class="notes" data-title="A failed tool in a green trace">
-  <summary>Speaker notes &mdash; A failed tool in a green trace</summary>
+<details class="notes" data-title="Why a failed tool shows no error">
+  <summary>Speaker notes &mdash; Why a failed tool shows no error</summary>
   <div class="n-body"><ul>
-    <li><b>The three bullets in one sentence:</b> a returned error dict is just data, so ADK asks the tool class whether it counts as a failure, and the default answer is always no.</li>
-    <li><b>Bullet 1</b> &mdash; there is no universal failure convention. Your tool might return <code>{"status": "error"}</code>, another might return <code>{"ok": false}</code>, a third might return an empty list. ADK cannot guess, so it does not try.</li>
-    <li><b>Bullet 2</b> &mdash; the hook is the escape hatch. <code>BaseTool._detect_error_in_response(response)</code> is called after every tool returns; a string return marks the span ERROR with that string as <code>error.type</code>, and <code>None</code> leaves it alone. <code>FunctionTool</code> inherits the do-nothing version.</li>
-    <li><b>Bullet 3</b> &mdash; the override is a subclass with one method, about ten lines: check the shape your tools use, return a short stable identifier like <code>"lookup_failed"</code>, else <code>None</code>. Use identifiers you would group by, not sentences.</li>
-    <li><b>Why the parents stay green</b> even after the override: the turn completed and the user got a reply. &ldquo;I do not have data for that city&rdquo; is a successful invocation containing a failed step. That is correct, and it is exactly why page 28 needs a separate counter for whether the task was accomplished.</li>
-    <li>If asked about raising instead: an exception propagates and fails the whole turn, so the user gets an error rather than a graceful answer. Most teams want the graceful answer <i>and</i> the red span, which is what the override gives.</li>
+    <li><b>The page in one sentence:</b> ADK decides whether a tool call failed by calling one method on the tool object, and the method it inherits from <code>FunctionTool</code> recognizes only a dict with an <code>error</code> key.</li>
+    <li><b>The three span statuses.</b> OpenTelemetry defines <code>UNSET</code>, <code>OK</code> and <code>ERROR</code>. ADK sets <code>ERROR</code> and never sets <code>OK</code>, so every span on a normal turn is <code>UNSET</code>. That is why &ldquo;no error recorded&rdquo; and &ldquo;succeeded&rdquo; look identical in Cloud Trace, and why the diagram shows no green: a successful span and an unclassified failure are the same picture.</li>
+    <li><b>The call path, if asked.</b> <code>_tool_caller.py:825</code> calls <code>detect_error_type_for_telemetry</code>, which does a <code>getattr</code> for <code>_detect_error_in_response</code> on the tool and calls it once with the raw return value. The string it returns reaches the span as <code>error.type</code> plus <code>Status(ERROR)</code>; the message itself is never put on the span.</li>
+    <li><b><code>{"error": ...}</code> is already handled.</b> A plain function returning <code>{"error": "no such city"}</code> gets <code>error.type="TOOL_ERROR"</code> with no code from you. The override matters because <code>{"status": "error", "error_message": &hellip;}</code> is the more common house style, and that shape returns <code>None</code>.</li>
+    <li><b>ADK&rsquo;s own tools already implement the method</b> &mdash; <code>McpTool</code> returns <code>"MCP_TOOL_ERROR"</code>, and the bash and file tools each classify their own responses. It is your own Python functions that need the subclass.</li>
+    <li><b>Name the identifiers carefully.</b> Return values you would group by (<code>lookup_failed</code>, <code>timeout</code>), not sentences. <code>error.type</code> also becomes a metric label on page 28, so one distinct message per failure means one time series per message.</li>
+    <li><b>Why the parents record no error</b> even after the override: the turn completed and the user got a reply. &ldquo;I do not have data for that city&rdquo; is a successful invocation containing a failed step. That is correct, and it is exactly why page 28 needs a separate counter for whether the task was accomplished.</li>
+    <li>If asked about raising instead: the exception propagates, the tool span gets two exception events, <code>invoke_agent</code> and <code>invocation</code> both go to ERROR, and the request fails with no answer for the user. Most teams want the graceful answer <i>and</i> the classified span, which is what the override gives.</li>
   </ul></div>
 </details>
 
@@ -924,7 +944,7 @@ logging.config.dictConfig({
     <tbody>
       <tr><td><code>adk deploy agent_engine</code></td><td><code>GOOGLE_CLOUD_AGENT_ENGINE_<wbr>ENABLE_TELEMETRY=true</code> in the deployment environment</td><td>the <code>--otel_to_cloud</code> flag on the deploy command</td></tr>
       <tr><td><code>adk deploy cloud_run</code> / <code>gke</code></td><td><code>--otel_to_cloud</code> appended to the container&rsquo;s <code>adk api_server</code> command</td><td>the <code>--otel_to_cloud</code> flag on the deploy command</td></tr>
-      <tr><td><code>agents-cli deploy</code></td><td><code>ENABLE_TELEMETRY</code>, which the scaffolded server reads and turns into <code>otel_to_cloud=True</code></td><td>the deploy, or Terraform if the project is managed</td></tr>
+      <tr><td><code>agents-cli deploy</code></td><td><code>GOOGLE_CLOUD_AGENT_ENGINE_<wbr>ENABLE_TELEMETRY=true</code> &mdash; the same variable as row 1, read by a different server. <code>agents-cli</code> writes that server into your project, <code>app/fast_api_app.py</code>; at startup it reads the variable and passes <code>otel_to_cloud=True</code> to <code>get_fast_api_app()</code></td><td>the deploy, or Terraform if the project is managed</td></tr>
       <tr class="hl"><td><b>A container you built</b></td><td><code>get_fast_api_app(&hellip;, otel_to_cloud=True)</code>, or the two calls below</td><td class="yes">you, in your own startup code</td></tr>
     </tbody>
   </table></div>
@@ -951,7 +971,7 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
   <summary>Speaker notes &mdash; Turning export on, per target</summary>
   <div class="n-body"><ul>
     <li><b>Rows 1 and 2 take the same flag</b> and differ only in where it ends up: Agent Engine has no long-lived command line, so the flag becomes an environment variable the platform reads; Cloud Run and GKE run <code>adk api_server</code>, so it becomes a command-line argument in the image.</li>
-    <li><b>Row 3, the scaffolded server, in detail:</b> <code>agents-cli</code> generates <code>app/fast_api_app.py</code>, which calls <code>get_fast_api_app(otel_to_cloud=...)</code>. On Cloud Run and GKE it passes <code>True</code> unconditionally; on Agent Engine it derives the value from <code>ENABLE_TELEMETRY</code>, which is why the Console toggle genuinely turns export off there. With a Terraform-managed project, <code>service.tf</code> owns that variable along with the content settings, so changing it by hand gets reverted on the next apply.</li>
+    <li><b>Row 3, the scaffolded server, in detail:</b> <code>agents-cli</code> generates <code>app/fast_api_app.py</code>, which calls <code>get_fast_api_app(otel_to_cloud=...)</code>. On Cloud Run and GKE it passes <code>True</code> unconditionally; on Agent Engine it derives the value from <code>GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY</code> &mdash; the same variable row 1 sets, just read by the scaffolded server rather than the platform &mdash; which is why the Console toggle genuinely turns export off there. With a Terraform-managed project, <code>service.tf</code> owns that variable along with the content settings, so changing it by hand gets reverted on the next apply.</li>
     <li>The highlighted row is the one where you can see what is happening. The other three hide these same two calls behind a flag.</li>
     <li>An unset switch resolves to <b>off</b> on Agent Engine. It is opt-in, not opt-out.</li>
   </ul></div>
@@ -965,7 +985,7 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
     <div class="checkrow"><div class="cdot"></div><p><b>What is needed:</b> <code class="i">google-adk[otel-gcp]</code> and the Cloud exporter packages, listed in the <code class="i">requirements.txt</code> that the build actually reads.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>With <code class="i">adk deploy</code>:</b> list them in <code class="i">&lt;agent_dir&gt;/requirements.txt</code> &mdash; the file <b>inside</b> the agent folder. One beside it is not staged, and the generated Dockerfile then installs base <code class="i">google-adk</code> only.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>With your own Dockerfile</b> to Cloud Run or GKE: they are whatever your image installs. Nothing generates a requirements file for you, and nothing warns you if the exporters are absent.</p></div>
-    <div class="checkrow"><div class="cdot red"></div><p><b>Missing on Cloud Run or GKE:</b> the container fails to start &mdash; the Cloud Logging exporter is imported unconditionally, so the import error kills the process.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Missing on Cloud Run or GKE:</b> the container fails to start &mdash; with cloud tracing on, the <b>trace</b> exporter is imported with no guard, so the import error kills the process. The logging and metrics exporters are guarded: they warn and disable themselves.</p></div>
     <div class="checkrow"><div class="cdot red"></div><p><b>Missing on Agent Engine:</b> the container starts and serves traffic. The telemetry imports are wrapped in <code class="i">try/except</code>, so it logs a warning and runs with telemetry off.</p></div>
   </div>
   <div class="note"><span class="kk">Either way, the deploy command exits 0</span>The packages are resolved when the image is built and imported when the container starts &mdash; both after <code class="i">adk deploy</code> has reported success. Verify by fetching a span, not by reading the exit code.</div>
@@ -979,13 +999,13 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> a clean deploy proves the image built, not that telemetry works. On Agent Engine especially, check stderr or check for a span.</div>
-  <div class="src">Sources: <code class="i">telemetry/google_cloud.py:272</code> (unguarded import) &middot; <code class="i">vertexai/agent_engines/templates/adk.py:407-417,485-490,540-546</code> (guarded, degrades), google-cloud-aiplatform 2.1.0 &middot; both failure modes observed on live deploys (2026-09-12) &middot; tracing tutorial 2.2.</div>
+  <div class="src">Sources: <code class="i">telemetry/google_cloud.py:174-175</code> (the unguarded trace-exporter import), <code class="i">:356-363</code> and <code class="i">:208-216</code> (the guarded logging and metrics ones) &middot; <code class="i">vertexai/agent_engines/templates/adk.py:407-417,485-490,540-546</code> (guarded, degrades), google-cloud-aiplatform 2.1.0 &middot; both failure modes observed on live deploys (2026-09-12) &middot; tracing tutorial 2.2.</div>
 </section>
 <details class="notes" data-title="The exporter packages">
   <summary>Speaker notes &mdash; The exporter packages</summary>
   <div class="n-body"><ul>
     <li><b>How the packages get into the image.</b> <code>adk deploy</code> copies your agent folder into a temporary build context and generates a Dockerfile whose install step is <code>pip install -r /app/agents/&lt;name&gt;/requirements.txt</code>. If that file does not exist, it creates one containing only <code>google-cloud-aiplatform[adk,agent_engines]</code> and <code>google-adk[a2a]</code> &mdash; neither of which pulls the Cloud exporters. If it does exist, it appends those two lines to yours rather than replacing anything, so an existing <code>google-adk[otel-gcp]</code> line survives and pip installs the union of the extras.</li>
-    <li><b>Why the two failure modes differ.</b> ADK&rsquo;s own setup path imports the Cloud Logging exporter at module scope with no guard, so on Cloud Run the process dies at startup and the revision never goes healthy. The Vertex SDK wrapper that runs a native Agent Engine deploy wraps each telemetry import in <code>try/except (ImportError, AttributeError)</code> and logs a warning, so the service is healthy and silent. Neither choice is wrong; you just have to know which one is running.</li>
+    <li><b>Why the two failure modes differ.</b> ADK&rsquo;s own setup path is guarded for two signals and not the third: the Cloud Logging and metrics exporter imports sit in <code>try/except (ImportError, AttributeError)</code> and return <code>None</code> with a warning, while the <b>trace</b> exporter import has no guard at all &mdash; so on Cloud Run, with cloud tracing enabled, the process dies at startup and the revision never goes healthy. The Vertex SDK wrapper that runs a native Agent Engine deploy wraps each telemetry import in <code>try/except (ImportError, AttributeError)</code> and logs a warning, so the service is healthy and silent. Neither choice is wrong; you just have to know which one is running.</li>
     <li><b>A container you built yourself:</b> the packages are whatever your own Dockerfile installs. There is no ADK-managed requirements file in that path &mdash; if you call <code>get_fast_api_app(otel_to_cloud=True)</code> or set an OTLP endpoint, make sure your image has the exporters, or you get the same two failures.</li>
     <li>The fastest check after any deploy: send one turn, then look for a span. Ten seconds, and it distinguishes all three states from page 14.</li>
   </ul></div>
@@ -1121,28 +1141,39 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
     <figcaption>The only difference between the two columns is a handler installed at startup. The log line itself is unchanged.</figcaption>
   </figure>
   <div class="checks">
-    <div class="checkrow"><div class="cdot"></div><p><b>Two fields do the joining:</b> <code class="i">logging.googleapis.com/trace</code> (the full name <code class="i">projects/&lt;project&gt;/traces/&lt;32-hex&gt;</code>) and <code class="i">logging.googleapis.com/spanId</code> (16 hex). Trace shows a log under a span when the entry carries both.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two fields do the joining:</b> <code class="i">logging.googleapis.com/trace</code> (<code class="i">projects/&lt;project&gt;/traces/&lt;32-hex&gt;</code>, or the bare 32-hex id) and <code class="i">logging.googleapis.com/spanId</code> (16 hex). Trace shows a log under a span when the entry carries both.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>ADK&rsquo;s <code class="i">gen_ai.*</code> events already carry them</b>, because they are emitted through OpenTelemetry, which knows the active span.</p></div>
     <div class="checkrow"><div class="cdot red"></div><p><b>Your <code class="i">logger.warning()</code> calls do not.</b> Python&rsquo;s <code class="i">logging</code> knows nothing about OpenTelemetry, so the fields are simply absent.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">LoggingHandler</code> is the piece that bridges them</b> &mdash; a handler that reads the active span at the moment you log and writes both fields onto the entry. ADK ships none; you install it. One on the root logger covers every stream, the framework&rsquo;s included.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">LoggingHandler</code> is the piece that bridges them</b> &mdash; a handler that reads the active span at the moment you log and writes both fields onto the entry. ADK ships none; you install it. One on the root logger covers the framework&rsquo;s lines as well as yours.</p></div>
   </div>
+  <p class="codelabel">Installing the bridge at startup, once</p>
+  <pre class="code"><span class="kw">import</span> logging
+<span class="kw">from</span> opentelemetry._logs <span class="kw">import</span> get_logger_provider
+<span class="kw">from</span> opentelemetry.sdk._logs <span class="kw">import</span> LoggingHandler
+
+<span class="cm"># run this after export is on, so a logger provider exists to attach to</span>
+logging.getLogger().addHandler(
+    LoggingHandler(logger_provider=get_logger_provider())
+)</pre>
+  <div class="note blue"><span class="kk">What those eight lines change</span>Every Python log record in the process now goes through OpenTelemetry, which stamps it with the span that was active when you logged. The same Cloud Logging exporter that already writes ADK&rsquo;s <code class="i">gen_ai.*</code> events reads those ids off the record and writes them as <code class="i">trace</code> and <code class="i">spanId</code>. Your <code class="i">logger.warning()</code> calls need no change; the root logger means streams 1 and 2 from page 4 are both covered. Stream 3 is not: uvicorn installs its own handlers on <code class="i">uvicorn.access</code> and stops it propagating to the root.</div>
   <div class="ex"><span class="kk">Example</span>
     <div class="checks" style="margin-top:8px;">
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Marco, on the red <code class="i">execute_tool get_weather</code> span from the last page.</p></div>
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Goal:</span> find out <i>why</i> the lookup failed, not just that it did.</p></div>
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Action:</span> open the span&rsquo;s <b>Logs &amp; Events</b> tab.</p></div>
       <div class="checkrow"><div class="cdot red"></div><p><span class="lbl">Before the bridge:</span> empty. The tool&rsquo;s <code class="i">logger.warning("no station within 50km")</code> is in Cloud Logging, findable only by guessing at a timestamp.</p></div>
-      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">After one <code class="i">LoggingHandler</code>:</span> that same warning is listed under the red span. The &ldquo;why&rdquo; sits next to the &ldquo;what.&rdquo;</p></div>
+      <div class="checkrow"><div class="cdot green"></div><p><span class="lbl">After one <code class="i">LoggingHandler</code>:</span> that same warning is listed under the red span, so the reason for the failure is on the same screen as the failure.</p></div>
     </div>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> correlation is one handler, and without it your most useful log line is the one furthest from the span that needs it.</div>
-  <div class="src">Sources: tracing tutorial 3.1&ndash;3.5 (captured) &middot; <a href="https://docs.cloud.google.com/trace/docs/trace-log-integration">Cloud Trace: log&ndash;trace integration</a> &middot; grep of <code class="i">google/adk</code> for <code class="i">LoggingHandler</code>, google-adk 2.9.0 &mdash; zero occurrences (verified 2026-09-12).</div>
+  <div class="takeaway"><b>Takeaway:</b> one handler on the root logger puts your log lines under the span that produced them. Without it, the line that explains the failure sits in Cloud Logging with no field tying it to the trace.</div>
+  <div class="src">Sources: tracing tutorial 3.1&ndash;3.5 (captured) &middot; <a href="https://docs.cloud.google.com/trace/docs/trace-log-integration">Cloud Trace: log&ndash;trace integration</a> &middot; grep of <code class="i">google/adk</code> for <code class="i">LoggingHandler</code>, google-adk 2.9.0 &mdash; zero occurrences (verified 2026-09-12) &middot; the handler and the id match to the <code class="i">execute_tool</code> span verified in-process, 2026-09-07.</div>
 </section>
 <details class="notes" data-title="Joining logs to spans">
   <summary>Speaker notes &mdash; Joining logs to spans</summary>
   <div class="n-body"><ul>
     <li><b>Generic</b> (OpenTelemetry correlation) &mdash; say so. It is agent-shaped because the thing you want beside the red span is your tool&rsquo;s own warning about <i>why</i> it failed.</li>
     <li>This page closes the loop with page 9: the <code>ContextVar</code> trace id was the manual version of this, for Cloud Logging. The <code>LoggingHandler</code> is the automatic version, for Cloud Trace.</li>
+    <li><b>Where the code goes, and two details worth having.</b> In a server you wrote, after the <code>get_fast_api_app(otel_to_cloud=True)</code> call from page 18; under <code>adk web</code> or <code>adk api_server</code>, in a module imported at startup. The records land in Cloud Logging under the log name <code>adk-otel</code> rather than the one your other handlers use, so a saved query filtered by log name will not show them. There are two other routes if someone asks: <code>google-cloud-logging</code>&rsquo;s own handler, which reads the current span and then falls back to request headers, and a JSON formatter to stdout, which works on Cloud Run only.</li>
     <li>Kept off the face: on Cloud Run the inbound request log and ADK&rsquo;s spans are two <i>different</i> traces unless you propagate context in. That is the tutorial&rsquo;s Part 3 and a separate afternoon.</li>
   </ul></div>
 </details>
@@ -1153,7 +1184,7 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p><b>Three states:</b> instrumentation is always on, recording needs a provider, export needs an exporter.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>The tree:</b> <code class="i">invocation</code> or <code class="i">invoke_workflow</code> &rarr; <code class="i">invoke_agent</code> &rarr; <code class="i">call_llm</code> &rarr; <code class="i">generate_content</code>, with <code class="i">execute_tool</code> under the <code class="i">call_llm</code> that asked for it.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p><b>A green trace and an unmet request coexist.</b> Classify tool errors yourself, or they never reach the span.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>A trace with no error in it can still be a request the user got no answer to.</b> Classify your tools&rsquo; failures yourself, or they never reach the span.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Export is one switch</b>, in a different place per target &mdash; and the exporter packages are a separate requirement that fails differently per target.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Content off is two variables</b>, and one target overwrites your choice no matter what you set.</p></div>
   </div>
@@ -1203,7 +1234,7 @@ maybe_set_otel_providers(otel_hooks_to_setup=[hooks])</pre>
       <p class="small">ADK may rename these in a future release.</p>
     </div>
   </div>
-  <div class="note"><span class="kk">Both families are always emitted</span>There is no flag that turns the experimental names on or off; turn export on and you get all 23. The prefix is a warning about the <b>name</b>: a dashboard built on <code class="i">adk.experimental.invoke_agent.input_tokens</code> may stop working after an ADK upgrade. Use a stable name where one exists.</div>
+  <div class="note"><span class="kk">The experimental family is opt-in, and off by default</span>The 16 <code class="i">adk.experimental.*</code> names are gated behind <code class="i">ADK_EXPERIMENTAL_TELEMETRY</code>, which defaults to <b>off</b>: turning export on gives you the stable family, and not one experimental name is recorded until that variable is set. So the prefix warns you twice &mdash; a dashboard built on <code class="i">adk.experimental.invoke_agent.input_tokens</code> has no data at all unless someone set the variable at deploy time, and may stop working after an ADK upgrade even then. Use a stable name where one exists.</div>
   <p class="codelabel">Reading the token histogram &mdash; two questions, two queries</p>
   <pre class="code"><span class="cm"># total input tokens used in the last hour</span>
 sum(increase({<span class="st">"gen_ai.client.token.usage_sum"</span>, <span class="st">"gen_ai.token.type"</span>=<span class="st">"input"</span>}[<span class="fn">1h</span>]))
@@ -1211,6 +1242,7 @@ sum(increase({<span class="st">"gen_ai.client.token.usage_sum"</span>, <span cla
 <span class="cm"># average input tokens per model call in the last hour</span>
 sum(increase({<span class="st">"gen_ai.client.token.usage_sum"</span>,   <span class="st">"gen_ai.token.type"</span>=<span class="st">"input"</span>}[<span class="fn">1h</span>]))
   / sum(increase({<span class="st">"gen_ai.client.token.usage_count"</span>, <span class="st">"gen_ai.token.type"</span>=<span class="st">"input"</span>}[<span class="fn">1h</span>]))</pre>
+  <div class="note blue"><span class="kk">What each query tells you</span>A histogram is stored as a running total (<code class="i">_sum</code>) and a count of the values recorded (<code class="i">_count</code>). The first query reads the total on its own: <b>how many input tokens were consumed in the window</b>, which is the quantity your bill is computed from. The second divides the total by the count: <b>how large a typical model call&rsquo;s input was</b>, which is the number that moves when you lengthen a prompt, add a tool definition, or let a conversation run long (page 29). Widen either window by changing <code class="i">[1h]</code> &mdash; the example below runs these same two queries over 48 hours.</div>
   <div class="ex"><span class="kk">Example</span>
     <div class="checks" style="margin-top:8px;">
       <div class="checkrow"><div class="cdot"></div><p><span class="lbl">Actor:</span> Priya, before writing any cost code, checking what she already gets.</p></div>
@@ -1221,7 +1253,7 @@ sum(increase({<span class="st">"gen_ai.client.token.usage_sum"</span>,   <span c
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> token counts and timings are already recorded. Prefer the stable names, and remember that the histogram counts model calls, not turns.</div>
-  <div class="src">Sources: <code class="i">telemetry/_metrics.py:67-309</code> (both families; <code class="i">_create_token_histogram</code> at <code class="i">:213</code>), google-adk 2.9.0 &middot; <a href="https://adk.dev/observability/metrics/">ADK: Metrics</a> &middot; metrics tutorial 1.1, 2.2, 3.4; <code class="i">queries/tokens.promql</code> &middot; the two <code class="i">increase()</code> queries run against project <code class="i">jwd-gcp-demos</code>, 48-hour window, 2026-09-13.</div>
+  <div class="src">Sources: <code class="i">telemetry/_metrics.py:67-309</code> (both families; <code class="i">_create_token_histogram</code> at <code class="i">:213</code>), <code class="i">telemetry/context.py:115-118</code> and <code class="i">_instrumentation.py:670</code> (the <code class="i">ADK_EXPERIMENTAL_TELEMETRY</code> gate), google-adk 2.9.0 &middot; <a href="https://adk.dev/observability/metrics/">ADK: Metrics</a> &middot; metrics tutorial 1.1, 2.2, 3.4; <code class="i">queries/tokens.promql</code> &middot; the two <code class="i">increase()</code> queries run against project <code class="i">jwd-gcp-demos</code>, 48-hour window, 2026-09-13.</div>
 </section>
 <details class="notes" data-title="What ADK measures without any code from you">
   <summary>Speaker notes &mdash; What ADK measures without any code from you</summary>
@@ -1338,8 +1370,9 @@ histogram_quantile(<span class="fn">0.95</span>, sum by (le, <span class="st">"g
 <details class="notes" data-title="Three ways to count failure, and which one to alert on">
   <summary>Speaker notes &mdash; Three ways to count failure</summary>
   <div class="n-body"><ul>
-    <li><b>Connect this to page 17.</b> There, a failed tool inside a completed turn left every span green. This is the same situation seen as numbers instead of as a trace: the turn-level measure reports nothing wrong, because nothing went wrong with the turn.</li>
-    <li><b>Why rows 1 and 3 show the same number here.</b> Every turn in this run called the tool exactly once and there was no retry or fallback, so a failed tool call and an unanswered user were the same event. In a real agent with retries or a second data source they come apart, and the gap between them is exactly the thing row 1 cannot see.</li>
+    <li><b>Connect this to page 17.</b> There, a failed tool inside a completed turn left every span status at <code>UNSET</code>. This is the same situation seen as numbers instead of as a trace: the turn-level measure reports nothing wrong, because nothing went wrong with the turn.</li>
+    <li><b>Row 1 depends on page 17.</b> These tools are wrapped in the <code>_detect_error_in_response</code> subclass, which is why <code>error.type</code> is on the tool measurements at all. Without that override the tools return <code>{"status": "error"}</code>, no <code>error.type</code> is recorded, and row 1 reads 0% alongside row 2.</li>
+    <li><b>Why rows 1 and 3 show the same number here.</b> Every turn in this run called the tool exactly once and there was no retry or fallback, so a failed tool call and an unanswered user were the same event. In a real agent with retries or a second data source the two numbers differ, and that difference is what row 1 cannot show you.</li>
     <li><b>How the counter is written.</b> An <code>after_tool_callback</code> receives the tool&rsquo;s return value. The callback maps the tool&rsquo;s own <code>status</code> field to an <code>outcome</code> label (<code>ok</code>, <code>unavailable</code>, and so on) and adds one to the counter. It is a lookup on a field the tool returned, not anything parsed out of the model&rsquo;s reply text. That keeps it a metric rather than an evaluation.</li>
     <li><b>The alert policy shape,</b> if anyone wants to see one: a Cloud Monitoring policy with a <code>conditionPrometheusQueryLanguage</code> condition. The threshold is written inside the PromQL (<code>&hellip; &gt; 0.2</code>) and the policy carries a <code>duration</code> of <code>300s</code>, meaning the condition must hold for five minutes before it fires.</li>
     <li><b>One naming trap.</b> The counter appears in Cloud Monitoring as <code>tutorial.weather.requests</code>, with no <code>_total</code> suffix. Prometheus convention adds <code>_total</code> to counters, and Cloud Monitoring adds <code>_count</code> and <code>_sum</code> to histograms, but this counter gets neither. Querying the <code>_total</code> form returns an empty result and no error.</li>
@@ -1421,7 +1454,7 @@ sum by (<span class="st">"gen_ai.token.type"</span>) (rate({<span class="st">"ge
 <section class="page">
   <h1>Section 3 recap</h1>
   <div class="checks" style="margin-top:14px;">
-    <div class="checkrow"><div class="cdot green"></div><p><b>Seven stable <code class="i">gen_ai.*</code> instruments, sixteen <code class="i">adk.experimental.*</code></b> &mdash; the prefix is a promise about the name, not a feature switch.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Seven stable <code class="i">gen_ai.*</code> instruments, sixteen <code class="i">adk.experimental.*</code></b> &mdash; the experimental sixteen are off unless <code class="i">ADK_EXPERIMENTAL_TELEMETRY</code> is set, and their names may still change.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Check the grain</b> before dividing by count: <code class="i">token.usage</code> counts model calls, not turns.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>One percentile at three grains</b> names the layer that owns a slowdown &mdash; turn, model, tool.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Tool error, invocation error and task outcome are three facts.</b> Alert on the third, which you have to emit yourself.</p></div>
@@ -1477,7 +1510,7 @@ sum by (<span class="st">"gen_ai.token.type"</span>) (rate({<span class="st">"ge
       <tr><td>Cloud Trace v1 API returns nothing for an engine</td><td>OTLP-exported spans do not surface there (p20)</td><td>read Trace Explorer by <code>service.name</code></td></tr>
       <tr><td>Prompt text in Cloud Trace after setting the OTel variable</td><td>that variable does not govern ADK&rsquo;s own spans (p21)</td><td>set <b>both</b> content variables</td></tr>
       <tr><td><code>.env</code> says <code>true</code>, the engine still redacts</td><td>the Vertex SDK overwrites it at startup on a native deploy (p22)</td><td>accept it, or move to BYOC</td></tr>
-      <tr><td>Tool error rate 50%, and nobody is complaining</td><td>the model routes around tool failures (p17, p28)</td><td>alert on a task-outcome counter instead</td></tr>
+      <tr><td>Tool error rate 50%, and nobody is complaining</td><td>the model reads the tool&rsquo;s failure and answers anyway (p17, p28)</td><td>alert on a task-outcome counter instead</td></tr>
       <tr><td>A PromQL query returns zero series and no error</td><td>wrong suffix, or wrong <code>otel_scope_name</code> (p26, p28)</td><td>check the name against what is actually emitted</td></tr>
       <tr><td>The dashboard broke after an ADK upgrade</td><td>it was built on an <code>adk.experimental.*</code> name (p26)</td><td>pin to the stable <code>gen_ai.*</code> set</td></tr>
     </tbody>

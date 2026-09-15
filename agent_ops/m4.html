@@ -196,7 +196,7 @@
     <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">04</div><div class="sh red"></div></div>
     <div>
       <h1>Agent Evaluation and Quality Assurance</h1>
-      <div class="dsub">What an eval grades that a test cannot, how a score becomes a pass, and how the same grading runs against production. Verified against <b>google-adk 2.9.0</b>, <b>google-agents-cli 1.5.0</b>, and <b>google-cloud-aiplatform 1.165.1</b>, September 2026.</div>
+      <div class="dsub">What an eval grades that a test cannot, how a score becomes a pass, and how the same grading runs against production. Verified against <b>google-adk 2.9.0</b>, <b>google-agents-cli 1.5.0</b>, and <b>google-cloud-aiplatform 2.1.0</b>, September 2026.</div>
       <div class="agenda numrows">
         <div class="numrow plain hot"><div class="n">01</div><div class="body">What gets graded &mdash; the case, the metrics, the score</div></div>
         <div class="numrow plain"><div class="n">02</div><div class="body">The managed layer &mdash; ADK, the service, agents-cli</div></div>
@@ -295,7 +295,7 @@
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>A test checks correct execution of deterministic code.</b> It asserts on a code path. No code path changed here; the instruction is text.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>An eval grades the quality of a response and the path the agent took to produce it.</b> The path is the trajectory: which tools, which arguments, in what order.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Two properties of agents make this necessary.</b> The same input can produce a different trajectory on the next run; and correctness has several dimensions at once &mdash; trajectory, answer, safety, cost.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two properties of agents make this necessary.</b> The same input can produce a different trajectory on the next run; and correctness has several dimensions at once &mdash; trajectory, answer, safety, hallucination.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>The instruction, the tool definitions, and the model id are source files.</b> They change in a reviewed diff, and an eval is how that diff gets checked.</p></div>
   </div>
   <div class="ex"><span class="kk">Example</span>
@@ -332,13 +332,15 @@
 client = Client(project=PROJECT, location=<span class="st">"us-central1"</span>)
 
 <span class="cm"># prompts: a DataFrame or dataset with one row per prompt</span>
+<span class="cm"># step 1: run each candidate over the prompts</span>
+flash = client.evals.<span class="fn">run_inference</span>(src=prompts, model=<span class="st">"gemini-3.5-flash"</span>)
+pro   = client.evals.<span class="fn">run_inference</span>(src=prompts, model=<span class="st">"gemini-3.1-pro"</span>)
+
+<span class="cm"># step 2: score both response sets in one call</span>
 result = client.evals.<span class="fn">evaluate</span>(
-    dataset=prompts,
+    dataset=[flash, pro],
     metrics=[types.RubricMetric.<span class="fn">TEXT_QUALITY</span>,
-             types.RubricMetric.<span class="fn">INSTRUCTION_FOLLOWING</span>],
-    inference_configs={
-        <span class="st">"gemini-3.5-flash"</span>:  {<span class="st">"model"</span>: <span class="st">"gemini-3.5-flash"</span>},
-        <span class="st">"gemini-3.5-pro"</span>:    {<span class="st">"model"</span>: <span class="st">"gemini-3.5-pro"</span>}})
+             types.RubricMetric.<span class="fn">INSTRUCTION_FOLLOWING</span>])
 result.show()   <span class="cm"># per-model averages you compare side by side</span></pre>
   <div class="ex"><span class="kk">Example</span>
     <div class="checks" style="margin-top:8px;">
@@ -349,13 +351,13 @@ result.show()   <span class="cm"># per-model averages you compare side by side</
   </div>
   <div class="note gray"><span class="kk">Generic</span>Model selection is not agent-specific. It appears here because it is the one place model evaluation fits: before the agent exists, once.</div>
   <div class="takeaway"><b>Takeaway:</b> evaluate models to choose one; evaluate the agent forever after.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">evaluate-agents</a> &middot; <code class="i">agentplatform/_genai/evals.py:3121</code>, aiplatform 1.165.1.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">evaluate-agents</a> &middot; <code class="i">agentplatform/_genai/evals.py:3029, 3121</code>, aiplatform 2.1.0.</div>
 </section>
 <details class="notes" data-title="Model evaluation happens first, and picks the model">
   <summary>Speaker notes &mdash; Model evaluation happens first, and picks the model</summary>
   <div class="n-body"><ul>
     <li>Pairwise is also what an A/B on prompt variants uses; mention it and move on.</li>
-    <li><code>inference_configs</code> is a map from a candidate name to how to run it; the same call scores several models in one pass. Without it, <code>evaluate</code> grades one set of pre-generated responses.</li>
+    <li>The two steps are separate calls: <code>run_inference</code> generates one response set per candidate, and <code>evaluate</code> scores them. Passing <code>evaluate</code> a list of datasets is what makes it a comparison; given a single dataset it grades one set of pre-generated responses.</li>
     <li>If asked about ROUGE/BLEU: one appears on page 9 as <code>response_match_score</code>; the rest are for translation and summarization and no agent metric uses them.</li>
     <li>The gray note keeps the room from thinking this page is the module: model selection happens once, before the agent; everything after page 6 evaluates the agent.</li>
   </ul></div>
@@ -412,7 +414,7 @@ result.show()   <span class="cm"># per-model averages you compare side by side</
     <tbody>
       <tr><td>Schema</td><td><code>EvalSet</code> (page 6)</td><td><code>EvalSet</code> (page 6)</td></tr>
       <tr><td>Made by</td><td><code>adk web</code> and <code>adk eval_set</code>: you build and browse it in the UI</td><td>you write it (or export one), and drop it under a tests folder</td></tr>
-      <tr><td>Read by</td><td><code>adk web</code> and <code>adk eval</code>, by path or set id</td><td><code>AgentEvaluator.evaluate</code> in a pytest test, which scans a folder for every <code>.test.json</code> in it</td></tr>
+      <tr><td>Read by</td><td><code>adk web</code> and <code>adk eval</code>, by path or set id</td><td><code>AgentEvaluator.evaluate</code> in a pytest test, which scans a folder for every <code>.test.json</code> in it &mdash; or <code>adk test</code>, the CLI front door to that same pytest path</td></tr>
     </tbody>
   </table></div>
   <div class="note blue"><span class="kk">Rule</span>Pick the suffix by which tool will read the file: <code class="i">.evalset.json</code> for the <code class="i">adk web</code> / <code class="i">adk eval</code> path, <code class="i">.test.json</code> for the pytest path. That is the whole difference.</div>
@@ -604,7 +606,7 @@ result.show()   <span class="cm"># per-model averages you compare side by side</
 <details class="notes" data-title="Choosing by scenario">
   <summary>Speaker notes &mdash; Choosing by scenario</summary>
   <div class="n-body"><ul>
-    <li>The user-simulation constraint, verbatim from the docs: <code>tool_trajectory_avg_score</code>, <code>response_match_score</code>, and <code>final_response_match_v2</code> &ldquo;are not supported in combination with User Simulation.&rdquo;</li>
+    <li>The user-simulation constraint comes from the criteria table&rsquo;s <b>Supports User Simulation</b> column, which marks <code>tool_trajectory_avg_score</code>, <code>response_match_score</code>, and <code>final_response_match_v2</code> as No. It is a table column, not a sentence in the prose.</li>
     <li><code>hallucinations_v1</code> has an option, <code>evaluate_intermediate_nl_responses</code>, to check text the agent emitted before tool calls as well as the final reply.</li>
   </ul></div>
 </details>
@@ -617,11 +619,11 @@ result.show()   <span class="cm"># per-model averages you compare side by side</
     <div class="checkrow"><div class="cdot"></div><p><b>Shape:</b> an id, a text property the judge can test, and an optional type. Each rubric gets <b>Pass</b> or <b>Fail</b> per invocation; the metric&rsquo;s score is the fraction that passed.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>You write them</b> for ADK&rsquo;s three <code class="i">rubric_based_*</code> criteria, in <code class="i">test_config.json</code> or on the case (<code class="i">EvalCase.rubrics</code>, additive). An empty effective list raises at evaluation time.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Or the service writes the rubrics for you</b> &mdash; its &ldquo;adaptive&rdquo; metrics (<code class="i">TOOL_USE_QUALITY</code>, <code class="i">FINAL_RESPONSE_QUALITY</code>&hellip;) read your agent&rsquo;s instruction and tool declarations and turn them into pass/fail rubrics per case, so you write none. Page 20 shows the exact rubrics one produced.</p></div>
-    <div class="checkrow"><div class="cdot gray"></div><p><b>Static metrics</b> (<code class="i">SAFETY</code>, <code class="i">HALLUCINATION</code>) return one 0&ndash;1 number instead of a pass rate.</p></div>
+    <div class="checkrow"><div class="cdot gray"></div><p><b>Static metrics</b> (<code class="i">SAFETY</code>, <code class="i">HALLUCINATION</code>) return a single score rather than a pass rate &mdash; Safety is binary, 1 for safe and 0 for unsafe.</p></div>
   </div>
   <p class="codelabel">test_config.json &mdash; three rubrics</p>
   <pre class="code">{<span class="st">"criteria"</span>: {<span class="st">"rubric_based_final_response_quality_v1"</span>: {
-  <span class="st">"threshold"</span>: 0.67,
+  <span class="st">"threshold"</span>: 0.66,
   <span class="st">"rubrics"</span>: [
     {<span class="st">"rubric_id"</span>: <span class="st">"amount"</span>,  <span class="st">"rubric_content"</span>: {<span class="st">"text_property"</span>: <span class="st">"The reply states the refund amount."</span>}},
     {<span class="st">"rubric_id"</span>: <span class="st">"no_date"</span>, <span class="st">"rubric_content"</span>: {<span class="st">"text_property"</span>: <span class="st">"The reply does not promise a delivery date."</span>}},
@@ -632,7 +634,7 @@ result.show()   <span class="cm"># per-model averages you compare side by side</
       <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Priya, writing rubrics for the refund agent.</p></div>
       <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the three rubrics above.</p></div>
       <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> the ADK judge marks each per invocation.</p></div>
-      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> a reply that states the amount in four sentences with no delivery promise scores 2/3 &asymp; 0.67.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> a reply that states the amount in four sentences with no delivery promise scores 2/3 &asymp; 0.667, which clears the 0.66 threshold. Set it to 0.67 instead and the same case fails: ADK compares <code class="i">score &gt;= threshold</code>, and 0.6666&hellip; is under 0.67.</p></div>
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> a rubric turns a house rule into a number. Write them for what you can state; let the service generate them for what it can read from your agent&rsquo;s own configuration.</div>
@@ -861,7 +863,7 @@ $ echo $?
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> two scorers (ADK in-process, the service server-side), several drivers, two formats. ADK borrows the service for five criteria; only the service reaches production.</div>
-  <div class="src">Sources: <code class="i">multi_turn_task_success_evaluator.py:60-62</code>, <code class="i">vertex_ai_eval_facade.py:40-60</code>, google-adk 2.9.0 &middot; <code class="i">agentplatform/_genai/types/common.py</code> (<code class="i">EvalCase</code>, <code class="i">EvaluationDataset</code>), <code class="i">cli/eval/cmd_generate.py</code> (uses the same type), aiplatform 1.165.1 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">agent-evaluation</a>.</div>
+  <div class="src">Sources: <code class="i">multi_turn_task_success_evaluator.py:60-62</code>, <code class="i">vertex_ai_eval_facade.py:40-60</code>, google-adk 2.9.0 &middot; <code class="i">agentplatform/_genai/types/common.py</code> (<code class="i">EvalCase</code>, <code class="i">EvaluationDataset</code>), <code class="i">cli/eval/cmd_generate.py</code> (uses the same type), aiplatform 2.1.0 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">agent-evaluation</a>.</div>
 </section>
 <details class="notes" data-title="The pieces, and how they fit">
   <summary>Speaker notes &mdash; The pieces, and how they fit</summary>
@@ -869,7 +871,7 @@ $ echo $?
     <li>The correction to make out loud: ADK eval is not &ldquo;the un-scored one.&rdquo; Its in-process metrics compute real scores. What the service adds is (a) server-side execution, (b) reach into production traffic, and (c) the registry/monitors/loss-clustering machinery ADK has no equivalent for. That is what &ldquo;the production half&rdquo; meant; the slide now says it plainly.</li>
     <li>Why two dataset formats: ADK&rsquo;s <code>EvalSet</code> predates the service and is trajectory-first &mdash; you author the expected tool path and reply. The service&rsquo;s <code>EvaluationDataset</code> is prompt-first &mdash; a prompt, a reference, rubrics; the agent&rsquo;s responses and intermediate events are produced when the run executes. Two different jobs, two shapes. (<code>agentplatform._genai.types.common.EvalCase</code> fields: <code>prompt</code>, <code>reference</code>, <code>rubric_groups</code>, <code>responses</code>, <code>intermediate_events</code>.)</li>
     <li>Is agents-cli&rsquo;s format different from the console/SDK? No &mdash; agents-cli builds the same <code>agentplatform</code> <code>EvalCase</code>/<code>EvaluationDataset</code> the SDK and console use (<code>cli/eval/cmd_generate.py</code> imports it). So there are two formats total, not three: ADK&rsquo;s, and the shared service one.</li>
-    <li>Is ADK&rsquo;s format moving to the service format? No published deprecation or migration as of 2.9.0 / aiplatform 1.165.1. They coexist because the local harness needs a recorded trajectory and the service runs inference. If asked, say &ldquo;not announced&rdquo; rather than guessing a roadmap.</li>
+    <li>Is ADK&rsquo;s format moving to the service format? No published deprecation or migration as of 2.9.0 / aiplatform 2.1.0. They coexist because the local harness needs a recorded trajectory and the service runs inference. If asked, say &ldquo;not announced&rdquo; rather than guessing a roadmap.</li>
     <li>The region point is from the <code>_evals_constant.py</code> comment: &ldquo;v2/v3 specs require Gemini 3.5 Flash, which is not available in all regions (e.g. us-central1).&rdquo; &ldquo;Gen AI evaluation service&rdquo; and &ldquo;Agent Platform evaluation&rdquo; are the same service under two names (<code>vertexai.evals</code> / <code>agentplatform.evals</code>).</li>
     <li>The &ldquo;model eval vs. agent eval&rdquo; framing some material uses is a false split; and the six trajectory matches (exact, in-order, any-order, precision, recall, single-tool) are <code>v1beta1</code> <code>evaluateInstances</code> inputs, not in the current metric set.</li>
   </ul></div>
@@ -919,7 +921,7 @@ $ echo $?
 <section class="page">
   <h1>The service&rsquo;s seven agent metrics, and what a run returns</h1>
   <p class="lede">One recorded conversation from the weather agent, two service metrics, twenty-three seconds. The service wrote the rubrics itself, from the agent&rsquo;s own instruction and tools. (Here <code class="i">EVAL_SET</code> came from a production trace &mdash; page 25 shows how to get one; don&rsquo;t worry about that yet.)</p>
-  <p class="codelabel">agentplatform SDK, aiplatform 1.165.1 &mdash; server-side run</p>
+  <p class="codelabel">agentplatform SDK, aiplatform 2.1.0 &mdash; server-side run</p>
   <pre class="code"><span class="kw">from</span> agentplatform <span class="kw">import</span> Client, types
 client = Client(project=PROJECT, location=<span class="st">"us-central1"</span>)
 
@@ -944,7 +946,7 @@ run = client.evals.create_evaluation_run(
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> the service reads your agent&rsquo;s instruction and tool declarations and writes the rubrics for you. What comes back is a pass rate and the reasons.</div>
-  <div class="src">Sources: <code class="i">scratchpad/m4_score_run.py</code> output 2026-09-13; <code class="i">agentplatform/_genai/evals.py:3539-3600</code>, aiplatform 1.165.1 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view-results</a>.</div>
+  <div class="src">Sources: <code class="i">scratchpad/m4_score_run.py</code> output 2026-09-13; <code class="i">agentplatform/_genai/evals.py:3539-3600</code>, aiplatform 2.1.0 &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view-results</a>.</div>
 </section>
 <details class="notes" data-title="The service's seven agent metrics, and what a run returns">
   <summary>Speaker notes &mdash; The service&rsquo;s seven agent metrics</summary>
@@ -959,16 +961,16 @@ run = client.evals.create_evaluation_run(
 <!-- ==== 21. AGENTS-CLI: WHAT IT ADDS ==== -->
 <section class="page">
   <h1>agents-cli: what it adds, and the SDK call behind each</h1>
-  <p class="lede">agents-cli has an <code class="i">eval</code> command group. None of it scores anything the SDK cannot.</p>
+  <p class="lede">agents-cli has an <code class="i">eval</code> command group. None of it scores anything the SDK cannot. Below is the scoring subset; <code class="i">eval optimize</code> is covered on page 33.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th>Command</th><th>What it does</th><th>SDK call underneath</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td class="m">eval generate</td><td>runs the agent over a dataset, writes traces; <code>--url</code> targets a Cloud Run, GKE, or local server</td><td class="m">run_inference</td><td>&mdash;</td></tr>
+      <tr><td class="m">eval generate</td><td>runs the agent over a dataset, writes traces; <code>--url</code> targets a Cloud Run, GKE, or local server</td><td>its own inference loop &mdash; HTTP to a running agent, or local</td><td>&mdash;</td></tr>
       <tr><td class="m">eval grade</td><td>scores traces with the service</td><td class="m">evaluate</td><td>&mdash;</td></tr>
-      <tr><td class="m">eval run</td><td>generate then grade</td><td>both</td><td>&mdash;</td></tr>
+      <tr><td class="m">eval run</td><td>generate then grade</td><td>its own loop, then <code>evaluate</code></td><td>&mdash;</td></tr>
       <tr><td class="m">eval compare</td><td>diffs two result files, with deltas</td><td>a JSON diff</td><td>&mdash;</td></tr>
       <tr><td class="m">eval analyze</td><td>loss clusters from a result file</td><td class="m">generate_loss_clusters</td><td>Experimental</td></tr>
-      <tr><td class="m">eval dataset synthesize</td><td>scenario cases plus full simulated runs</td><td class="m">generate_conversation_scenarios + run_inference</td><td>Experimental</td></tr>
+      <tr><td class="m">eval dataset synthesize</td><td>scenario cases plus full simulated runs</td><td class="m">generate_conversation_scenarios</td><td>Experimental</td></tr>
       <tr><td class="m">eval submit / results</td><td>managed cloud run</td><td class="m">create_evaluation_run</td><td>Experimental</td></tr>
       <tr><td class="m">eval metric list</td><td>the service&rsquo;s metric names</td><td class="m">SUPPORTED_PREDEFINED_METRICS</td><td>&mdash;</td></tr>
     </tbody>
@@ -982,15 +984,17 @@ run = client.evals.create_evaluation_run(
     </div>
   </div>
   <div class="note gray"><span class="kk">Generic</span>A CLI front end. Everything it scores, it scores by calling the service.</div>
-  <div class="takeaway"><b>Takeaway:</b> use agents-cli for <code class="i">compare</code> and for the scaffold it ships. Its dataset is a third format, not ADK&rsquo;s.</div>
+  <div class="takeaway"><b>Takeaway:</b> use agents-cli for <code class="i">compare</code> and for the scaffold it ships. Its dataset is the service&rsquo;s, not a third format of its own.</div>
   <div class="src">Sources: <code class="i">google/agents/cli/eval/cmd_*.py</code>, <code class="i">scaffold/agents/adk/tests/eval/*</code>, google-agents-cli 1.5.0 &middot; M2 page 8.</div>
 </section>
 <details class="notes" data-title="agents-cli: what it adds, and the SDK call behind each">
   <summary>Speaker notes &mdash; agents-cli: what it adds</summary>
   <div class="n-body"><ul>
-    <li>Three dataset formats: ADK <code>EvalSet</code> (<code>eval_id</code>/<code>conversation</code>/<code>user_content</code>), agents-cli (<code>eval_case_id</code>/<code>prompt</code>/<code>reference.response</code>), and the service&rsquo;s <code>EvaluationItem</code>.</li>
+    <li>Two dataset formats, not three: ADK&rsquo;s <code>EvalSet</code> (<code>eval_id</code>/<code>conversation</code>/<code>user_content</code>) and the service&rsquo;s <code>EvalCase</code> (<code>eval_case_id</code>/<code>prompt</code>/<code>reference</code>). The fields that look like agents-cli&rsquo;s own are fields of the service type: <code>cli/eval/cmd_generate.py</code> imports <code>agentplatform</code> and builds <code>common.EvalCase</code>. Page 18 says the same.</li>
     <li>A team usually settles on one harness; mixing means two dataset formats to maintain.</li>
     <li>The scaffold&rsquo;s <code>agent_turn_count</code> custom metric is an inline function in YAML &mdash; the simplest custom metric that exists.</li>
+    <li><code>eval generate</code> is not an SDK passthrough: it runs the agent itself over HTTP against a running ADK server (<code>--url</code>) and builds the service&rsquo;s <code>EvalCase</code> objects from the results. <code>run_inference</code> is an SDK call, but agents-cli 1.5.0 never calls it.</li>
+    <li><code>agents-cli eval optimize</code> ([Experimental], GEPA prompt optimization) exists on 1.5.0 and is out of the table above, which covers scoring only. Page 33 has the ADK side.</li>
   </ul></div>
 </details>
 
@@ -999,9 +1003,9 @@ run = client.evals.create_evaluation_run(
   <h1>Section 2 recap</h1>
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>Three layers: ADK grades locally and sends five criteria to the service; the service grades anything, including production; agents-cli calls the service.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Nine ADK criteria have a service counterpart: five are the same scorer, three are the same idea with a different scorer, and two are ADK-only.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Eight ADK criteria have a service counterpart: five are the same scorer, three are the same idea with a different scorer. Two more are ADK-only.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>The harness decides: ADK for development and the gate, the service for production. Compare a metric only with itself.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>The service&rsquo;s seven agent metrics return a pass rate over rubrics it generates from your agent&rsquo;s instruction and tools, with the reasons.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Five of the service&rsquo;s seven agent metrics generate rubrics from your agent&rsquo;s instruction and tools and return a pass rate, with the reasons. The other two are static.</p></div>
   </div>
 </section>
 <details class="notes" data-title="Section 2 recap">
@@ -1106,7 +1110,7 @@ run = client.evals.create_evaluation_run(
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> record the prompt and response with the two variables, or there is nothing to grade. After that, the SDK can import any trace by id from any runtime; the console&rsquo;s tabs list Agent Runtime agents only.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> (telemetry variables); the SDK row is measured (<code class="i">scratchpad/m4_trace_import.py</code>, 2026-09-13, laptop trace); the runtime rows are from the docs, not measured. <code class="i">agentplatform/_genai/evals.py:3945-3996</code>, aiplatform 1.165.1 &middot; M3 pages 18&ndash;21 name the variables.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> (telemetry variables); the SDK row is measured (<code class="i">scratchpad/m4_trace_import.py</code>, 2026-09-13, laptop trace); the runtime rows are from the docs, not measured. <code class="i">agentplatform/_genai/evals.py:3945-3996</code>, aiplatform 2.1.0 &middot; M3 pages 18&ndash;21 name the variables.</div>
 </section>
 <details class="notes" data-title="How a production trace becomes something the service can grade">
   <summary>Speaker notes &mdash; How a production trace becomes gradable</summary>
@@ -1146,7 +1150,7 @@ run = client.evals.create_evaluation_run(
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> a trace is one execution path; a session is a whole conversation. Import the window you want, run the metrics you want, and read the failing rubrics, not the average.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> &middot; <code class="i">agentplatform/_genai/evals.py:3539-3600, 3945-3996</code>, aiplatform 1.165.1 &middot; the two calls were run 2026-09-13 (<code class="i">scratchpad/m4_score_run.py</code>).</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> &middot; <code class="i">agentplatform/_genai/evals.py:3539-3600, 3945-3996</code>, aiplatform 2.1.0 &middot; the two calls were run 2026-09-13 (<code class="i">scratchpad/m4_score_run.py</code>).</div>
 </section>
 <details class="notes" data-title="Production, on demand: the offline run">
   <summary>Speaker notes &mdash; Production, on demand: the offline run</summary>
@@ -1229,7 +1233,7 @@ run = client.evals.create_evaluation_run(
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>The metric:</b> <code class="i">aiplatform.googleapis.com/online_evaluator/scores</code>, labeled by <code class="i">evaluation_metric_name</code>. The monitor writes it; nothing else does.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>The policy:</b> below a threshold, for a duration, on a per-minute mean. Slack, email, or Pub/Sub as the channel.</p></div>
-    <div class="checkrow"><div class="cdot red"></div><p><b>Offline runs export nothing to Monitoring.</b> An alert needs a monitor.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>Only a monitor exports scores to Monitoring.</b> An alert needs a monitor.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Console shortcut:</b> Dashboard &rarr; Evaluation &rarr; <b>Recommended Alerts</b> gives one template per metric on the monitor.</p></div>
   </div>
   <div class="ex"><span class="kk">Example</span>
@@ -1371,7 +1375,7 @@ Actual: 6   Recorded: 7
   <summary>Speaker notes &mdash; Conformance testing is replay, not scoring</summary>
   <div class="n-body"><ul>
     <li>Generic (record/replay); say so. The agent-shaped fact is that the thing mocked is the model.</li>
-    <li>Recording needs <code>adk web</code> started with <code>--extra_plugins=google.adk.cli.plugins.recordings_plugin.RecordingsPlugin</code>. The trailing streaming-mode argument is required: <code>none</code> or <code>sse</code>.</li>
+    <li>Recording needs <code>adk web</code> started with <code>--extra_plugins=google.adk.cli.plugins.recordings_plugin.RecordingsPlugin</code>. The trailing streaming-mode argument is required: <code>none</code>, <code>sse</code>, or <code>bidi</code>.</li>
     <li>Not to be confused with <code>adk test</code>, which replays a JSON fixture against a mocked <code>BaseLlm</code> (Module 2 page 5).</li>
   </ul></div>
 </details>
@@ -1393,7 +1397,7 @@ Actual: 6   Recorded: 7
   <summary>Speaker notes &mdash; Related topics</summary>
   <div class="n-body"><ul>
     <li>Status labels come from the docs: environment simulation &ldquo;is an experimental feature&rdquo;; <code>GEPARootAgentPromptOptimizer</code> &ldquo;is experimental&rdquo; and warns on construction. The version tags are the &ldquo;Supported in ADK Python vX&rdquo; badges.</li>
-    <li>User simulation&rsquo;s default model is <code>gemini-flash-latest</code> with a thinking budget of 10240 and <code>max_allowed_invocations</code> 20.</li>
+    <li>User simulation&rsquo;s default model is <code>gemini-2.5-flash</code> with a thinking budget of 10240 and <code>max_allowed_invocations</code> 20. (The docs&rsquo; samples show <code>gemini-flash-latest</code>; that string does not appear in google-adk 2.9.0 &mdash; the code is what ships.)</li>
     <li>Audio (live) evaluation exists from 2.6.0 and is out of scope.</li>
   </ul></div>
 </details>
@@ -1428,7 +1432,7 @@ Actual: 6   Recorded: 7
   <ul style="margin-top:14px;">
     <li><b>google-adk 2.9.0</b> &mdash; <code class="i">google/adk/evaluation/</code> (<code class="i">agent_evaluator.py</code>, <code class="i">trajectory_evaluator.py</code>, <code class="i">final_response_match_v1.py</code>, <code class="i">final_response_match_v2.py</code>, <code class="i">eval_metrics.py</code>, <code class="i">eval_config.py</code>, <code class="i">eval_rubrics.py</code>, <code class="i">metric_evaluator_registry.py</code>, <code class="i">vertex_ai_eval_facade.py</code>), <code class="i">google/adk/cli/conformance/</code>, <code class="i">cli_tools_click.py</code></li>
     <li><b>google-agents-cli 1.5.0</b> &mdash; <code class="i">google/agents/cli/eval/cmd_*.py</code>, <code class="i">scaffold/agents/adk/tests/eval/</code></li>
-    <li><b>google-cloud-aiplatform 1.165.1</b> &mdash; <code class="i">agentplatform/_genai/evals.py</code>, <code class="i">_evals_constant.py</code>, <code class="i">types/common.py</code></li>
+    <li><b>google-cloud-aiplatform 2.1.0</b> &mdash; <code class="i">agentplatform/_genai/evals.py</code>, <code class="i">_evals_constant.py</code>, <code class="i">types/common.py</code></li>
     <li>adk.dev: <a href="https://adk.dev/evaluate/">evaluate</a>, <a href="https://adk.dev/evaluate/criteria/">criteria</a>, <a href="https://adk.dev/evaluate/user-sim/">user-sim</a>, <a href="https://adk.dev/evaluate/custom_metrics/">custom_metrics</a>, <a href="https://adk.dev/evaluate/environment_simulation/">environment_simulation</a>, <a href="https://adk.dev/optimize/">optimize</a></li>
     <li>Agent Platform: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/agent-evaluation">agent-evaluation</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">evaluate-agents</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-online">evaluate-online</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage-metrics</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view-results</a>, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts">quality-alerts</a>, <a href="https://docs.cloud.google.com/run/docs/ai/agent-platform-features">Cloud Run features</a></li>
     <li><a href="https://developers.googleblog.com/en/agent-and-model-evaluations-in-gemini-enterprise-agent-platform-are-now-ga/">GA announcement, 2026-07-31</a></li>
@@ -1440,7 +1444,7 @@ Actual: 6   Recorded: 7
 <details class="notes" data-title="References">
   <summary>Speaker notes &mdash; References</summary>
   <div class="n-body"><ul>
-    <li>Versions on the face: google-adk 2.9.0, google-agents-cli 1.5.0, google-cloud-aiplatform 1.165.1.</li>
+    <li>Versions on the face: google-adk 2.9.0, google-agents-cli 1.5.0, google-cloud-aiplatform 2.1.0.</li>
     <li>The companion page&rsquo;s per-step trajectory averaging is superseded by page 8.</li>
   </ul></div>
 </details>

@@ -221,6 +221,7 @@ __marimo__/
 .dev/
 CLAUDE.md
 .claude/
+agent_ops/wip/
 
 # Rendered slide output
 slides/
