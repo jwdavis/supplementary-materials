@@ -1118,7 +1118,8 @@ run = client.evals.create_evaluation_run(
     <li>Agent-specific: trajectory-level observability carries user content; the imported case contained every user message.</li>
     <li>The two variables are the same two set in Module 3 for telemetry recording. The offline and online docs both list this exact pair; the requirement is the <code>gen_ai.client.inference.operation.details</code> event (messages, system instruction, tool definitions). Without it the spans still exist but hold no prompt or response.</li>
     <li>What I actually measured: the SDK import path, from a trace produced by <code>adk web --otel_to_cloud</code> on a laptop &mdash; <code>importedItemCount: 1</code> in 3 seconds. The Agent Runtime / self-managed console rows are from the docs, not from a deployment I stood up.</li>
-    <li><code>import_evaluation_set</code> also needs a <code>gcs_destination</code> working bucket and takes exactly one source; <code>session_ids</code> imports every trace of a conversation, <code>trace_ids</code> imports individual traces.</li>
+    <li><code>import_evaluation_set</code> also needs a <code>gcs_destination</code> working bucket and takes exactly one source; <code>session_ids</code> imports every trace of a conversation, <code>trace_ids</code> imports individual traces. If both are given, the union is imported.</li>
+    <li><b>The silent capture trap.</b> <code>adk api_server --otel_to_cloud</code> without the <code>google-adk[otel-gcp]</code> extra logs one warning &mdash; &ldquo;Unable to import GoogleGenAiSdkInstrumentor&rdquo; &mdash; and then runs happily. The traces still reach Cloud Trace and still import, but with no prompt or response recorded they are ungradable. Install the extra before a capture run.</li>
     <li>Multimodal only: agents handling images or large documents can offload inputs and outputs to a GCS bucket with three further OTEL variables (<code>&hellip;UPLOAD_FORMAT</code>, <code>&hellip;COMPLETION_HOOK</code>, <code>&hellip;UPLOAD_BASE_PATH</code>). Off the main path; mention only if asked.</li>
   </ul></div>
 </details>
@@ -1126,38 +1127,42 @@ run = client.evals.create_evaluation_run(
 <!-- ==== 26. PRODUCTION, ON DEMAND: THE OFFLINE RUN ==== -->
 <section class="page">
   <h1>Production, on demand: the offline run</h1>
-  <p class="lede">After the drop on page 24, Marco wants the last two weeks of version 7 scored. He does it in two SDK calls: import the traces into an evaluation set, then run metrics over that set. The result appears in the console as an experiment.</p>
+  <p class="lede">After the drop on page 24, Marco wants the last two weeks of version 7 scored. He does it in two SDK calls &mdash; import the traces into an evaluation set, then run metrics over that set &mdash; with a poll in between to get the set&rsquo;s name. The result appears in the console as an experiment.</p>
   <p class="codelabel">Step 1 &mdash; import the window of traces into an evaluation set</p>
   <pre class="code">op = client.evals.<span class="fn">import_evaluation_set</span>(
     evaluation_set={<span class="st">"display_name"</span>: <span class="st">"v7-last-2-weeks"</span>},
     gcs_destination={<span class="st">"output_uri_prefix"</span>: <span class="st">"gs://BUCKET/eval-items/"</span>},
     cloud_trace_source={<span class="st">"project_id"</span>: PROJECT, <span class="st">"session_ids"</span>: SESSION_IDS})
-<span class="cm"># import is a long-running operation; poll until op.done,</span>
-<span class="cm"># then op.response.evaluation_set is the set's resource name</span></pre>
+<span class="cm"># a long-running operation. The returned object carries only op.name:</span>
+<span class="cm"># the set's resource name arrives in the LRO's raw response, below</span></pre>
   <p class="codelabel">Step 2 &mdash; run metrics over the imported set</p>
-  <pre class="code">EVAL_SET = op.response.evaluation_set  <span class="cm"># the set created by step 1</span>
+  <pre class="code">lro = requests.get(f<span class="st">"{API}/v1/{op.name}"</span>, headers=AUTH).json()  <span class="cm"># until done</span>
+EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationSet"</span>]
+
 run = client.evals.<span class="fn">create_evaluation_run</span>(
     dataset=types.EvaluationRunDataSource(evaluation_set=EVAL_SET),
     metrics=[types.RubricMetric.<span class="fn">TOOL_USE_QUALITY</span>(version=<span class="st">"v1"</span>),
              types.RubricMetric.<span class="fn">HALLUCINATION</span>(version=<span class="st">"v1"</span>)],
-    dest=<span class="st">"gs://BUCKET/eval-results/"</span>)
+    dest=<span class="st">"gs://BUCKET/eval-results"</span>)
 <span class="cm"># the run is created as an experiment; it shows on the console's Experiments tab</span></pre>
   <div class="ex"><span class="kk">Example</span>
     <div class="checks" style="margin-top:8px;">
       <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Actor:</span> Marco.</p></div>
       <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Input:</span> the sessions from the last two weeks of version 7, about 400 traces, imported into one set.</p></div>
-      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> <code class="i">create_evaluation_run</code> scores the set with two metrics; results land in the bucket and as an experiment on the console&rsquo;s Experiments tab.</p></div>
+      <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Mechanism:</span> <code class="i">create_evaluation_run</code> scores the set with two metrics and writes the scores to a <i>second</i>, generated results set; the payloads land in the bucket and the run appears as an experiment on the console&rsquo;s Experiments tab.</p></div>
       <div class="checkrow"><div class="cdot gray"></div><p><span class="lbl">Result:</span> <code class="i">HALLUCINATION</code> unchanged; <code class="i">TOOL_USE_QUALITY</code> fell. He opens the failing rubrics&rsquo; traces, not the average <span class="tag illus">illustrative counts; the scoring mechanism is the one measured on page 20</span>.</p></div>
     </div>
   </div>
   <div class="takeaway"><b>Takeaway:</b> a trace is one execution path; a session is a whole conversation. Import the window you want, run the metrics you want, and read the failing rubrics, not the average.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> &middot; <code class="i">agentplatform/_genai/evals.py:3539-3600, 3945-3996</code>, aiplatform 2.1.0 &middot; the two calls were run 2026-09-13 (<code class="i">scratchpad/m4_score_run.py</code>).</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate-offline</a> &middot; <code class="i">agentplatform/_genai/evals.py:3539-3600, 3945-3996</code>, aiplatform 2.1.0 &middot; both calls re-run end to end 2026-09-15 against <code class="i">jwd-gcp-demos</code>: 6 sessions imported in 6.9s, run SUCCEEDED in 81s.</div>
 </section>
 <details class="notes" data-title="Production, on demand: the offline run">
   <summary>Speaker notes &mdash; Production, on demand: the offline run</summary>
   <div class="n-body"><ul>
     <li>Console caveat: the offline doc describes an Agents &rarr; Evaluation &rarr; &ldquo;New evaluation&rdquo; button, but the live console has no ad-hoc interactive evaluation. Offline runs surface as experiments on the Experiments tab; scheduled runs are monitors on the Online Monitors tab. The deck teaches the SDK path, which is what was measured, and describes the console as where the run appears.</li>
-    <li><code>create_evaluation_run</code> creates an <code>EvaluationExperiment</code> so the run appears on the Experiments tab; pass an existing experiment name to group runs.</li>
+    <li><code>create_evaluation_run</code> creates an <code>EvaluationExperiment</code> so the run appears on the Experiments tab; pass an existing experiment name to group runs. Confirmed live &mdash; but the experiment is only listable on <code>v1beta1</code>; <code>v1</code> returns 404 for <code>evaluationExperiments</code>.</li>
+    <li><b>Why the poll.</b> In aiplatform 2.1.0 <code>ImportEvaluationSetOperation</code> declares four fields &mdash; <code>name</code>, <code>metadata</code>, <code>done</code>, <code>error</code> &mdash; and the model is <code>extra='forbid'</code>, so there is no <code>op.response</code> to read. The POST returns <code>name</code> only. Poll <code>GET {op.name}</code> and the raw JSON carries <code>response.evaluationSet</code> plus <code>metadata.importedItemCount</code>. There is no polling helper on <code>Evals</code>; this is a plain REST call.</li>
+    <li><b>Two sets, not one.</b> The run does not write scores back into the imported set. It generates a second one (&ldquo;Results Set for EvaluationRun &hellip;&rdquo;) and the run's <code>evaluationResults.evaluationSet</code> points at that. The result <code>EvaluationItem</code>s carry only metadata and a <code>gcsUri</code> &mdash; <code>evaluationResponse</code> comes back empty over the API, and the scores are in the GCS object.</li>
     <li>The docs mention four core metrics by default (from the metric page: <code>FINAL_RESPONSE_QUALITY</code>, <code>TOOL_USE_QUALITY</code>, <code>HALLUCINATION</code>, <code>SAFETY</code>). The SDK call names its own metrics explicitly, as shown.</li>
   </ul></div>
 </details>
