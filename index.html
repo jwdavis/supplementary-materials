@@ -1,0 +1,72 @@
+---
+layout: null
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supplementary Materials — Courses</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --card: #f6f7f9;
+    --border: #e2e4e8; --accent: #3056d3; --card-hover: #eef0f4;
+    --notice-bg: #fff8e1; --notice-border: #f2c94c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a; --fg: #e8eaed; --muted: #9aa0a6; --card: #1e2128;
+      --border: #2a2e37; --accent: #7f9cff; --card-hover: #252932;
+      --notice-bg: #2a2614; --notice-border: #8a7322;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.25rem; background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.8rem; margin: 0 0 .25rem; letter-spacing: -.01em; }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  .grid { display: grid; gap: .75rem; }
+  a.card {
+    display: block; padding: 1.25rem 1.5rem; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px; color: var(--fg);
+    text-decoration: none; transition: background .15s, border-color .15s;
+  }
+  a.card:hover { background: var(--card-hover); border-color: var(--accent); }
+  .card .name { font-weight: 600; font-size: 1.1rem; }
+  .card .desc { color: var(--muted); font-size: .9rem; margin-top: .2rem; }
+  .notice {
+    margin: 0 0 2rem; padding: 1rem 1.25rem; background: var(--notice-bg);
+    border: 1px solid var(--notice-border); border-left-width: 4px; border-radius: 8px;
+    font-size: .9rem;
+  }
+  .notice p { margin: 0 0 .5rem; }
+  .notice p:last-child { margin: 0; }
+  .notice a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Supplementary Materials</h1>
+  <p class="sub">Course decks and reference material</p>
+  <div class="notice">
+    <p>Copyright &copy; 2026 Jeff Davis. All rights reserved.</p>
+    <p><strong>Proprietary.</strong> These materials are made available for
+      reference only. No license or permission to use, copy, modify, or distribute any part of
+      them is granted. <strong>Use of any content requires the prior, express, written approval
+      of the owner.</strong></p>
+    <p>The materials are provided &ldquo;as is&rdquo;, without warranty of any kind, and may
+      contain errors and omissions. See <a href="https://github.com/jwdavis/supplementary-materials/blob/main/LICENSE">LICENSE</a> for the full terms.</p>
+  </div>
+  <div class="grid">
+    <!-- One <a class="card"> per published course folder. href is the folder name; its index.html is served automatically. -->
+    <a class="card" href="bigquery/">
+      <div class="name">BigQuery Architecture &amp; Storage Optimization</div>
+      <div class="desc">4 decks &middot; architecture and the storage engine, storage optimization, data ingestion, and query performance</div>
+    </a>
+  </div>
+</div>
+</body>
+</html>

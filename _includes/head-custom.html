@@ -1,0 +1,22 @@
+<!-- Renders ```mermaid fenced blocks as diagrams. Primer's default layout
+     includes this file in <head> on every page it renders. -->
+<style>
+  .mermaid { text-align: center; margin: 1.5rem 0; }
+  .mermaid > svg { max-width: 100%; height: auto; }
+</style>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+
+  // Kramdown emits ```mermaid as <pre><code class="language-mermaid">, but
+  // mermaid looks for elements with class "mermaid" holding the raw source.
+  for (const code of document.querySelectorAll('pre > code.language-mermaid')) {
+    const div = document.createElement('div');
+    div.className = 'mermaid';
+    div.textContent = code.textContent;
+    code.parentElement.replaceWith(div);
+  }
+
+  const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({ startOnLoad: true, theme: dark ? 'dark' : 'default' });
+</script>
