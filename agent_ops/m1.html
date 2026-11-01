@@ -428,7 +428,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
   </figure>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>Part of what decides an agent&rsquo;s behavior is configuration outside the image:</b> the model id, generation settings such as temperature, safety settings, and tool endpoints and credentials.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>The model id is also configuration, and it has a retirement date.</b> <code class="i">gemini-2.5-flash</code> retires on 2026-10-20; an agent that names it must move to another model by then.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The model id is also configuration, and it has a retirement date.</b> <code class="i">gemini-2.5-flash</code> reached its listed retirement date on 2026-10-20; an agent that still names it must move to another model.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Model Armor</b>, Google Cloud&rsquo;s service that screens prompts and responses, applies its filters by version. A template set to <code class="i">Latest</code> moves to each new filter version when it ships; the default, <code class="i">Stable</code>, moves only when a version is promoted to stable.</p></div>
     <div class="checkrow"><div class="cdot gray"></div><p>Environments drifting apart when they are set up by hand is a problem for any service. For an agent, the drift changes what it decides and allows, not whether it starts.</p></div>
   </div>
@@ -445,7 +445,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
   <div class="n-body"><ul>
     <li>Why this page exists: the source slide says &ldquo;inconsistent environments lead to unpredictable behavior.&rdquo; That is generic; the agent part is that the settings that differ change decisions.</li>
     <li>Filter versions: Model Armor templates choose a filter version by alias (<code>Latest</code>, <code>Stable</code>) or pin one; a template with no version set uses <code>Stable</code>. The alias mapping also differs by region (e.g. <code>v1</code> is <code>Stable</code> in asia-northeast3 while v3 is <code>Stable</code> elsewhere). <a href="https://docs.cloud.google.com/model-armor/set-filter-version">Set the filter version</a>; <a href="https://docs.cloud.google.com/model-armor/release-notes">release notes</a>.</li>
-    <li>Retirement: the <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/model-versions">model versions</a> table lists <code>gemini-2.5-pro</code>, <code>gemini-2.5-flash</code>, and <code>gemini-2.5-flash-lite</code> retiring 2026-10-20, and promises at least 45 days&rsquo; notice for a scheduled retirement. Re-check the date before delivery; after it passes, pick the next model on the table.</li>
+    <li>Retirement: the <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/model-versions">model versions</a> table lists <code>gemini-2.5-pro</code>, <code>gemini-2.5-flash</code>, and <code>gemini-2.5-flash-lite</code> with a retirement date of 2026-10-20 and <code>gemini-3.8-flash</code> among the replacements (checked 2026-11-01), and promises at least 45 days&rsquo; notice for a scheduled retirement. Re-check the table before delivery.</li>
     <li>Correction to the companion page: it showed <code>gemini-flash-latest</code> resolving to different versions per region. Tested 2026-10-07 in jwd-dev-5: that alias returns 404 on Agent Platform in global, us-central1, and europe-west4, and no doc describes per-region alias resolution. The &ldquo;template v7/v8&rdquo; labels were invented; templates are not numbered.</li>
     <li><code>gemini-3.5-flash</code> is GA and is called with location <code>global</code>; it is not served in us-central1 (course cross-module facts, 2026-10-07). The model and location are the same in both boxes on purpose: only the filter version differs.</li>
     <li>Configuration as code and how a pipeline applies it are covered in Module 2; Model Armor in Module 5.</li>
@@ -560,7 +560,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
       <text x="830" y="184" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)">rubric: pass</text>
       <text x="500" y="232" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">Expected trajectory for the exact check: list_orders, then cancel_order</text>
     </svg>
-    <figcaption>Blue: tool calls. Gray: the reply. Both replies are acceptable; only the rubric accepts both.</figcaption>
+    <figcaption>Slate: tool calls. Gray: the reply. Both replies are acceptable; only the rubric accepts both.</figcaption>
   </figure>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>Model output varies between runs,</b> so one build can give two different answers, and both can be correct.</p></div>
@@ -744,7 +744,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
       </g>
       <text x="530" y="322" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">turn</text>
     </svg>
-    <figcaption>Blue: the instruction and tool declarations (5,000 tokens), resent every turn. Yellow: the history so far, about 500 tokens per earlier turn. Illustrative sizes.</figcaption>
+    <figcaption>Slate: the instruction and tool declarations (5,000 tokens), resent every turn. Orange: the history so far, about 500 tokens per earlier turn. Illustrative sizes.</figcaption>
   </figure>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>Each model call resends the instruction, the tool declarations, and the conversation so far.</b> Here, with one model call per turn, turn <i>n</i> costs about 5,000 + 500 &times; (<i>n</i> &minus; 1) input tokens here.</p></div>
@@ -894,7 +894,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
       <text x="882" y="92" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">fails until fixed</text>
       <text x="500" y="155" font-family="var(--sans)" font-size="13.5" fill="var(--ink-2)" text-anchor="middle">After the fix, the case stays in the set and fails any later release that brings the double refund back.</text>
     </svg>
-    <figcaption>Red: the failure. Blue: the case written from it. Green: the case in the gate.</figcaption>
+    <figcaption>Red: the failure. Slate: the case written from it. Green: the case in the gate.</figcaption>
   </figure>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>The session is the raw material.</b> <code class="i">adk web</code>, ADK&rsquo;s local chat UI, can add a session to an eval set when it is started with <code class="i">--session_service_uri</code> set to the store that holds the session.</p></div>
@@ -947,7 +947,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
       <text x="915" y="130" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">payments</text>
       <text x="915" y="152" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">API</text>
     </svg>
-    <figcaption>Gray: the model proposes. Blue: ordinary code you wrote decides. The model is never trusted to enforce a rule.</figcaption>
+    <figcaption>Gray: the model proposes. Slate: ordinary code you wrote decides. The model is never trusted to enforce a rule.</figcaption>
   </figure>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>A tool&rsquo;s schema checks types and required arguments, not business rules.</b> &ldquo;Refunds may not exceed the order total&rdquo; is code in the tool that reads the refund history.</p></div>
@@ -1203,7 +1203,7 @@ $ agents-cli deploy <span class="flag">--deployment-target</span> agent_runtime<
       <text x="40" y="328" font-family="var(--mono)" font-size="13" fill="var(--ink)">execute_tool track_shipment, call_llm (6,300 in / 200 out) &#183; 12,640 tokens</text>
       <text x="40" y="358" font-family="var(--sans)" font-size="14" fill="var(--ink-2)">to Cloud Trace and Cloud Logging; events with token counts to BigQuery Agent Analytics</text>
     </svg>
-    <figcaption>Simplified. Dashed yellow: Model Armor screens the prompt before the agent only with Agent Gateway on Agent Runtime, or when the agent&rsquo;s own code calls it (Module 5). Dashed arrow: telemetry export. Token counts illustrative.</figcaption>
+    <figcaption>Simplified. Dashed orange: Model Armor screens the prompt before the agent only with Agent Gateway on Agent Runtime, or when the agent&rsquo;s own code calls it (Module 5). Dashed arrow: telemetry export. Token counts illustrative.</figcaption>
   </figure>
   <div class="takeaway"><b>Takeaway:</b> one request touches the release pipeline, the runtime, the model, a tool, and the telemetry store; Modules 2 to 6 cover release, recording, evaluation, security, and cost along this path.</div>
   <div class="src">Sources: span tree tested 2026-10-07 with ADK 2.11.0 (page 10 notes) &middot; <a href="https://docs.cloud.google.com/model-armor/integrations">Model Armor integrations</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/agent-gateway-overview">Agent Gateway overview</a> (verified 2026-10-07).</div>
@@ -1258,7 +1258,7 @@ $ agents-cli deploy <span class="flag">--deployment-target</span> agent_runtime<
 <details class="notes" data-title="References">
   <summary>Speaker notes &mdash; References</summary>
   <div class="n-body"><ul>
-    <li>Verified 2026-10-07 against google-adk 2.11.0 (commit 9f7965e), google-genai 2.29.0, and live docs. The gemini-2.5 retirement date (2026-10-20) falls days after this check; update page 4 when it passes.</li>
+    <li>Verified 2026-10-07 against google-adk 2.11.0 (commit 9f7965e), google-genai 2.29.0, and live docs. The gemini-2.5 retirement date (2026-10-20) was re-checked on 2026-11-01, and page 4 now states it as passed.</li>
   </ul></div>
 </details>
 

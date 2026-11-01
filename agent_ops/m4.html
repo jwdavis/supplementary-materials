@@ -793,7 +793,7 @@ result.show()</pre>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th>If you&hellip;</th><th>Then</th></tr></thead>
     <tbody>
-      <tr><td>leave <code>judge_model</code> unset</td><td>the judge is <code>gemini-2.5-flash</code>, which retires 2026-10-20. Set it, as above; <code>gemini-3.5-flash</code> needs <code>GOOGLE_CLOUD_LOCATION=global</code></td></tr>
+      <tr><td>leave <code>judge_model</code> unset</td><td>the judge is <code>gemini-2.5-flash</code>, which reached its listed retirement date on 2026-10-20. Set it, as above; <code>gemini-3.5-flash</code> needs <code>GOOGLE_CLOUD_LOCATION=global</code></td></tr>
       <tr><td>leave <code>num_samples</code> at its default, 5</td><td>the judge is asked 5 times per invocation and the majority wins (a tie, possible only with an even <code>num_samples</code>, counts as a fail)</td></tr>
       <tr><td>run the set with pytest and <code>AgentEvaluator</code></td><td>each case runs twice by default (<code>num_runs=2</code>); <code>adk eval</code> runs it once</td></tr>
       <tr><td>count judge calls</td><td>runs &times; invocations &times; samples &times; judge criteria: 60 one-turn cases under pytest, one judge criterion = 2 &times; 60 &times; 5 &times; 1 = <b>600</b>; 30 two-turn cases also = 600</td></tr>
@@ -1587,7 +1587,7 @@ Running weather/paris... ✓ PASS</pre>
   <div class="n-body"><ul>
     <li>Versions are the docs&rsquo; &ldquo;Supported in ADK Python vX&rdquo; badges. Environment simulation is <code>@experimental</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/tools/environment_simulation/environment_simulation_config.py#L35">source</a>); <code>GEPARootAgentPromptOptimizer</code> is experimental and warns on construction (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/optimization/gepa_root_agent_prompt_optimizer.py#L74-L75"><code>max_metric_calls</code> defaults to 100</a>). <code>adk optimize</code> was not run for this deck.</li>
     <li>NOVICE persona: &ldquo;unable to correct the Agent&rdquo;, behavior <code>DO_NOT_CORRECT_AGENT</code>.</li>
-    <li>User simulator defaults: <code>gemini-2.5-flash</code>, thinking budget 10240, <code>max_allowed_invocations</code> 20 (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/simulation/llm_backed_user_simulator.py#L59-L76">source</a>). Gemini 2.5 retires 2026-10-20, so set the model; a 3.x Flash model needs location <code>global</code>. Environment simulation&rsquo;s default <code>simulation_model</code> is also <code>gemini-2.5-flash</code>.</li>
+    <li>User simulator defaults: <code>gemini-2.5-flash</code>, thinking budget 10240, <code>max_allowed_invocations</code> 20 (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/simulation/llm_backed_user_simulator.py#L59-L76">source</a>). Gemini 2.5 reached its listed retirement date on 2026-10-20, so set the model; a 3.x Flash model needs location <code>global</code>. Environment simulation&rsquo;s default <code>simulation_model</code> is also <code>gemini-2.5-flash</code>.</li>
   </ul></div>
 </details>
 
@@ -1629,7 +1629,7 @@ Running weather/paris... ✓ PASS</pre>
     <li><a href="https://developers.googleblog.com/en/agent-and-model-evaluations-in-gemini-enterprise-agent-platform-are-now-ga/">Agent and model evaluations GA, 2026-07-31</a></li>
     <li>Tests: run 2026-10-07 and 2026-10-31 in project <code class="i">jwd-dev-5</code> (<code class="i">us-central1</code> and <code class="i">global</code>); results are stated in each page&rsquo;s notes.</li>
   </ul>
-  <div class="note"><span class="kk">Re-verify before delivery</span>Metric names, defaults, and spec versions; the default judge and user-simulator models (Gemini 2.5 retires 2026-10-20); the console&rsquo;s Evaluation tab names and New evaluation button; Experimental labels in agents-cli; and whether online monitors score agents outside Agent Runtime. Checked 2026-10-07; these change without notice.</div>
+  <div class="note"><span class="kk">Re-verify before delivery</span>Metric names, defaults, and spec versions; the default judge and user-simulator models (Gemini 2.5&rsquo;s listed retirement date was 2026-10-20); the console&rsquo;s Evaluation tab names and New evaluation button; Experimental labels in agents-cli; and whether online monitors score agents outside Agent Runtime. Checked 2026-10-07; these change without notice.</div>
 </section>
 <details class="notes" data-title="References">
   <summary>Speaker notes &mdash; References</summary>

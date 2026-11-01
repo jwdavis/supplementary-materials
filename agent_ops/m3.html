@@ -806,10 +806,10 @@ logging.config.dictConfig({
     <figcaption>Same agent code in all four columns. Only how the process was started differs.</figcaption>
   </figure>
   <div class="ex"><span class="kk">Example: one weather question, four ways to run it</span>
-    <p><span class="lbl">Script calling <code class="i">Runner</code>:</span> the answer comes back; the span inside the tool is a non-recording span with trace id <code class="i">000&hellip;0</code>; nothing is stored.</p>
-    <p><span class="lbl"><code class="i">adk api_server</code> without <code class="i">--otel_to_cloud</code> (what <code class="i">adk deploy</code> runs):</span> the server installs a provider with no exporter, so Cloud Trace stays empty.</p>
+    <p><span class="lbl"><code class="i">Runner</code> script:</span> the answer comes back; the span inside the tool is a non-recording span with trace id <code class="i">000&hellip;0</code>; nothing is stored.</p>
+    <p><span class="lbl"><code class="i">adk api_server</code>:</span> without <code class="i">--otel_to_cloud</code>, which is what <code class="i">adk deploy</code> runs, the server installs a provider with no exporter, so Cloud Trace stays empty.</p>
     <p><span class="lbl"><code class="i">adk web</code>:</span> the Trace tab shows the tree; restart the server and it is gone.</p>
-    <p><span class="lbl">With <code class="i">--otel_to_cloud</code>:</span> the tree is in Cloud Trace, read back from the Trace API.</p>
+    <p><span class="lbl">With the flag:</span> with <code class="i">--otel_to_cloud</code>, the tree is in Cloud Trace, read back from the Trace API.</p>
   </div>
   <div class="takeaway"><b>Takeaway:</b> ADK creates the spans either way, so if a deployed agent shows no trace, check first whether an exporter was installed.</div>
   <div class="src">Sources: <code class="i">cli/api_server.py:703-778, 1235-1248</code>, <code class="i">telemetry/google_cloud.py:63-78</code> at v2.11.0 &middot; local no-provider run and <code class="i">adk api_server --otel_to_cloud</code> run with Cloud Trace read-back, jwd-dev-5, 2026-10-07 &middot; <a href="https://adk.dev/integrations/cloud-trace/">ADK: Cloud Trace</a>.</div>
@@ -1149,8 +1149,8 @@ maybe_set_otel_providers(
   </table></div>
   <div class="note blue"><span class="kk">Each variable governs its own spans</span>Setting one has no effect on the other&rsquo;s spans. For no prompt text on any span or event: the ADK variable <code class="i">false</code> <b>and</b> the OpenTelemetry variable <code class="i">NO_CONTENT</code>. Code can still turn capture on for one request through <code class="i">RunConfig</code> unless <code class="i">ADK_TELEMETRY_IGNORE_RUN_CONFIG=true</code>.</div>
   <div class="ex"><span class="kk">Example: test phrase <code class="i">TEST-4471</code></span>
-    <p><span class="lbl">ADK variable <code class="i">false</code>, OTel unset:</span> neither <code class="i">call_llm</code> nor <code class="i">generate_content</code> nor any event carries the phrase.</p>
-    <p><span class="lbl">Later, OTel set to <code class="i">SPAN_AND_EVENT</code> with that opt-in switch, to debug a prompt:</span> the phrase appears on <code class="i">generate_content</code> as <code class="i">gen_ai.input.messages</code>, and in a <code class="i">gen_ai.client.inference.operation.details</code> event.</p>
+    <p><span class="lbl">First run:</span> with the ADK variable <code class="i">false</code> and OTel unset, neither <code class="i">call_llm</code> nor <code class="i">generate_content</code> nor any event carries the phrase.</p>
+    <p><span class="lbl">Later run:</span> to debug a prompt, OTel is set to <code class="i">SPAN_AND_EVENT</code> with that opt-in switch. The phrase appears on <code class="i">generate_content</code> as <code class="i">gen_ai.input.messages</code>, and in a <code class="i">gen_ai.client.inference.operation.details</code> event.</p>
     <p><span class="lbl">Result:</span> the ADK variable is still <code class="i">false</code> and did nothing about it, because it never governed that span.</p>
   </div>
   <div class="takeaway"><b>Takeaway:</b> turning off one variable does not keep prompt text out. Set both, plus <code class="i">ADK_TELEMETRY_IGNORE_RUN_CONFIG=true</code> so code can&rsquo;t turn capture back on. Then read a real span on the deployment you run.</div>
@@ -1432,10 +1432,10 @@ sum(rate({<span class="st">"gen_ai.client.operation.duration_sum"</span>}[<span 
     <div class="checkrow"><div class="cdot"></div><p><b>Tool failures say a dependency is failing,</b> not whether users were affected: if a second tool answered, the first tool&rsquo;s error is still counted.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Only your code knows whether the user got what they asked for,</b> so the outcome counter is one you write.</p></div>
   </div>
-  <div class="ex"><span class="kk">Example: choosing the alert</span>
-    <p><span class="lbl">On turn failures &gt; 20%:</span> never fires, not even in this run.</p>
-    <p><span class="lbl">On tool failures &gt; 20%:</span> fires here; it would also fire after a backup weather provider is added and users get answers.</p>
-    <p><span class="lbl">On the share of turns with <code class="i">outcome="unavailable"</code> &gt; 20%:</span> fires when users did not get weather, whichever tool failed.</p>
+  <div class="ex"><span class="kk">Example: choosing the alert, each at 20%</span>
+    <p><span class="lbl">Turn failures:</span> never fires, not even in this run.</p>
+    <p><span class="lbl">Tool failures:</span> fires here; it would also fire after a backup weather provider is added and users get answers.</p>
+    <p><span class="lbl">Unavailable:</span> the share of turns with <code class="i">outcome="unavailable"</code> fires when users did not get weather, whichever tool failed.</p>
   </div>
   <div class="takeaway"><b>Takeaway:</b> ADK can tell you whether a turn completed. Only your code can count whether the user got an answer; alert on that, and file tool failures as tickets for the dependency&rsquo;s owner.</div>
   <div class="src">Sources: gcp-demos metrics tutorial 3.3 and 3.7, <code class="i">unknown-city</code> scenario, 40 turns, rerun 2026-10-03 &middot; <code class="i">telemetry/_metrics.py:321-330, 501-529</code> at v2.11.0 &middot; local metric runs with and without the override, 2026-10-07.</div>
