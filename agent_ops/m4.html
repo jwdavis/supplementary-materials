@@ -48,6 +48,8 @@
   h2{font-size:22px;margin:30px 0 10px;color:var(--ink);}
   h2 .k{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g-blue);margin-right:10px;vertical-align:2px;}
   h3{font-size:20px;font-weight:600;margin:20px 0 6px;}
+  h2.deep{margin-top:40px;padding-top:22px;border-top:1px solid var(--line);}
+  h2.deep .kk{display:block;font-size:12.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--g-blue-deep);margin-bottom:6px;}
   p{margin:9px 0;} ul,ol{margin:6px 0;padding-left:26px;} li{margin:6px 0;}
   b,strong{font-weight:600;color:var(--ink);}
   .small{font-size:16.5px;color:var(--ink-2);line-height:1.5;}
@@ -402,7 +404,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
   <h1>A test checks execution. An eval grades the decision.</h1>
   <p class="lede">A developer edits one clause of a refund agent&rsquo;s instruction. Every unit test passes. The agent now refunds orders without checking that they shipped.</p>
   <figure>
-    <svg viewBox="0 0 1000 280" width="1000" height="280" role="img" aria-label="Two runs with the same reply and different tool calls">
+    <svg viewBox="0 0 1000 280" width="1000" height="280" role="img" aria-label="Two runs with equivalent replies and different tool calls">
       <defs><marker id="m4a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
       <text x="20" y="30" font-family="var(--sans)" font-size="15" fill="var(--g-green-deep)">before the edit</text>
       <rect x="20" y="42" width="170" height="40" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="105" y="67" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">"refund order 6041"</text>
@@ -426,16 +428,16 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
       <line x1="520" y1="200" x2="543" y2="200" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
       <rect x="545" y="180" width="135" height="40" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="612" y="205" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle">issue_refund</text>
       <line x1="680" y1="200" x2="703" y2="200" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m4a)"/>
-      <rect x="705" y="180" width="275" height="40" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="842" y="205" font-family="var(--sans)" font-size="14" fill="var(--ink-2)" text-anchor="middle">&ldquo;Your refund has been issued.&rdquo;</text>
+      <rect x="705" y="180" width="275" height="40" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="842" y="205" font-family="var(--sans)" font-size="14" fill="var(--ink-2)" text-anchor="middle">&ldquo;Done, your refund is on its way.&rdquo;</text>
       <rect x="545" y="232" width="210" height="28" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="650" y="251" font-family="var(--sans)" font-size="14" fill="var(--g-green-deep)" text-anchor="middle">reply metric: pass</text>
       <rect x="770" y="232" width="210" height="28" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="875" y="251" font-family="var(--sans)" font-size="14" fill="var(--g-red-deep)" text-anchor="middle">trajectory: 0.0</text>
     </svg>
-    <figcaption>Same prompt, same reply, different tool calls. A metric that reads only the reply passes both runs; a metric that reads the tool calls does not.</figcaption>
+    <figcaption>Same prompt, replies that say the same thing, different tool calls. A metric that reads only the reply passes both runs; a metric that reads the tool calls does not.</figcaption>
   </figure>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>A unit test checks that the agent runs.</b> It sends an input and checks that the agent returns a response with no error. It does not judge whether the response is good, and it does not compare the response with an exact expected text, because a model can word the same answer differently on each run. The edit changed no code path, so the agent still runs and still responds, and the test passes.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>An eval grades the quality of that run.</b> It runs the agent on a recorded input and grades the reply and the <b>trajectory</b>, which is the list of tool calls with their arguments, in order.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Two properties of agents make this necessary.</b> The same input can produce a different trajectory on another run, and correctness has several parts at once: the path, the answer, safety, grounding (whether each claim is backed by the tool results or the instruction).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The two grades measure different things.</b> The reply is graded on quality: how similar it is to a reference answer, or how well it conforms to a rubric. The trajectory is graded on tool execution: which tools the agent called, in what order, with what arguments. A reply can pass while the trajectory fails, as it does after the edit.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>The instruction, the tool definitions, and the model id are code too.</b> They live in the repo and change in a reviewed diff. A unit test cannot show that such a diff made the agent worse; running the eval set can.</p></div>
   </div>
   <div class="ex"><span class="kk">Example</span>
@@ -451,10 +453,10 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
   <summary>Speaker notes &mdash; A test checks execution; an eval grades the decision</summary>
   <div class="n-body"><ul>
     <li>The point of the page: a unit test of an agent checks that an input produces a response without an error. It does not check the response&rsquo;s quality, and it does not match the response against an exact text. &ldquo;No code path changed&rdquo; and &ldquo;the instruction is code&rdquo; are both true: the instruction is reviewed and versioned like code, but editing it does not change which Python lines run.</li>
-    <li>Agent-specific, on two of the course&rsquo;s mechanisms: non-determinism of model output, and correctness with several parts.</li>
+    <li>The two grades: reply quality (similarity to a reference, or conformance to a rubric) and trajectory (which tools, in what order, with what arguments). Non-determinism of model output is why the unit test cannot match exact text.</li>
     <li>Tested 2026-10-07 at google-adk 2.11.0: a one-turn case whose actual calls are <code>get_order, issue_refund</code> against the expected three scores 0.0 under the default <code>EXACT</code> match. The trajectory metric scores the whole list per turn, not per step.</li>
     <li>&ldquo;Only metrics that read tool calls see it&rdquo;: the trajectory match, and the judge metrics <code>rubric_based_tool_use_quality_v1</code>, <code>multi_turn_tool_use_quality_v1</code>, <code>multi_turn_trajectory_quality_v1</code> (<a href="https://adk.dev/evaluate/criteria/">criteria</a>).</li>
-    <li>Non-determinism is why ADK&rsquo;s pytest harness runs each case twice by default (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L73"><code>NUM_RUNS = 2</code></a>); page 13 covers it.</li>
+    <li>Non-determinism is why ADK&rsquo;s pytest harness runs each case twice by default (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L73"><code>NUM_RUNS = 2</code></a>); page 14 covers it.</li>
     <li>Delivery beat: show the two rows, ask which existing test would catch row 2. None of them.</li>
   </ul></div>
 </details>
@@ -462,41 +464,62 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
 <!-- ==== 5. CHOOSE WHICH MODEL THE AGENT WILL USE ==== -->
 <section class="page">
   <h1>Choose which model the agent will use</h1>
-  <p class="lede">Before writing an agent, a team has to choose which model it will use. They have two candidate models and a handful of prompts that look like the traffic the agent will get. Model evaluation runs both models on the same prompts and scores the answers.</p>
-  <p class="codelabel">Score two candidate models on the same prompts (aiplatform 2.4.0)</p>
+  <p class="lede">Before writing an agent, a team has to choose which model it will use. They have two candidate models and a set of prompts that look like the traffic the agent will get. Model evaluation in the Gen AI evaluation service, a managed scorer covered in section 2, runs both models on the same prompts and scores the answers.</p>
+  <p class="codelabel">Score two candidate models on the same prompts (aiplatform 2.7.0)</p>
   <pre class="code"><span class="kw">from</span> agentplatform <span class="kw">import</span> Client, types
+<span class="kw">from</span> pprint <span class="kw">import</span> pprint
 client = Client(project=PROJECT, location=<span class="st">"global"</span>)
-
 <span class="cm"># prompts: a DataFrame with a "prompt" column</span>
 flash = client.evals.<span class="fn">run_inference</span>(src=prompts, model=<span class="st">"gemini-3.5-flash"</span>)
 pro   = client.evals.<span class="fn">run_inference</span>(src=prompts, model=<span class="st">"gemini-3.1-pro-preview"</span>)
 
 result = client.evals.<span class="fn">evaluate</span>(
     dataset=[flash, pro],
-    metrics=[types.RubricMetric.TEXT_QUALITY,
-             types.RubricMetric.INSTRUCTION_FOLLOWING])
-result.show()</pre>
+    metrics=[types.RubricMetric.TEXT_QUALITY, types.RubricMetric.INSTRUCTION_FOLLOWING])
+<span class="fn">pprint</span>(result.win_rates)
+
+<span class="cm"># One prompt: each model's score and failed checks</span>
+case = result.eval_case_results[1]
+<span class="kw">for</span> model, answer <span class="kw">in</span> <span class="fn">zip</span>([<span class="st">"flash"</span>, <span class="st">"pro"</span>], case.response_candidate_results):
+    m = answer.metric_results[<span class="st">"text_quality_v1"</span>]
+    <span class="fn">print</span>(model, m.score)
+    <span class="kw">for</span> v <span class="kw">in</span> m.rubric_verdicts:
+        <span class="kw">if not</span> v.verdict:
+            <span class="fn">print</span>(<span class="st">"  failed:"</span>, v.evaluated_rubric.content.property.description)</pre>
+  <p class="codelabel">What that prints, with 25 prompts</p>
+  <pre class="code">{'instruction_following_v1': {'tie_rate': 0.72, 'win_rates': [0.16, 0.12]},
+ 'text_quality_v1': {'tie_rate': 0.8, 'win_rates': [0.08, 0.12]}}
+flash 1.0
+pro 0.9
+  failed: Does the response adhere to the specified word count limit of under 70 words?</pre>
   <div class="checks">
-    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">run_inference</code> generates one response set per model; <code class="i">evaluate</code> scores them.</b> Given a list of datasets, it scores each one and reports, per metric, how often each candidate won and how often they tied.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Scoring each model on its own is pointwise; given both result sets, <code class="i">evaluate</code> then reports how often each model won.</b> A pairwise judge, which compares two answers directly, is only in the older <code class="i">vertexai.evaluation</code> module.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">run_inference</code> generates one response set per model; <code class="i">evaluate</code> scores each answer on its own.</b> Given a list of datasets, it then compares the scores: for each prompt and metric, the higher score wins and equal scores tie.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>How to read that output:</b> <code class="i">win_rates</code> follows the dataset order, [flash, pro]. On instruction following, Flash won 4 of the 25 prompts, Pro won 3, and 18 tied. On prompt 1, Flash scored 1.0 and Pro 0.9, so Flash won it; Pro&rsquo;s answer had exactly 70 words. In a notebook, <code class="i">result.show()</code> draws a report of the same results.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">evaluate</code> has no judge that compares two answers directly.</b> For that, use <code class="i">PairwiseMetric</code> in the older <code class="i">vertexai.evaluation</code> module, or the lower-level <code class="i">client.evals.evaluate_instances</code>, which takes one pair per call.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>After you choose, you evaluate the agent, not the model.</b> The agent&rsquo;s code names the chosen model id. To try a different model later, change that id in a reviewed diff and run the agent&rsquo;s eval set against the change.</p></div>
   </div>
-  <div class="ex"><span class="kk">Example (measured 2026-10-07)</span>
-    <p><span class="lbl">Input:</span> three short customer-reply prompts, run with the code above.</p>
-    <p><span class="lbl">Result:</span> text quality: the Pro preview won one prompt, two tied. Instruction following: all three tied.</p>
-    <p><span class="lbl">What it means:</span> this result does not pick a model. One win in three prompts could change on the next run, so run the comparison on more prompts, and choose a model only if the same one wins when you run the comparison again.</p>
+  <div class="ex"><span class="kk">Example (measured 2026-11-02)</span>
+    <p><span class="lbl">Input:</span> 25 customer-support prompts with strict rules: word limits, refund arithmetic, and policies that conflict with the request.</p>
+    <p><span class="lbl">Mechanism:</span> <code class="i">evaluate</code> graded the same saved answers four times. Neither model answered again.</p>
+    <p><span class="lbl">Result:</span> on text quality, the grading above has Pro ahead 0.12 to 0.08. Another grading of the same answers had Flash ahead 0.16 to 0.08. No grade failed in either.</p>
+    <p><span class="lbl">What it means:</span> this result does not pick a model. Grading alone can change which model leads, so a small lead means little. Grade more than once, and look for a lead that survives regrading and a new set of prompts. If none does, choose on something else, such as cost or latency.</p>
   </div>
   <div class="note gray"><span class="kk">Generic</span>Model selection is not agent-specific. It is here because this is where model evaluation fits: before the agent exists.</div>
   <div class="takeaway"><b>Takeaway:</b> evaluate models to choose one; after that, evaluate the agent.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/evaluation-overview">Gen AI evaluation overview</a> &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">run_inference</code>, <code class="i">evaluate</code>), google-cloud-aiplatform 2.4.0 &middot; run end to end 2026-10-07.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/evaluation-overview">Gen AI evaluation overview</a> &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">run_inference</code>, <code class="i">evaluate</code>, <code class="i">evaluate_instances</code>), <code class="i">_evals_metric_handlers.py</code> (<code class="i">calculate_win_rates</code>), google-cloud-aiplatform 2.7.0 &middot; run end to end 2026-11-02.</div>
 </section>
 <details class="notes" data-title="Choose which model the agent will use">
   <summary>Speaker notes &mdash; Choose which model the agent will use</summary>
   <div class="n-body"><ul>
     <li>The choice on this page is which model the agent will use. Say that first; everything else on the page serves it.</li>
-    <li>Tested 2026-10-07 in <code>jwd-dev-5</code> with google-cloud-aiplatform 2.4.0, location <code>global</code>: both <code>run_inference</code> calls returned an <code>EvaluationDataset</code> (15 s); <code>evaluate</code> returned an <code>EvaluationResult</code> with <code>show()</code>, <code>summary_metrics</code>, and <code>win_rates</code> (46 s). <code>win_rates</code> for text quality: flash 0.0, pro 0.33, tie 0.67. Cost well under $0.10.</li>
+    <li>Tested 2026-11-02 in <code>jwd-dev-5</code> with google-cloud-aiplatform 2.7.0, location <code>global</code>: both <code>run_inference</code> calls returned an <code>EvaluationDataset</code> with <code>prompt</code> and <code>response</code> columns; <code>evaluate</code> returned an <code>EvaluationResult</code> with <code>eval_case_results</code>, <code>summary_metrics</code>, and <code>win_rates</code>. <code>show()</code> is skipped in a script: it logged &ldquo;Skipping display: not in an IPython environment.&rdquo; Cost not measured. Prompts, answers, and win rates: <code>docs/m4_p5_eval_run.json</code> in the drafts repo.</li>
+    <li>The output block is what the page&rsquo;s printing code printed, unedited, on the third grading. That grading and the fourth reused the saved answers instead of calling <code>run_inference</code> again, so the answers match the first two gradings.</li>
+    <li>Win rates [flash, pro] over the four gradings. Text quality: [0.16, 0.12], [0.16, 0.08], [0.08, 0.12], [0.08, 0.12]. Instruction following: [0.08, 0.20], [0.16, 0.16], [0.16, 0.12], [0.28, 0.12]. Failed grades: the first had one per metric; the fourth had two on instruction following; the second and third had none. Three similar easy prompts tied on every score, all 1.0, so an easy set tells you nothing.</li>
+    <li>Gotcha: a grade that errors does not void the prompt. In <code>calculate_win_rates</code>, if one model has the only valid score, it wins. In the first grading two flash grades failed (&ldquo;Rubric results could not be reliably computed&rdquo;), and each counted as a Pro win. Check <code>num_cases_error</code> in <code>summary_metrics</code> before reading win rates.</li>
+    <li>Scores compare exactly: no margin, so 0.889 vs 1.0 counts the same as 0.2 vs 1.0. The metrics generate their rubrics during grading (a failed run reported &ldquo;Failed to parse rubric generation response&rdquo;), so the wording of a check can differ between gradings. The word count on the face: the answer has 70 words, so the judge was right.</li>
     <li>Why <code>global</code>: <code>gemini-3.5-flash</code> is not served in <code>us-central1</code>. Gemini 3.1 Pro is Preview only (<code>gemini-3.1-pro-preview</code>).</li>
-    <li>Pairwise <i>metrics</i> are not in the GenAI client (<code>client.evals</code>); the older <code>vertexai.evaluation</code> module has <code>PairwiseMetric</code> and is &ldquo;maintained for backward compatibility&rdquo; (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/evaluation-overview">overview</a>). Comparing a list of datasets, as above, gives win rates.</li>
+    <li>The overview calls the evaluation module &ldquo;maintained for backward compatibility with existing workflows but no longer under active development&rdquo; and the GenAI client the &ldquo;recommended interface&rdquo; (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/evaluation-overview">overview</a>).</li>
+    <li>If asked about pairwise: <code>client.evals.evaluate()</code> has no pairwise metric. Both direct routes ran on 2026-11-02, on the answers to three separate, easier prompts, not the 25. <code>vertexai.evaluation.PairwiseMetric</code> with <code>EvalTask</code> runs over a dataframe with <code>response</code> and <code>baseline_model_response</code> columns and returned <code>TIE</code> three times; it needs <code>location="global"</code>, because <code>us-central1</code> returned 404 for its default judge, <code>gemini-3.5-flash</code>. <code>client.evals.evaluate_instances</code> with <code>pairwise_metric_input</code> returned <code>TIE</code>, <code>CANDIDATE</code>, <code>TIE</code> with a custom template, and its request type is <code>_EvaluateInstancesRequestParameters</code>.</li>
     <li>If old sample code imports <code>vertexai.generative_models</code>: it is deprecated and slated for removal, though it still imports in aiplatform 2.4.0. Use <code>google-genai</code> (<a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/deprecations/genai-vertexai-sdk">migration guide</a>).</li>
     <li>ROUGE and BLEU: one appears on page 9 as <code>response_match_score</code>; no ADK agent metric uses BLEU.</li>
   </ul></div>
@@ -506,7 +529,7 @@ result.show()</pre>
 <section class="page">
   <h1>An eval case is a recorded conversation with the right answer in it</h1>
   <p class="lede">A support team&rsquo;s orders agent should check an order&rsquo;s status before cancelling it. To grade that, they write down one conversation and what the agent should have done in it.</p>
-  <p class="codelabel">orders.test.json &mdash; one eval set, one case, one turn</p>
+  <p class="codelabel">orders.test.json &mdash; ADK <code class="i">EvalSet</code> format: one eval set, one case, one turn</p>
   <pre class="code">{
   <span class="st">"eval_set_id"</span>: <span class="st">"orders"</span>,
   <span class="st">"eval_cases"</span>: [{
@@ -526,9 +549,10 @@ result.show()</pre>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>One entry in <code class="i">conversation</code> is an invocation:</b> one user message, the tool calls it triggered, and the agent&rsquo;s reply. A case is a whole conversation of one or more invocations.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Each invocation can carry the expected reply</b> (<code class="i">final_response</code>) <b>and the expected tool calls</b> (<code class="i">tool_uses</code>). Each metric reads the fields it needs. <code class="i">session_input</code> sets the app name, user id, and starting session state for the run.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Reference-based metrics compare the run with an answer written here.</b> Reference-free metrics judge the run on its own (safe? grounded? met a list of yes/no rules (rubrics, p12)?), so their cases need no expected reply or tool list.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Reference-based metrics compare the run with an answer written here.</b> Reference-free metrics judge the run on its own (safe? grounded? met a list of yes/no rules (rubrics, p13)?), so their cases need no expected reply or tool list.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>The file is code.</b> It lives in the repo, and a change to an expected answer is a reviewed diff.</p></div>
   </div>
+  <div class="note"><span class="kk">Format</span>This is ADK&rsquo;s format. The dataset on page 5 uses the Gen AI evaluation service&rsquo;s format, and neither accepts the other&rsquo;s file (p19).</div>
   <div class="ex"><span class="kk">Example</span>
     <p><span class="lbl">Input:</span> the case above, run against the orders agent.</p>
     <p><span class="lbl">Mechanism:</span> the trajectory metric compares the agent&rsquo;s calls with <code class="i">tool_uses</code>; a reply metric compares its reply with <code class="i">final_response</code>; a safety metric reads only the prompt and the reply.</p>
@@ -541,97 +565,80 @@ result.show()</pre>
   <summary>Speaker notes &mdash; An eval case is a recorded conversation</summary>
   <div class="n-body"><ul>
     <li>Tested 2026-10-07: <code>EvalSet.model_validate_json</code> on this file at google-adk 2.11.0 returns one case, one invocation, two tool uses.</li>
+    <li>Tested 2026-11-02, google-adk 2.13.0 and aiplatform 2.7.0: the service&rsquo;s <code>EvaluationDataset</code> rejects this file (<code>eval_set_id</code>: &ldquo;Extra inputs are not permitted&rdquo;), and ADK&rsquo;s <code>EvalSet</code> rejects a service case (missing <code>eval_set_id</code> and <code>evalId</code>). Both formats use the key <code>eval_cases</code>, so they look more alike than they are. agents-cli uses the service format; page 19 compares them.</li>
     <li>Reference-based (need an answer): <code>tool_trajectory_avg_score</code> (<code>tool_uses</code>), <code>response_match_score</code>, <code>final_response_match_v2</code>, <code>response_evaluation_score</code> (<code>final_response</code>). Reference-free: <code>safety_v1</code>, <code>hallucinations_v1</code>, the rubric metrics, the multi-turn metrics (<a href="https://adk.dev/evaluate/criteria/">criteria</a>).</li>
-    <li>A case can hold a <code>conversation_scenario</code> instead of a fixed <code>conversation</code> (user simulation, page 15), plus case- or invocation-level <code>rubrics</code> and an expected <code>final_session_state</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_case.py#L176-L211">eval_case.py</a>).</li>
+    <li>A case can hold a <code>conversation_scenario</code> instead of a fixed <code>conversation</code> (user simulation, page 16), plus case- or invocation-level <code>rubrics</code> and an expected <code>final_session_state</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_case.py#L176-L211">eval_case.py</a>).</li>
     <li><code>session_input.state</code> sets session state when the session is created; if a fixed <code>session_id</code> already exists, that session is reused as-is (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_case.py#L141-L162">eval_case.py</a>).</li>
     <li><code>order_id</code> is a tool argument. Trajectory matching compares <code>name</code> and <code>args</code> only; no call id.</li>
   </ul></div>
 </details>
 
-<!-- ==== 7. TWO SUFFIXES, TWO READ PATHS ==== -->
+<!-- ==== 7. THREE WAYS TO RUN AN ADK EVAL ==== -->
 <section class="page">
-  <h1>Two file suffixes, one schema, two read paths</h1>
-  <p class="lede">An ADK project can hold <code class="i">orders.test.json</code> and <code class="i">orders.evalset.json</code>. Both parse as the same <code class="i">EvalSet</code>; the suffix decides which tool finds the file.</p>
+  <h1>Three ways to run an ADK eval, and when to use each</h1>
+  <p class="lede">A developer has the orders case from page 6 and is about to change the agent&rsquo;s instruction. ADK can run that case from a browser, from the terminal, or from a pytest test. Each fits a different moment, and only one of them can stop a merge.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Tool</th><th>What it does</th><th>Use it to</th><th>When a case fails</th></tr></thead>
+    <tbody>
+      <tr><td class="m">adk web</td><td>ADK&rsquo;s local browser UI. You chat with the agent, save the session as a case in an eval set, run a set, and read each case&rsquo;s result.</td><td>build cases by hand; see why a case failed</td><td>shows it on screen</td></tr>
+      <tr><td class="m">adk eval</td><td>A terminal command. <code class="i">adk eval app/ orders.evalset.json</code> runs every case in the set and prints a pass/fail summary.</td><td>check a change while you work</td><td>prints the failure, exits 0 (page 15)</td></tr>
+      <tr><td>pytest + <code class="i">AgentEvaluator.evaluate</code></td><td>A pytest test function that runs a file or folder of cases and raises an error if any case fails.</td><td>gate a merge in CI</td><td>the test fails, exits 1 (page 15)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>All three use the same scorer.</b> Each runs the agent on the case&rsquo;s user messages and scores the run with ADK&rsquo;s evaluators, in your own process. What differs is how you start the run and what happens when a case fails.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>A saved session records what the agent did, not what it should have done.</b> <code class="i">adk web</code> stores the agent&rsquo;s actual tool calls and reply as the expected ones. Check them before you trust the case.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The Gen AI evaluation service is a separate scorer.</b> Page 5 used it to compare models. It scores on Google&rsquo;s side, reads its own dataset format, and can score production traffic. Section 2 covers it.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <p><span class="lbl">Actor:</span> the developer changing the orders agent&rsquo;s instruction.</p>
+    <p><span class="lbl">Mechanism:</span> they save a good session in <code class="i">adk web</code> as <code class="i">cancel_7732</code> and correct its expected calls, run <code class="i">adk eval</code> after each edit, then commit the case where the CI pytest test runs it (page 8 covers which file name each tool finds).</p>
+    <p><span class="lbl">Result:</span> the same case runs in all three. A regression shows up in all three, but only the pytest run stops the merge.</p>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> build and inspect cases in <code class="i">adk web</code>, check changes with <code class="i">adk eval</code>, and gate CI with pytest.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/dev_server.py#L1152-L1191">dev_server.py (save a session as a case)</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/evaluation_generator.py#L974-L1060">evaluation_generator.py</a>, google-adk 2.11.0 &middot; <a href="https://adk.dev/evaluate/">adk.dev/evaluate</a> &middot; exit codes tested on page 15.</div>
+</section>
+<details class="notes" data-title="Three ways to run an ADK eval">
+  <summary>Speaker notes &mdash; Three ways to run an ADK eval</summary>
+  <div class="n-body"><ul>
+    <li>Why this page: pages 8 and 15 depend on these three tools, and page 5 already used the managed service. Name them once, with when to use each, before any page compares them.</li>
+    <li>Read in the google-adk 2.11.0 source, 2026-11-03: <code>adk web</code> starts the dev server (<code>fast_api.py</code>, <code>web=True</code> &rarr; <code>DevServer</code>), which adds eval routes: <code>eval_sets/{id}/add_session</code> (save a session as a case), <code>run_eval</code>, <code>eval_results</code>, and routes to edit or delete a case. <code>add_session</code> calls <code>convert_events_to_eval_invocations</code>, which copies the session&rsquo;s user messages, tool calls, and final reply into the case.</li>
+    <li>Because the saved case expects whatever the agent did, a session where the agent made a mistake becomes a case that requires the mistake. Edit the expected calls in <code>adk web</code> or in the file.</li>
+    <li><code>adk eval</code> exits 0 when cases fail and non-zero only on errors; pytest with an awaited <code>AgentEvaluator.evaluate</code> exits 1 (both tested 2026-10-07, page 15).</li>
+    <li>Delivery beat: ask which of the three a CI job should call, and why the other two would let a regression merge.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 8. TWO SUFFIXES, DIFFERENT TOOLS FIND EACH ==== -->
+<section class="page">
+  <h1>Two file suffixes, one schema, different tools find each</h1>
+  <p class="lede">An ADK project can hold <code class="i">orders.test.json</code> and <code class="i">orders.evalset.json</code>. Both parse as the same <code class="i">EvalSet</code>. The suffix decides which tools find the file on their own; name the file explicitly and any suffix works.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th></th><th><code>.evalset.json</code></th><th><code>.test.json</code></th></tr></thead>
     <tbody>
       <tr><td>Schema</td><td><code>EvalSet</code></td><td><code>EvalSet</code></td></tr>
-      <tr><td>Written by</td><td><code>adk web</code>, ADK&rsquo;s local browser UI (save a session as a case), and <code>adk eval_set</code>, the CLI command that creates eval sets and adds cases</td><td>you, under a tests folder</td></tr>
-      <tr><td>Read by</td><td><code>adk web</code>; <code>adk eval</code> by path or by set id</td><td><code>AgentEvaluator.evaluate</code>, called from a pytest test; given a folder, it walks it for every <code>.test.json</code></td></tr>
+      <tr><td>Written by</td><td><code>adk web</code> (save a session as a case, page 7), and <code>adk eval_set</code>, the CLI command that creates eval sets and adds cases</td><td>you, under a tests folder</td></tr>
+      <tr><td>Found on its own by</td><td><code>adk web</code>; <code>adk eval</code> given a set id</td><td><code>AgentEvaluator.evaluate</code> given a folder, called from a pytest test: it walks the folder for every <code>.test.json</code></td></tr>
       <tr><td>Docs&rsquo; intended use</td><td>many, possibly long sessions; integration test</td><td>one simple session; unit test</td></tr>
-      <tr><td>Old flat file (<code>[{query, expected_tool_use, reference}]</code>)</td><td class="no">fails to load (<code>KeyError: 'data'</code>)</td><td>converted, with a warning</td></tr>
+      <tr><td>Old flat file (<code>[{query, expected_tool_use, reference}]</code>)</td><td class="no"><code>adk eval</code> and <code>adk web</code> fail to load it (<code>KeyError: 'data'</code>)</td><td><code>AgentEvaluator.evaluate</code> converts it, with a warning</td></tr>
     </tbody>
   </table></div>
-  <div class="note"><span class="kk">Not an eval</span><code class="i">adk test</code> is a different command. It replays recorded events from <code class="i">&lt;agent&gt;/tests/*.json</code> against a mock model and checks that the events match. It scores no eval metric.</div>
+  <div class="note"><span class="kk">Explicit path</span>Give <code class="i">adk eval</code> or <code class="i">AgentEvaluator.evaluate</code> a file path and either suffix loads: <code class="i">adk eval app/ orders.test.json</code> runs. The same file by set id, <code class="i">adk eval app/ orders</code>, fails with <code class="i">Eval set with id orders not found</code>.</div>
   <div class="ex"><span class="kk">Example</span>
     <p><span class="lbl">Actor:</span> a developer adding a regression case to CI, where the job runs <code class="i">pytest tests/eval</code>.</p>
     <p><span class="lbl">Mechanism:</span> pytest does not collect JSON. It runs a test function in that folder that awaits <code class="i">AgentEvaluator.evaluate(agent_module="app.agent", eval_dataset_file_path_or_dir="tests/eval")</code>, and that call finds every <code class="i">.test.json</code> beneath it.</p>
     <p><span class="lbl">Result:</span> the developer saves the case as <code class="i">tests/eval/cancel.test.json</code>. Saved as <code class="i">.evalset.json</code>, the folder scan would skip it.</p>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> same schema; name the file for the tool that reads it, and write new files in the current schema.</div>
-  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L353-L366">agent_evaluator.py (folder scan)</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/local_eval_sets_manager.py#L176-L189">local_eval_sets_manager.py (loader)</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/agent_test_runner.py#L68-L107">agent_test_runner.py</a>, google-adk 2.11.0 &middot; <a href="https://adk.dev/evaluate/">adk.dev/evaluate</a>.</div>
+  <div class="takeaway"><b>Takeaway:</b> same schema; the suffix matters only when a tool searches for the file, so name it for the tool that will search, and write new files in the current schema.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L353-L366">agent_evaluator.py (folder scan)</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/local_eval_sets_manager.py#L176-L189">local_eval_sets_manager.py (loader)</a>, google-adk 2.11.0 &middot; <a href="https://adk.dev/evaluate/">adk.dev/evaluate</a>.</div>
 </section>
-<details class="notes" data-title="Two file suffixes, one schema, two read paths">
-  <summary>Speaker notes &mdash; Two file suffixes, one schema, two read paths</summary>
+<details class="notes" data-title="Two file suffixes, one schema, different tools find each">
+  <summary>Speaker notes &mdash; Two file suffixes, one schema, different tools find each</summary>
   <div class="n-body"><ul>
-    <li>Two loaders, tested 2026-10-07 on a flat legacy file: <code>AgentEvaluator._load_eval_set_from_file</code> logs &ldquo;appear to be in older format&rdquo; and converts it; <code>local_eval_sets_manager.load_eval_set_from_file</code> (used by <code>adk eval</code> and <code>adk web</code>) raises <code>KeyError: 'data'</code>.</li>
-    <li><code>adk eval</code> given a file path loads any existing file, including a <code>.test.json</code>; by set id it looks for <code>&lt;id&gt;.evalset.json</code> in the agent folder (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/cli_tools_click.py#L1436-L1460">cli_tools_click.py</a>). Given a single file, <code>AgentEvaluator.evaluate</code> accepts any suffix.</li>
+    <li>Old-format handling follows the tool, not the suffix. Two loaders, tested 2026-10-07 on a flat legacy file: <code>AgentEvaluator._load_eval_set_from_file</code> logs &ldquo;appear to be in older format&rdquo; and converts it; <code>local_eval_sets_manager.load_eval_set_from_file</code> (used by <code>adk eval</code> and <code>adk web</code>) raises <code>KeyError: 'data'</code>.</li>
+    <li>Tested 2026-11-02 at google-adk 2.13.0 with a stub agent (no model calls), one case per file: <code>adk eval</code> by path passed for both <code>a.test.json</code> and <code>b.evalset.json</code>; by set id, <code>b</code> passed and <code>a</code> raised <code>Eval set with id a not found for app stub_agent</code>. <code>AgentEvaluator.evaluate</code> accepted either file by path. <code>LocalEvalSetsManager.list_eval_sets</code>, which the <code>adk web</code> server calls, returned only <code>b</code>.</li>
     <li>A <code>.test.json</code> can hold as many cases and turns as an <code>.evalset.json</code>; the &ldquo;unit vs integration&rdquo; split is the docs&rsquo; intended use, not a limit.</li>
-    <li><code>AgentEvaluator.migrate_eval_data_to_new_schema</code> converts a legacy file (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L391-L410">source</a>). <code>adk test</code>: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/cli_tools_click.py#L1144-L1230">cli_tools_click.py</a>; adk.dev/evaluate does not mention it.</li>
-  </ul></div>
-</details>
-
-<!-- ==== 8. HOW A TRAJECTORY BECOMES A NUMBER ==== -->
-<section class="page">
-  <h1>How a trajectory becomes a number</h1>
-  <p class="lede">A helpdesk agent answers two messages in one conversation. In the second, it closes ticket 519 without looking the ticket up first.</p>
-  <figure>
-    <svg viewBox="0 0 1000 330" width="1000" height="330" role="img" aria-label="Two invocations scored, expected versus actual tool calls">
-      <text x="250" y="24" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">invocation 1 &middot; &ldquo;Is ticket 518 still open?&rdquo;</text>
-      <text x="140" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">expected</text>
-      <text x="360" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">actual</text>
-      <rect x="35" y="60" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="140" y="82" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">get_ticket(518)</text>
-      <rect x="255" y="60" width="210" height="34" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="360" y="82" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle">get_ticket(518)</text>
-      <rect x="35" y="102" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="140" y="124" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">get_assignee(518)</text>
-      <rect x="255" y="102" width="210" height="34" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="360" y="124" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle">get_assignee(518)</text>
-      <rect x="175" y="152" width="150" height="32" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="250" y="173" font-family="var(--mono)" font-size="15" fill="var(--g-green-deep)" text-anchor="middle">1.0</text>
-
-      <text x="750" y="24" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">invocation 2 &middot; &ldquo;Close ticket 519.&rdquo;</text>
-      <text x="640" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">expected</text>
-      <text x="860" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">actual</text>
-      <rect x="535" y="60" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="640" y="82" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">get_ticket(519)</text>
-      <rect x="755" y="60" width="210" height="34" rx="5" fill="none" stroke="var(--g-red)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="860" y="82" font-family="var(--sans)" font-size="14" fill="var(--g-red-deep)" text-anchor="middle">not called</text>
-      <rect x="535" y="102" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="640" y="124" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">close_ticket(519)</text>
-      <rect x="755" y="102" width="210" height="34" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="860" y="124" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle">close_ticket(519)</text>
-      <rect x="675" y="152" width="150" height="32" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="750" y="173" font-family="var(--mono)" font-size="15" fill="var(--g-red-deep)" text-anchor="middle">0.0</text>
-      <text x="750" y="206" font-family="var(--sans)" font-size="13" fill="var(--g-red-deep)" text-anchor="middle">one call missing, so the whole invocation scores 0</text>
-
-      <text x="500" y="252" font-family="var(--mono)" font-size="16" fill="var(--ink)" text-anchor="middle">case score = (1.0 + 0.0) / 2 = 0.5</text>
-      <rect x="370" y="270" width="260" height="34" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="500" y="292" font-family="var(--sans)" font-size="15" fill="var(--g-red-deep)" text-anchor="middle">0.5 &lt; threshold 1.0 &rarr; FAILED</text>
-    </svg>
-    <figcaption>One eval case, two invocations, match type <code class="i">EXACT</code>. Green: an actual call that matches. Red: an expected call that is missing.</figcaption>
-  </figure>
-  <div class="checks">
-    <div class="checkrow"><div class="cdot"></div><p><b>Each invocation scores 1.0 or 0.0:</b> its whole list of calls matches the expected list, or it does not. The case&rsquo;s score is the mean over its invocations.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>With no <code class="i">test_config.json</code> (the file beside the eval set that names criteria and thresholds, p10), ADK&rsquo;s default threshold for this metric is 1.0,</b> so every invocation must match. A config file sets your own threshold.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">match_type</code> sets what counts as a match:</b> <code class="i">EXACT</code> (the default: same calls, same order, nothing extra), <code class="i">IN_ORDER</code> (expected calls in order, extra calls allowed between them), <code class="i">ANY_ORDER</code> (expected calls in any order, extras allowed).</p></div>
-    <div class="checkrow"><div class="cdot red"></div><p><b>It reads tool names and arguments only,</b> not what the tool returned. A call that returned an error still matches.</p></div>
-  </div>
-  <div class="ex"><span class="kk">Example</span>
-    <p><span class="lbl">Input:</span> the same case, but in invocation 2 the agent calls <code class="i">get_ticket(519)</code>, then an extra <code class="i">get_user</code>, then <code class="i">close_ticket(519)</code>.</p>
-    <p><span class="lbl">Result:</span> under <code class="i">EXACT</code> invocation 2 scores 0.0 and the case 0.5, FAILED. Under <code class="i">IN_ORDER</code> it scores 1.0 and the case passes.</p>
-  </div>
-  <div class="note blue"><span class="kk">Averaging stays inside one case</span>ADK never averages separate eval cases together; each case passes or fails on its own score.</div>
-  <div class="takeaway"><b>Takeaway:</b> a case passes this metric only if every invocation&rsquo;s calls match. Use <code class="i">IN_ORDER</code> when helper calls may vary.</div>
-  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/trajectory_evaluator.py#L106-L174">trajectory_evaluator.py</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_metrics.py#L223-L297">eval_metrics.py (match types)</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_config.py#L238-L239">eval_config.py (default config)</a>, google-adk 2.11.0 &middot; every score on this page computed with <code class="i">TrajectoryEvaluator</code>, 2026-10-07.</div>
-</section>
-<details class="notes" data-title="How a trajectory becomes a number">
-  <summary>Speaker notes &mdash; How a trajectory becomes a number</summary>
-  <div class="n-body"><ul>
-    <li>Tested 2026-10-07 at google-adk 2.11.0 with hand-built invocations: missing <code>get_ticket</code> &rarr; <code>(0.5, FAILED, [1.0, 0.0])</code> under both <code>EXACT</code> and <code>IN_ORDER</code>; extra <code>get_user</code> &rarr; <code>EXACT</code> 0.5 FAILED, <code>IN_ORDER</code> and <code>ANY_ORDER</code> 1.0 PASSED. With threshold 0.5 the first case passes.</li>
-    <li>The pytest path (<code>AgentEvaluator</code>) runs each case twice by default and takes the mean over the invocations of all runs (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L860-L870">source</a>). <code>adk eval</code> runs each case once.</li>
-    <li>Arguments compare exactly: <code>{"ticket_id": 519}</code> vs <code>{"ticket_id": "519"}</code> is a mismatch. <code>ignore_args: true</code> compares names only.</li>
-    <li>Older material names fields like <code>determine_intent</code> or <code>use_tool</code>; they are not ADK fields.</li>
+    <li><code>AgentEvaluator.migrate_eval_data_to_new_schema</code> converts a legacy file (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L391-L410">source</a>).</li>
   </ul></div>
 </details>
 
@@ -649,7 +656,7 @@ result.show()</pre>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b><code class="i">response_match_score</code> counts shared words.</b> It is the ROUGE-1 F-measure: one score that combines how many of the reply&rsquo;s words are in the expected reply and how many of the expected reply&rsquo;s words are in the reply. Each word is first cut to its stem, so &lsquo;issued&rsquo; becomes &lsquo;issu&rsquo;. A reply that reuses the words scores high whatever it means.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>A judge is a second model call that grades the first.</b> <code class="i">final_response_match_v2</code> sends the reply and the expected reply to a judge model and asks whether they mean the same thing. The score is the fraction of invocations judged valid.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>The judge is non-deterministic too,</b> so ADK asks it several times and takes a majority vote (page 13).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The judge is non-deterministic too,</b> so ADK asks it several times and takes a majority vote (page 14).</p></div>
     <div class="checkrow"><div class="cdot red"></div><p><b>Test the judge with a reply it must reject.</b> A judge that answers &ldquo;valid&rdquo; to everything passes every case; reply B is that test.</p></div>
   </div>
   <div class="ex"><span class="kk">Example</span>
@@ -671,9 +678,62 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 10. THE THIRTEEN PASS/FAIL CRITERIA ==== -->
+<!-- ==== 10. HOW A TRAJECTORY BECOMES A NUMBER ==== -->
 <section class="page">
-  <h1>The thirteen pass/fail criteria, and four reported metrics</h1>
+  <h1>How a trajectory becomes a number</h1>
+  <p class="lede">A helpdesk agent answers two messages in one conversation, and the second depends on the first. Its instruction says to look a ticket up before closing it. In the second message, it closes ticket 519 without the lookup.</p>
+  <figure>
+    <svg viewBox="0 0 1000 330" width="1000" height="330" role="img" aria-label="Two invocations scored, expected versus actual tool calls">
+      <text x="250" y="24" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">invocation 1 &middot; &ldquo;What&rsquo;s open in my queue?&rdquo;</text>
+      <text x="140" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">expected</text>
+      <text x="360" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">actual</text>
+      <rect x="35" y="60" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="140" y="82" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">list_tickets()</text>
+      <rect x="255" y="60" width="210" height="34" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="360" y="82" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle">list_tickets()</text>
+      <rect x="175" y="110" width="150" height="32" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="250" y="131" font-family="var(--mono)" font-size="15" fill="var(--g-green-deep)" text-anchor="middle">1.0</text>
+
+      <text x="750" y="24" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">invocation 2 &middot; &ldquo;Close the oldest one.&rdquo;</text>
+      <text x="640" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">expected</text>
+      <text x="860" y="50" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">actual</text>
+      <rect x="535" y="60" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="640" y="82" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">get_ticket(519)</text>
+      <rect x="755" y="60" width="210" height="34" rx="5" fill="none" stroke="var(--g-red)" stroke-width="1.6" stroke-dasharray="5 4"/><text x="860" y="82" font-family="var(--sans)" font-size="14" fill="var(--g-red-deep)" text-anchor="middle">not called</text>
+      <rect x="535" y="102" width="210" height="34" rx="5" fill="var(--fill-gray)" stroke="var(--line)"/><text x="640" y="124" font-family="var(--mono)" font-size="14" fill="var(--ink-2)" text-anchor="middle">close_ticket(519)</text>
+      <rect x="755" y="102" width="210" height="34" rx="5" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="860" y="124" font-family="var(--mono)" font-size="14" fill="var(--ink)" text-anchor="middle">close_ticket(519)</text>
+      <rect x="675" y="152" width="150" height="32" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="750" y="173" font-family="var(--mono)" font-size="15" fill="var(--g-red-deep)" text-anchor="middle">0.0</text>
+      <text x="750" y="206" font-family="var(--sans)" font-size="13" fill="var(--g-red-deep)" text-anchor="middle">one call missing, so the whole invocation scores 0</text>
+
+      <text x="500" y="252" font-family="var(--mono)" font-size="16" fill="var(--ink)" text-anchor="middle">case score = (1.0 + 0.0) / 2 = 0.5</text>
+      <rect x="370" y="270" width="260" height="34" rx="5" fill="var(--fill-red)" stroke="var(--g-red)"/><text x="500" y="292" font-family="var(--sans)" font-size="15" fill="var(--g-red-deep)" text-anchor="middle">0.5 &lt; threshold 1.0 &rarr; FAILED</text>
+    </svg>
+    <figcaption>One eval case, two invocations, match type <code class="i">EXACT</code>. Green: an actual call that matches. Red: an expected call that is missing.</figcaption>
+  </figure>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>Each invocation scores 1.0 or 0.0:</b> its whole list of calls matches the expected list, or it does not. The case&rsquo;s score is the mean over its invocations.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>With no <code class="i">test_config.json</code> (the file beside the eval set that names criteria and thresholds, p11), ADK&rsquo;s default threshold for this metric is 1.0,</b> so every invocation must match. A config file sets your own threshold.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b><code class="i">match_type</code> sets what counts as a match:</b> <code class="i">EXACT</code> (the default: same calls, same order, nothing extra), <code class="i">IN_ORDER</code> (expected calls in order, extra calls allowed between them), <code class="i">ANY_ORDER</code> (expected calls in any order, extras allowed).</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>It reads tool names and arguments only,</b> not what the tool returned. A call that returned an error still matches.</p></div>
+  </div>
+  <div class="ex"><span class="kk">Example</span>
+    <p><span class="lbl">Input:</span> the same case, but in invocation 2 the agent calls <code class="i">get_ticket(519)</code>, then an extra <code class="i">get_user</code>, then <code class="i">close_ticket(519)</code>.</p>
+    <p><span class="lbl">Result:</span> under <code class="i">EXACT</code> invocation 2 scores 0.0 and the case 0.5, FAILED. Under <code class="i">IN_ORDER</code> it scores 1.0 and the case passes.</p>
+  </div>
+  <div class="note blue"><span class="kk">Averaging stays inside one case</span>ADK never averages separate eval cases together; each case passes or fails on its own score.</div>
+  <div class="takeaway"><b>Takeaway:</b> a case passes this metric only if every invocation&rsquo;s calls match. Use <code class="i">IN_ORDER</code> when helper calls may vary.</div>
+  <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/trajectory_evaluator.py#L106-L174">trajectory_evaluator.py</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_metrics.py#L223-L297">eval_metrics.py (match types)</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_config.py#L238-L239">eval_config.py (default config)</a>, google-adk 2.11.0 &middot; every score on this page computed with <code class="i">TrajectoryEvaluator</code>, 2026-10-07.</div>
+</section>
+<details class="notes" data-title="How a trajectory becomes a number">
+  <summary>Speaker notes &mdash; How a trajectory becomes a number</summary>
+  <div class="n-body"><ul>
+    <li>Tested 2026-10-07 at google-adk 2.11.0 with hand-built invocations (re-run 2026-11-03 on the queue case): missing <code>get_ticket</code> &rarr; <code>(0.5, FAILED, [1.0, 0.0])</code> under both <code>EXACT</code> and <code>IN_ORDER</code>; extra <code>get_user</code> &rarr; <code>EXACT</code> 0.5 FAILED, <code>IN_ORDER</code> and <code>ANY_ORDER</code> 1.0 PASSED. With threshold 0.5 the first case passes.</li>
+    <li>The pytest path (<code>AgentEvaluator</code>) runs each case twice by default and takes the mean over the invocations of all runs (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L860-L870">source</a>). <code>adk eval</code> runs each case once.</li>
+    <li>Arguments compare exactly: <code>{"ticket_id": 519}</code> vs <code>{"ticket_id": "519"}</code> is a mismatch. <code>ignore_args: true</code> compares names only.</li>
+    <li>Why invocation 2 expects <code>get_ticket</code>: the agent already saw ticket 519 in the list, but the instruction requires a fresh lookup before a close, because the ticket may have changed since. A case with two invocations is worth writing when the second depends on the first; two unrelated requests belong in two cases.</li>
+    <li>Older material names fields like <code>determine_intent</code> or <code>use_tool</code>; they are not ADK fields.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 11. WHAT EACH EVAL CRITERION NEEDS, AND WHO SCORES IT ==== -->
+<section class="page">
+  <h1>What each eval criterion needs, and who scores it</h1>
   <p class="lede">A <code class="i">test_config.json</code> names the criteria to run, each with a threshold. With no config file, ADK runs two: <code class="i">tool_trajectory_avg_score</code> at 1.0 and <code class="i">response_match_score</code> at 0.8.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th>Criterion</th><th>Needs a reference</th><th>Needs rubrics</th><th>LLM judge</th><th>Scored by</th></tr></thead>
@@ -698,11 +758,11 @@ result.show()</pre>
   <div class="takeaway"><b>Takeaway:</b> start from ADK&rsquo;s default two, and add a criterion for each question you need answered. Every LLM-judge row needs model access (a project or a <code class="i">GOOGLE_API_KEY</code>). The last column says whether the score comes from the managed service.</div>
   <div class="src">Sources: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/metric_evaluator_registry.py#L202-L280">metric_evaluator_registry.py</a>, <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/vertex_ai_eval_facade.py#L77-L94">vertex_ai_eval_facade.py</a>, google-adk 2.11.0 &middot; <a href="https://adk.dev/evaluate/criteria/">criteria</a> table.</div>
 </section>
-<details class="notes" data-title="The thirteen pass/fail criteria, and four reported metrics">
-  <summary>Speaker notes &mdash; The thirteen pass/fail criteria</summary>
+<details class="notes" data-title="What each eval criterion needs, and who scores it">
+  <summary>Speaker notes &mdash; What each eval criterion needs, and who scores it</summary>
   <div class="n-body"><ul>
     <li>Tested 2026-10-07: <code>DEFAULT_METRIC_EVALUATOR_REGISTRY.get_registered_metrics()</code> lists 17 names; a config naming one criterion runs it plus the four efficiency metrics; putting <code>token_usage_v1</code> in <code>criteria</code> raises <code>ValueError … does not support a threshold</code>. Default config: <code>{'tool_trajectory_avg_score': 1.0, 'response_match_score': 0.8}</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_config.py#L238-L270">eval_config.py</a>).</li>
-    <li>The efficiency metrics connect eval to cost and latency (Module 6). <code>custom_metrics</code> in the config adds your own scoring functions by name (page 34).</li>
+    <li>The efficiency metrics connect eval to cost and latency (Module 6). <code>custom_metrics</code> in the config adds your own scoring functions by name (page 35).</li>
     <li>Reference and rubric columns match the adk.dev criteria table. The overview page says 12 criteria and omits <code>response_evaluation_score</code>; the criteria page lists 13.</li>
     <li>The five service rows are exactly the evaluators that construct <code>vertex_ai_eval_facade</code>. If <code>GOOGLE_API_KEY</code> is set, the facade uses it; otherwise it needs both project and location.</li>
     <li>CI credentials: all ten judge rows call a model, so all ten need model access, not only the five rows scored by Gen AI evals.</li>
@@ -710,16 +770,16 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 11. CHOOSING BY THE QUESTION ==== -->
+<!-- ==== 12. CHOOSING BY THE QUESTION ==== -->
 <section class="page">
   <h1>Choose a criterion by the question you need answered</h1>
-  <p class="lede">Four agents, four questions. Each question points at a different row of the table on page 10.</p>
+  <p class="lede">Four agents, four questions. Each question points at a different row of the table on page 11.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th>Agent</th><th>Question</th><th>Criteria</th><th>Why</th></tr></thead>
     <tbody>
       <tr><td>Refund flow with a required order of steps</td><td>Did it verify before refunding, and say so?</td><td class="m">tool_trajectory_avg_score (IN_ORDER) + final_response_match_v2</td><td>order is required; helper calls may vary; the reply can be worded freely</td></tr>
       <tr><td>Answers from a returns-policy document</td><td>Did it say only what the policy says?</td><td class="m">hallucinations_v1</td><td>no single right sentence; each claim is checked against the instructions, the prompt, and the tool calls and results</td></tr>
-      <tr><td>Customer replies with house rules</td><td>Apology, new date, under three sentences?</td><td class="m">rubric_based_final_response_quality_v1</td><td>the rules become rubrics (page 12)</td></tr>
+      <tr><td>Customer replies with house rules</td><td>Apology, new date, under three sentences?</td><td class="m">rubric_based_final_response_quality_v1</td><td>the rules become rubrics (page 13)</td></tr>
       <tr><td>Open-ended multi-turn support</td><td>Did the customer get what they came for?</td><td class="m">multi_turn_task_success_v1</td><td>a second model plays the customer (user simulation), so there is no fixed expected reply to compare with</td></tr>
     </tbody>
   </table></div>
@@ -728,7 +788,7 @@ result.show()</pre>
     <p><span class="lbl">Mechanism:</span> <code class="i">hallucinations_v1</code> splits the reply into sentences and labels each <code class="i">supported</code>, <code class="i">unsupported</code>, <code class="i">contradictory</code>, <code class="i">disputed</code>, or <code class="i">not_applicable</code>.</p>
     <p><span class="lbl">Result:</span> the first sentence is <code class="i">contradictory</code> (the policy says 30), the second <code class="i">supported</code>. Score 0.5, below a threshold of 0.8 set in <code class="i">test_config.json</code>.</p>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> pick the criterion from the question, then check its row on page 10 for what it needs.</div>
+  <div class="takeaway"><b>Takeaway:</b> pick the criterion from the question, then check its row on page 11 for what it needs.</div>
   <div class="src">Sources: <a href="https://adk.dev/evaluate/criteria/">criteria</a> (per-metric sections, Supports User Simulation column) &middot; <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/hallucinations_v1.py#L309-L330">hallucinations_v1.py</a>, google-adk 2.11.0.</div>
 </section>
 <details class="notes" data-title="Choose a criterion by the question">
@@ -740,7 +800,7 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 12. RUBRICS ==== -->
+<!-- ==== 13. RUBRICS ==== -->
 <section class="page">
   <h1>A rubric turns a house rule into a pass rate</h1>
   <p class="lede">A support team&rsquo;s delay replies must apologize, give the new delivery date, and stay under three sentences. None of that is a reference answer. Each rule becomes a rubric.</p>
@@ -774,11 +834,11 @@ result.show()</pre>
     <li>Tested 2026-10-07 at google-adk 2.11.0: this config parses and runs its criterion plus the four efficiency metrics. With a scripted judge answering yes, yes, no, the same rubric set passed at 0.66 and failed at 0.67 with &ldquo;Expected 0.67, but got 0.6666666666666666&rdquo;. Comparison: <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/llm_as_judge_utils.py#L95-L98">llm_as_judge_utils.py</a>.</li>
     <li>Judge verdict yes &rarr; 1.0, no &rarr; 0.0 per rubric; invocation score = mean of its rubrics; case score = mean over all rubric scores (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/rubric_based_evaluator.py#L238-L301">source</a>).</li>
     <li>Case- and invocation-level rubrics are filtered by <code>type</code> (<code>FINAL_RESPONSE_QUALITY</code>, <code>TOOL_USE_QUALITY</code>, <code>TRAJECTORY_QUALITY</code>); rubrics on the criterion are not filtered.</li>
-    <li>Gen AI evals can also write rubrics for you from the agent&rsquo;s instruction and tools; that is page 21.</li>
+    <li>Gen AI evals can also write rubrics for you from the agent&rsquo;s instruction and tools; that is page 22.</li>
   </ul></div>
 </details>
 
-<!-- ==== 13. CONFIGURING A JUDGE ==== -->
+<!-- ==== 14. CONFIGURING A JUDGE ==== -->
 <section class="page">
   <h1>Configuring a judge, and what a run costs</h1>
   <p class="lede">Every criterion with an LLM judge takes the same options. They decide which model grades, how many times, and so how many model calls a run makes.</p>
@@ -807,7 +867,7 @@ result.show()</pre>
 <details class="notes" data-title="Configuring a judge, and what a run costs">
   <summary>Speaker notes &mdash; Configuring a judge, and what a run costs</summary>
   <div class="n-body"><ul>
-    <li>Tested 2026-10-07 at google-adk 2.11.0 with a scripted judge: this config parses; a two-invocation case under pytest made 20 judge calls (2 runs &times; 2 invocations &times; 5); with <code>num_samples</code> unset the rubric run also made 5 calls per invocation per run. A judge on <code>gemini-3.5-flash</code> in <code>global</code> ran (the page 11 measurement).</li>
+    <li>Tested 2026-10-07 at google-adk 2.11.0 with a scripted judge: this config parses; a two-invocation case under pytest made 20 judge calls (2 runs &times; 2 invocations &times; 5); with <code>num_samples</code> unset the rubric run also made 5 calls per invocation per run. A judge on <code>gemini-3.5-flash</code> in <code>global</code> ran (the page 12 measurement).</li>
     <li>Tested 2026-10-31 at google-adk 2.11.0 with a scripted judge (no model cost): one case, 4 invocations &times; 5 samples = 20 judge calls. Peak concurrent calls: limit unset 1; limit 1 &rarr; 1; limit 4 &rarr; 4; limit 100 &rarr; 20. <code>EvaluateConfig.parallelism</code> defaults to 4, so <code>adk eval</code> and pytest both evaluate up to 4 cases at once; that part was read in source and not run.</li>
     <li>Every sampling judge in ADK majority-votes; rubric metrics vote per rubric, then average the rubrics. No built-in metric averages the samples (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/rubric_based_evaluator.py#L134-L224">source</a>).</li>
     <li>The docs&rsquo; samples use <code>gemini-flash-latest</code>; that alias is Gemini Developer API only and returns 404 on Agent Platform (tested 2026-10-07). Gemini 2.5 retirement: <a href="https://docs.cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions">model versions</a>.</li>
@@ -816,7 +876,7 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 14. A FAILED EVAL STOPS NOTHING UNTIL SOMETHING EXITS NON-ZERO ==== -->
+<!-- ==== 15. A FAILED EVAL STOPS NOTHING UNTIL SOMETHING EXITS NON-ZERO ==== -->
 <section class="page">
   <h1>A failed eval stops nothing until something exits non-zero</h1>
   <p class="lede">A case scores 0.5 against a threshold of 1.0. Three commands run it. All three report the low score; only one fails the build.</p>
@@ -834,7 +894,7 @@ result.show()</pre>
     <tbody>
       <tr class="hl"><td><code>pytest tests/eval</code> (the test above)</td><td><code>AssertionError: Following are all the test failures.</code> &hellip; <code>tool_trajectory_avg_score for app.agent Failed. Expected 1.0, but got 0.5.</code></td><td class="yes">1</td></tr>
       <tr><td><code>adk eval app/ regression.evalset.json</code>, thresholds from <code>--config_file_path</code></td><td><code>Tests passed: 0</code> / <code>Tests failed: 1</code></td><td class="no">0</td></tr>
-      <tr><td><code>agents-cli eval run</code> (Google&rsquo;s agent project CLI, p22)</td><td>scores and a results file; no threshold is applied</td><td class="no">0</td></tr>
+      <tr><td><code>agents-cli eval run</code> (Google&rsquo;s agent project CLI, p23)</td><td>scores and a results file; no threshold is applied</td><td class="no">0</td></tr>
     </tbody>
   </table></div>
   <div class="note red"><span class="kk">Without await</span><code class="i">AgentEvaluator.evaluate</code> is <code class="i">async</code>. Called without <code class="i">await</code>, it returns a coroutine that never runs, and the test passes in under half a second.</div>
@@ -851,7 +911,7 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 15. TWO WAYS TO GROW A SET ==== -->
+<!-- ==== 16. TWO WAYS TO GROW A SET ==== -->
 <section class="page">
   <h1>Two ways to grow a set: capture and generate</h1>
   <p class="lede">A customer with two upcoming hotel bookings wrote &ldquo;cancel my booking,&rdquo; and the booking agent cancelled one of them without asking which. That conversation becomes the next eval case.</p>
@@ -877,7 +937,7 @@ result.show()</pre>
     </svg>
   </figure>
   <div class="checks">
-    <div class="checkrow"><div class="cdot green"></div><p><b>Capture:</b> save the real session as a case in <code class="i">adk web</code> (or import the production trace, page 27), then edit the expected tool calls and reply to what should have happened.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p><b>Capture:</b> save the real session as a case in <code class="i">adk web</code> (or import the production trace, page 28), then edit the expected tool calls and reply to what should have happened.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Generate:</b> <code class="i">adk eval_set generate_eval_cases</code> asks Gen AI evals for scenarios: a starting prompt and a conversation plan, with no expected tool calls. They need a project and location (or an API key). Each re-run adds new scenarios.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>Recommended:</b> version the set with the agent, and cover what production sends (ambiguous requests, tool errors, out-of-scope questions), not only clean requests.</p></div>
   </div>
@@ -900,13 +960,13 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 16. SECTION 1 RECAP ==== -->
+<!-- ==== 17. SECTION 1 RECAP ==== -->
 <section class="page">
   <h1>Section 1 recap</h1>
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>Grade the tool calls as well as the reply: the path can change when only the instruction text changes.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Write a case as an <code class="i">EvalSet</code>: invocations with the expected reply and tool calls. Name it <code class="i">.test.json</code> for pytest, <code class="i">.evalset.json</code> for <code class="i">adk web</code> and <code class="i">adk eval</code>.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Read a trajectory score as 1 or 0 per invocation, averaged per case; read <code class="i">response_match_score</code> as shared words, and use a judge where wording varies.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Write a case as an <code class="i">EvalSet</code>: invocations with the expected reply and tool calls. Name it <code class="i">.test.json</code> for a pytest folder scan, <code class="i">.evalset.json</code> for <code class="i">adk web</code> and <code class="i">adk eval</code> by set id; any suffix loads by explicit path.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Read <code class="i">response_match_score</code> as shared words, and use a judge where wording varies; read a trajectory score as 1 or 0 per invocation, averaged per case.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Pick criteria by question; every judge criterion needs model access, and five send their work to the managed service. Set the judge model, and size a run as runs &times; invocations &times; samples &times; judge criteria.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Gate on pytest with an awaited <code class="i">AgentEvaluator.evaluate</code>; <code class="i">adk eval</code> exits 0 on failures.</p></div>
   </div>
@@ -914,12 +974,12 @@ result.show()</pre>
 <details class="notes" data-title="Section 1 recap">
   <summary>Speaker notes &mdash; Section 1 recap</summary>
   <div class="n-body"><ul>
-    <li>Ask the room to compute the page 8 score for a three-invocation case with one miss (0.67, still a fail at 1.0).</li>
+    <li>Ask the room to compute the page 10 score for a three-invocation case with one miss (0.67, still a fail at 1.0).</li>
     <li>Hand-off: section 2 is the managed service those five criteria send to.</li>
   </ul></div>
 </details>
 
-<!-- ==== 17. SECTION DIVIDER: THE MANAGED SCORER ==== -->
+<!-- ==== 18. SECTION DIVIDER: THE MANAGED SCORER ==== -->
 <section class="page divider">
   <div class="wrap">
     <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">2</div><div class="sh red"></div></div>
@@ -938,10 +998,10 @@ result.show()</pre>
   </ul></div>
 </details>
 
-<!-- ==== 18. TWO SCORERS ==== -->
+<!-- ==== 19. TWO SCORERS ==== -->
 <section class="page">
   <h1>Two scorers, several ways to drive them, two dataset formats</h1>
-  <p class="lede">A team meets four names: ADK eval, Gen AI evals, the console&rsquo;s Evaluation page, and agents-cli. Two of them compute scores; the others drive one of those two.</p>
+  <p class="lede">Section 1 ran every eval through ADK&rsquo;s three tools (page 7). A team also meets Gen AI evals, the console&rsquo;s Evaluation page, and agents-cli. Only ADK and Gen AI evals compute scores; everything else drives one of those two.</p>
   <figure>
     <svg viewBox="0 0 1000 350" width="1000" height="350" role="img" aria-label="Drivers, scorers, and dataset formats">
       <defs><marker id="m18a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker><marker id="m18r" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#c5221f"/></marker></defs>
@@ -984,23 +1044,23 @@ result.show()</pre>
     <li>The five delegated: <code>response_evaluation_score</code>, <code>safety_v1</code>, <code>multi_turn_task_success_v1</code>, <code>multi_turn_tool_use_quality_v1</code>, <code>multi_turn_trajectory_quality_v1</code> (the evaluators that construct the facade). The 12 in-process: 8 scoring criteria plus 4 efficiency metrics.</li>
     <li>The service&rsquo;s <code>EvalCase</code> fields include <code>prompt</code>, <code>responses</code>, <code>reference</code>, <code>intermediate_events</code>, <code>agent_data</code>, <code>rubric_groups</code>. The agent runs only when inference is requested: <code>run_inference</code>, <code>agents-cli eval generate</code>, or <code>create_evaluation_run(agent=…)</code>. Rubrics are optional.</li>
     <li>agents-cli 1.9.0 <code>eval grade</code> calls <code>client.evals.evaluate</code>; when every metric is a local custom one it builds the client with no project and no service call is made. <code>agents-cli eval optimize</code> converts a service dataset to an ADK <code>EvalSet</code>.</li>
-    <li>No migration from ADK&rsquo;s format to the service&rsquo;s has been announced. The old split &ldquo;model eval vs agent eval&rdquo; is false: the service has agent metrics (page 21).</li>
+    <li>No migration from ADK&rsquo;s format to the service&rsquo;s has been announced. The old split &ldquo;model eval vs agent eval&rdquo; is false: the service has agent metrics (page 22).</li>
   </ul></div>
 </details>
 
-<!-- ==== 19. SAME NAMES, THREE RELATIONSHIPS ==== -->
+<!-- ==== 20. SAME NAMES, THREE RELATIONSHIPS ==== -->
 <section class="page">
   <h1>Same names, three relationships</h1>
   <p class="lede">A PR gate reports <code class="i">hallucinations_v1</code> at 0.92 and the production dashboard reports <code class="i">HALLUCINATION</code> at 0.81. They are different scorers over different data, so neither number says the other is wrong.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th>ADK criterion</th><th>Gen AI evals metric</th><th>Relationship</th></tr></thead>
     <tbody>
-      <tr><td class="m">multi_turn_task_success_v1, multi_turn_tool_use_quality_v1, multi_turn_trajectory_quality_v1</td><td class="m">MULTI_TURN_TASK_SUCCESS, _TOOL_USE_QUALITY, _TRAJECTORY_QUALITY</td><td><b>same scorer:</b> ADK sends the invocations to version 1 of the Gen AI evals metric</td></tr>
-      <tr><td class="m">safety_v1</td><td class="m">SAFETY</td><td><b>same scorer</b> only at version <code>safety_v1</code>; a numbered version is called a spec (page 20)</td></tr>
+      <tr><td class="m">multi_turn_task_success_v1, multi_turn_tool_use_quality_v1, multi_turn_trajectory_quality_v1</td><td class="m">MULTI_TURN_TASK_SUCCESS, MULTI_TURN_TOOL_USE_QUALITY, MULTI_TURN_TRAJECTORY_QUALITY</td><td><b>same scorer:</b> ADK sends the invocations to version 1 of the Gen AI evals metric</td></tr>
+      <tr><td class="m">safety_v1</td><td class="m">SAFETY</td><td><b>same scorer</b> only at version <code>safety_v1</code>; a numbered version is called a spec (page 21)</td></tr>
       <tr><td class="m">response_evaluation_score</td><td class="m">COHERENCE (1&ndash;5)</td><td><b>same scorer</b>; an older model metric, not an agent metric</td></tr>
       <tr><td class="m">hallucinations_v1</td><td class="m">HALLUCINATION</td><td><b>same idea, different scorer:</b> different prompts and judges; both label parts of the reply against the context</td></tr>
       <tr><td class="m">rubric_based_final_response_quality_v1, rubric_based_tool_use_quality_v1, rubric_based_multi_turn_trajectory_quality_v1</td><td class="m">FINAL_RESPONSE_QUALITY, TOOL_USE_QUALITY, MULTI_TURN_TRAJECTORY_QUALITY</td><td><b>same idea, different scorer:</b> rubrics you write (ADK) vs rubrics the service writes</td></tr>
-      <tr><td class="m">final_response_match_v2</td><td class="m">FINAL_RESPONSE_MATCH</td><td><b>same idea, different scorer:</b> the service&rsquo;s spec is also named <code>final_response_match_v2</code></td></tr>
+      <tr><td class="m">final_response_match_v2</td><td class="m">FINAL_RESPONSE_MATCH</td><td><b>same idea, different scorer:</b> the service&rsquo;s spec is also named <code>final_response_match_v2</code>; not one of the seven predefined agent metrics (page 22)</td></tr>
       <tr><td class="m">tool_trajectory_avg_score, response_match_score, per_turn_user_simulator_quality_v1, the 4 efficiency metrics</td><td>&mdash;</td><td><b>ADK only</b></td></tr>
     </tbody>
   </table></div>
@@ -1019,12 +1079,12 @@ result.show()</pre>
     <li>The 0.92 / 0.81 numbers are invented for the example; the mechanism is not.</li>
     <li>The service&rsquo;s hallucination metric segments into &ldquo;atomic claims&rdquo; but reports &ldquo;the ratio of sentences labeled as supported or no_rad&rdquo;; <code>no_rad</code> is its name for ADK&rsquo;s <code>not_applicable</code> (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/rubric-metric-details">rubric metric details</a>).</li>
     <li><code>RubricMetric</code> and <code>PrebuiltMetric</code> are the same object in the SDK; SAFETY is a static metric. <code>response_evaluation_score</code> is the only 1&ndash;5 criterion in ADK; the others are 0&ndash;1.</li>
-    <li>Terms: a Gen AI evals metric is an evaluation metric the service scores. A Cloud Monitoring metric is a time series; page 29 has both, because the Cloud Monitoring metric <code>online_evaluator/scores</code> carries a label naming a Gen AI evals metric.</li>
+    <li>Terms: a Gen AI evals metric is an evaluation metric the service scores. A Cloud Monitoring metric is a time series; page 30 has both, because the Cloud Monitoring metric <code>online_evaluator/scores</code> carries a label naming a Gen AI evals metric.</li>
     <li>The recommended split is a course recommendation, not a product rule: the docs also show agents-cli (the service path) for local iteration.</li>
   </ul></div>
 </details>
 
-<!-- ==== 20. METRIC VERSIONS ==== -->
+<!-- ==== 21. METRIC VERSIONS ==== -->
 <section class="page">
   <h1>A metric name without a version can mean a different scorer</h1>
   <p class="lede">Each Gen AI evals metric comes in numbered versions, called specs, such as <code class="i">safety_v1</code> and <code class="i">safety_v3</code>; each spec can use a different judge model and scoring rule. Which one runs depends on how the metric is named in code.</p>
@@ -1059,10 +1119,10 @@ types.RubricMetric.SAFETY(version=<span class="st">"v3"</span>)    <span class="
   </ul></div>
 </details>
 
-<!-- ==== 21. SEVEN AGENT METRICS AND A DURABLE RUN ==== -->
+<!-- ==== 22. SEVEN AGENT METRICS AND A DURABLE RUN ==== -->
 <section class="page">
-  <h1>The service&rsquo;s seven agent metrics, and a run you can reopen</h1>
-  <p class="lede">A weather agent&rsquo;s recorded run is stored in an <code class="i">EvaluationSet</code>, a resource on the service (not an ADK <code class="i">EvalSet</code>; p27 shows how to make one). <code class="i">EVAL_SET</code> below is that resource&rsquo;s name. One call scores it with two metrics whose rubrics the service writes from the agent&rsquo;s own instruction and tool declarations.</p>
+  <h1>The Gen AI evaluation service&rsquo;s seven agent metrics, and a run you can reopen</h1>
+  <p class="lede">A weather agent&rsquo;s recorded run is stored in an <code class="i">EvaluationSet</code>, a resource on the service (not an ADK <code class="i">EvalSet</code>; p28 shows how to make one). <code class="i">EVAL_SET</code> below is that resource&rsquo;s name. One call scores it with two metrics whose rubrics the service writes from the agent&rsquo;s own instruction and tool declarations.</p>
   <p class="codelabel">Agent Platform SDK (agentplatform), aiplatform 2.4.0 &mdash; a durable evaluation run</p>
   <pre class="code"><span class="kw">import</span> time
 <span class="kw">from</span> agentplatform <span class="kw">import</span> Client, types
@@ -1091,18 +1151,18 @@ run = client.evals.<span class="fn">create_evaluation_run</span>(
   <div class="takeaway"><b>Takeaway:</b> the service writes rubrics from your agent&rsquo;s configuration and returns a pass rate with reasons. A single judged score can move between runs, so compare over many cases.</div>
   <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/manage-metrics">manage metrics</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/rubric-metric-details">rubric metric details</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view results</a> &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">create_evaluation_run</code>), aiplatform 2.4.0 &middot; run end to end 2026-10-07.</div>
 </section>
-<details class="notes" data-title="The service's seven agent metrics, and a run you can reopen">
+<details class="notes" data-title="The Gen AI evaluation service's seven agent metrics, and a run you can reopen">
   <summary>Speaker notes &mdash; Seven agent metrics and a durable run</summary>
   <div class="n-body"><ul>
-    <li>Tested 2026-10-07 in <code>us-central1</code>: <code>client.evals.evaluate</code> on the London trace gave tool use 0.75 and final response 1.0 in 27.7 s; <code>create_evaluation_run</code> on the same case went PENDING &rarr; SUCCEEDED in 26 s with 1.0 / 1.0. In <code>global</code>, tool use scored 1.0. A run created from an imported evaluation set (page 27) succeeded in 75 s.</li>
+    <li>Tested 2026-10-07 in <code>us-central1</code>: <code>client.evals.evaluate</code> on the London trace gave tool use 0.75 and final response 1.0 in 27.7 s; <code>create_evaluation_run</code> on the same case went PENDING &rarr; SUCCEEDED in 26 s with 1.0 / 1.0. In <code>global</code>, tool use scored 1.0. A run created from an imported evaluation set (page 28) succeeded in 75 s.</li>
     <li>What a run returns: <code>evaluation_run_results.summary_metrics</code> (mean, median, p90&hellip;), and <code>request_*.json</code> / <code>result_*.json</code> in <code>dest</code>. Each rubric verdict has the rubric text, a verdict, reasoning, and a type; FINAL_RESPONSE_QUALITY verdicts carried an importance (HIGH/MEDIUM), TOOL_USE_QUALITY ones did not.</li>
-    <li>The SDK creates an <code>EvaluationExperiment</code> for the run automatically &ldquo;so the run is visible in the Agent Platform UI&rdquo;. <code>version="v1"</code> is the default for these properties; it is written out because page 20 says to.</li>
+    <li>The SDK creates an <code>EvaluationExperiment</code> for the run automatically &ldquo;so the run is visible in the Agent Platform UI&rdquo;. <code>version="v1"</code> is the default for these properties; it is written out because page 21 says to.</li>
     <li>Custom metrics (<code>types.LLMMetric</code>, <code>types.CodeExecutionMetric</code>) are registered once with <code>create_evaluation_metric</code> and used by runs and monitors.</li>
     <li>Install: <code>pip install google-cloud-aiplatform[adk,evaluation]</code>. Alongside <code>google-adk[eval]</code> 2.11.0 or agents-cli, pip resolves aiplatform to 1.165.x; the <code>agentplatform</code> package exists there too.</li>
   </ul></div>
 </details>
 
-<!-- ==== 22. AGENTS-CLI ==== -->
+<!-- ==== 23. AGENTS-CLI ==== -->
 <section class="page">
   <h1>agents-cli: the eval commands, and the call behind each</h1>
   <p class="lede">A project scaffolded with agents-cli has a <code class="i">tests/eval/</code> folder and an <code class="i">eval</code> command group. Each command wraps an SDK call or its own loop.</p>
@@ -1133,11 +1193,11 @@ run = client.evals.<span class="fn">create_evaluation_run</span>(
     <li>Checked 2026-10-07 in agents-cli 1.9.0: <code>cmd_grade.py</code> contains no threshold or exit-on-failure code; built-in and <code>CodeExecutionMetric</code> metrics go to the service, local custom metrics run in-process. The scaffold&rsquo;s config comment: &ldquo;Default: local LLM-as-judge &hellip; Runs in-process&rdquo;. It also defines <code>agent_turn_count</code> but does not list it in <code>metrics_to_run</code>.</li>
     <li><code>eval analyze --metric</code> accepts only <code>multi_turn_task_success</code> and <code>multi_turn_tool_use_quality</code>; the service runs it in <code>global</code> only. <code>eval generate</code> starts a local server by default and has <code>--mode adk_live</code> and <code>--qps</code> (default 15) in 1.9.0.</li>
     <li>The scaffold&rsquo;s Python pipeline: <code>pr_checks</code> runs <code>pytest tests/unit</code> and <code>tests/integration</code>; staging and prod run <code>agents-cli deploy</code>. Adding an eval gate is covered in Module 2.</li>
-    <li><code>agents-cli eval optimize</code> (Experimental, GEPA prompt optimization) is left out of the table; page 34 has ADK&rsquo;s equivalent.</li>
+    <li><code>agents-cli eval optimize</code> (Experimental, GEPA prompt optimization) is left out of the table; page 35 has ADK&rsquo;s equivalent.</li>
   </ul></div>
 </details>
 
-<!-- ==== 23. SECTION 2 RECAP ==== -->
+<!-- ==== 24. SECTION 2 RECAP ==== -->
 <section class="page">
   <h1>Section 2 recap</h1>
   <div class="checks" style="margin-top:14px;">
@@ -1153,7 +1213,7 @@ run = client.evals.<span class="fn">create_evaluation_run</span>(
   <div class="n-body"><ul><li>Hand-off: section 3 points the service at production.</li></ul></div>
 </details>
 
-<!-- ==== 24. SECTION DIVIDER: IN PRODUCTION ==== -->
+<!-- ==== 25. SECTION DIVIDER: IN PRODUCTION ==== -->
 <section class="page divider">
   <div class="wrap">
     <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">3</div><div class="sh red"></div></div>
@@ -1167,12 +1227,12 @@ run = client.evals.<span class="fn">create_evaluation_run</span>(
 <details class="notes" data-title="Section 3: In production">
   <summary>Speaker notes &mdash; Section 3 divider</summary>
   <div class="n-body"><ul>
-    <li>Module 3 (Observability) sets up the telemetry; this section restates the variables it needs and does not re-teach them.</li>
+    <li>Module 3 (Observability) sets up the telemetry and is taught after this module; page 27 states what must be recorded and points there.</li>
     <li>Module 2 (CI/CD) owns the pre-merge gate.</li>
   </ul></div>
 </details>
 
-<!-- ==== 25. THREE MOMENTS ==== -->
+<!-- ==== 26. THREE MOMENTS ==== -->
 <section class="page">
   <h1>When evals run, and what each run can see</h1>
   <p class="lede">Nothing merged in two weeks. Task success on the agent&rsquo;s production traffic fell; the nightly eval on the same code did not move.</p>
@@ -1207,42 +1267,41 @@ run = client.evals.<span class="fn">create_evaluation_run</span>(
   </ul></div>
 </details>
 
-<!-- ==== 26. RECORDING PROMPT AND RESPONSE ==== -->
+<!-- ==== 27. RECORDING PROMPT AND RESPONSE ==== -->
 <section class="page">
-  <h1>Recording the prompt and response, per runtime</h1>
-  <p class="lede">The service grades a trace only if the agent recorded what was asked and answered. A trace is one request&rsquo;s spans; a session is the whole conversation, one trace per turn.</p>
-  <p class="codelabel">Deploy-time environment for an agent on Agent Runtime</p>
-  <pre class="code">GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY=true             <span class="cm"># traces, logs, metrics</span>
-OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental    <span class="cm"># + prompts and responses</span>
-OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=EVENT_ONLY</pre>
-  <div class="tscroll"><table class="cmp">
-    <thead><tr><th>If the agent&hellip;</th><th>Then</th></tr></thead>
-    <tbody>
-      <tr><td>runs on Agent Runtime with only the first variable</td><td>traces, logs, and metrics are written, but no prompts or responses: nothing to grade</td></tr>
-      <tr class="hl"><td>runs on Agent Runtime with all three</td><td>each model call writes a log event with the messages, system instruction, and tool definitions; the trace is gradable</td></tr>
-      <tr><td>is self-run ADK (laptop, Cloud Run, GKE) with <code>--otel_to_cloud</code> and neither OTEL variable</td><td>ADK puts prompt and response text in span attributes by default (<code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS</code>), so the trace is gradable</td></tr>
-      <tr><td>is self-run ADK and sets <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code></td><td>the span attributes are empty; set the two OTEL variables, or there is nothing to grade</td></tr>
-    </tbody>
-  </table></div>
-  <div class="takeaway"><b>Takeaway:</b> on Agent Runtime, set all three variables at deploy. On a self-run ADK agent, know that prompt text is already in your traces, and decide whether it should be.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing">Agent Runtime tracing</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate offline</a> (telemetry requirements) &middot; <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/telemetry/context.py#L190">telemetry/context.py</a>, google-adk 2.11.0 &middot; self-run rows tested locally 2026-10-07.</div>
+  <h1>The service grades only what the deployed agent recorded</h1>
+  <p class="lede">This section scores traces from a deployed agent. A trace is one request&rsquo;s spans; a session is the whole conversation, one trace per turn. A trace can be complete as a timeline and still hold nothing to grade.</p>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>The telemetry has to leave the process.</b> Traces must reach Cloud Trace and logs Cloud Logging. Whether they do is a deployment setting, so an agent can run correctly and export nothing.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The telemetry has to carry the content:</b> the prompt, the tool calls and their results, and the reply. Recording content is a separate setting from exporting, and some deploy paths leave it off by default.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Which settings do this depends on how the agent is built and deployed:</b> your own server or a deploy tool&rsquo;s, Agent Runtime or Cloud Run. Module 3, Observability, sets them up for each.</p></div>
+  </div>
+  <div class="note"><span class="kk">Recorded content is customer text</span>Recording prompts puts what users typed into Cloud Trace and Cloud Logging. Decide who may read it before you turn it on.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <p><span class="lbl">Actor:</span> an engineer who wants last week&rsquo;s conversations scored.</p>
+    <p><span class="lbl">Input:</span> an agent on Agent Runtime with telemetry turned on and content recording left off.</p>
+    <p><span class="lbl">Mechanism:</span> traces, logs, and metrics are written, but per the docs they don&rsquo;t include prompts and responses.</p>
+    <p><span class="lbl">Result:</span> nothing to grade. The fix is a deployment setting, not a code change, and it applies only to conversations after the redeploy.</p>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> before you plan to score a deployed agent, import one of its sessions (page 28) and check that the item holds the prompt and the reply.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/tracing">Agent Runtime tracing</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate offline</a> (telemetry requirements) &middot; import test 2026-10-07 (page 28).</div>
 </section>
-<details class="notes" data-title="Recording the prompt and response, per runtime">
+<details class="notes" data-title="The service grades only what the deployed agent recorded">
   <summary>Speaker notes &mdash; Recording the prompt and response</summary>
   <div class="n-body"><ul>
-    <li>Agent Runtime rows are from the docs (&ldquo;enables the agent traces, logs, and metrics … but doesn&rsquo;t include prompts and response data&rdquo;); a live Agent Runtime deploy was not tested for this deck. The SDK <code>AdkApp</code> path (including agents-cli&rsquo;s Agent Runtime scaffold) sets <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS=false</code>; <code>adk deploy agent_engine --otel_to_cloud</code> writes <code>false</code> unless <code>.env</code> sets a value (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/cli_deploy.py#L1268-L1277">cli_deploy.py</a>). So on Agent Runtime the two OTEL variables are what record content. <code>agents-cli deploy</code> to Agent Runtime (1.9.0, Python) sets <code>OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=NO_CONTENT</code> and sends content to Cloud Storage through the completion hook (<code>deploy/agent_runtime.py</code>); change it to <code>EVENT_ONLY</code> for traces the service can grade.</li>
-    <li>Tested 2026-10-07, ADK 2.11.0 run locally with <code>adk api_server --otel_to_cloud</code>: with both variables, Cloud Logging held <code>gen_ai.client.inference.operation.details</code> events with the input messages and tool definitions. With neither, log bodies were <code>&lt;elided&gt;</code>, but Cloud Trace span attributes (<code>gcp.vertex.agent.llm_request</code>, <code>…llm_response</code>, <code>tool_call_args</code>, <code>tool_response</code>) held the text, and the SDK import still produced a full item.</li>
-    <li>Self-run row: only the local case was run live. In ADK 2.11.0 <code>ADK_CAPTURE_MESSAGE_CONTENT_IN_SPANS</code> reads as true when unset (<code>telemetry/context.py</code>), and the <code>cloud_run</code> and <code>gke</code> deploy paths do not touch it (<code>cli_deploy.py</code>), so Cloud Run and GKE follow from the code; neither was run live.</li>
-    <li><code>--otel_to_cloud</code> needs the exporter packages (<code>google-adk[gcp]</code>); without <code>[otel-gcp]</code> ADK logs &ldquo;Unable to import GoogleGenAiSdkInstrumentor&rdquo; but still emits the event itself at 2.11.0 (imported items were byte-identical).</li>
-    <li>Data governance: opting into prompt logging on Agent Runtime with ADK 2.1+ also logs <code>user.id</code>; the docs call for user consent and data-handling policies. Who may read these logs is ordinary Cloud Logging access control; Module 3, Observability, covers the two content settings. Multimodal agents can offload content to Cloud Storage with <code>OTEL_INSTRUMENTATION_GENAI_UPLOAD_FORMAT</code>, <code>…_COMPLETION_HOOK</code>, <code>…_UPLOAD_BASE_PATH</code>.</li>
+    <li><b>Why this page is short:</b> this module is taught before Modules 2 and 3. The per-runtime settings are Module 3: turning export on per target (p19), the exporter packages (p20), the two content settings (p21), and what each deploy path does to them (p22). Module 2 shows where each deploy path takes its environment variables.</li>
+    <li><b>If asked, Agent Runtime:</b> the docs say <code>GOOGLE_<wbr>CLOUD_<wbr>AGENT_<wbr>ENGINE_<wbr>ENABLE_<wbr>TELEMETRY=<wbr>true</code> &ldquo;enables the agent traces, logs, and metrics &hellip; but doesn&rsquo;t include prompts and response data&rdquo;; they add <code>OTEL_<wbr>SEMCONV_<wbr>STABILITY_<wbr>OPT_<wbr>IN=<wbr>gen_<wbr>ai_<wbr>latest_<wbr>experimental</code> and <code>OTEL_<wbr>INSTRUMENTATION_<wbr>GENAI_<wbr>CAPTURE_<wbr>MESSAGE_<wbr>CONTENT=<wbr>EVENT_<wbr>ONLY</code>. These are environment variables on the deployed agent; how you set them depends on the deploy tool (Module 2). A live Agent Runtime deploy was not tested for this page.</li>
+    <li><b>If asked, your own server:</b> your code installs the exporters, with the GCP resource or every export is rejected (Module 3 p19). ADK writes prompt and response text on its own spans unless <code>ADK_<wbr>CAPTURE_<wbr>MESSAGE_<wbr>CONTENT_<wbr>IN_<wbr>SPANS=<wbr>false</code>; the OpenTelemetry variable governs the <code>gen_ai.*</code> log events (Module 3 p21).</li>
+    <li>Evidence that span attributes are enough for an import: tested 2026-10-07, ADK 2.11.0 served locally with export on and neither OpenTelemetry variable set. Log bodies were <code>&lt;elided&gt;</code>, but the <code>call_llm</code> and <code>execute_tool</code> span attributes held the text, and the import produced a full item. Online monitors (p29) need more; that page&rsquo;s notes list the attributes and event they read.</li>
+    <li>Data governance: with content recording on and ADK 2.1+, the logged events also carry <code>user.id</code>; the docs call for user consent and data-handling policies. Who may read these logs is ordinary Cloud Logging and Cloud Trace access control.</li>
   </ul></div>
 </details>
 
-<!-- ==== 27. IMPORT TRACES AND RUN ==== -->
+<!-- ==== 28. IMPORT TRACES AND RUN ==== -->
 <section class="page">
-  <h1>Importing traces into an evaluation set</h1>
-  <p class="lede">An engineer wants last week&rsquo;s conversations with an agent scored. The SDK imports them by session id into an evaluation set; the run on page 21 scores the set.</p>
-  <p class="codelabel">Import sessions from Cloud Trace (aiplatform 2.4.0)</p>
+  <h1>Importing traces into an evaluation set, then scoring it</h1>
+  <p class="lede">An engineer wants last week&rsquo;s conversations with an agent scored. That takes two calls: import the sessions from Cloud Trace into an evaluation set, then run the metrics over the set with page 22&rsquo;s call.</p>
+  <p class="codelabel">Step 1: import sessions from Cloud Trace (aiplatform 2.4.0)</p>
   <pre class="code">op = client.evals.<span class="fn">import_evaluation_set</span>(
     evaluation_set={<span class="st">"display_name"</span>: <span class="st">"weather-week-41"</span>},
     gcs_destination={<span class="st">"output_uri_prefix"</span>: <span class="st">"gs://BUCKET/eval-items/"</span>},
@@ -1254,31 +1313,48 @@ API = <span class="st">"https://us-central1-aiplatform.googleapis.com"</span>
     lro = requests.get(f<span class="st">"{API}/v1/{op.name}"</span>, headers=AUTH).json()
     <span class="kw">if</span> lro.get(<span class="st">"done"</span>): <span class="kw">break</span>
     time.sleep(2)
-EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationSet"</span>]   <span class="cm"># pass to create_evaluation_run</span></pre>
+EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationSet"</span>]</pre>
+  <p class="codelabel">Step 2: score the set and read the results (page 22&rsquo;s call)</p>
+  <pre class="code">run = client.evals.<span class="fn">create_evaluation_run</span>(
+    dataset=types.EvaluationRunDataSource(evaluation_set=EVAL_SET),
+    metrics=[types.RubricMetric.TOOL_USE_QUALITY(version=<span class="st">"v1"</span>)],
+    dest=<span class="st">"gs://BUCKET/eval-results/"</span>, display_name=<span class="st">"weather-week-41"</span>)
+<span class="cm"># poll get_evaluation_run until SUCCEEDED, as on page 22</span>
+
+r = client.evals.<span class="fn">get_evaluation_run</span>(name=run.name, include_evaluation_items=<span class="kw">True</span>)
+r.evaluation_run_results.summary_metrics   <span class="cm"># mean, median, p90 for each metric</span></pre>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>The import works from any runtime:</b> it reads Cloud Trace by id, so a Cloud Run or laptop agent&rsquo;s sessions import as well as an Agent Runtime agent&rsquo;s.</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>You supply the ids.</b> The SDK takes <code class="i">session_ids</code> (every trace of each conversation) or <code class="i">trace_ids</code>, not a time window; collect them from Cloud Trace first. The docs describe a console New evaluation flow, for Agent Runtime agents, with a time picker and a version filter.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>The run writes scores to a second, generated set,</b> not back into the imported one; the per-item scores are JSON files in the bucket.</p></div>
   </div>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Step</th><th>Writes</th><th>Holds</th></tr></thead>
+    <tbody>
+      <tr><td>1. Import</td><td>one JSON file per session under <code>output_uri_prefix</code>; the evaluation set</td><td>the conversation: instruction, tool declarations, prompt, tool calls and results, reply. No scores</td></tr>
+      <tr class="hl"><td>2. Run</td><td><code>result_*.json</code> under <code>dest</code></td><td>each item&rsquo;s scores, with every rubric, its verdict, and the reasoning</td></tr>
+      <tr><td>2. Run</td><td>a second, generated evaluation set</td><td>one item per result, holding only a link to its <code>result_*.json</code>; scores are not written back into the imported set</td></tr>
+    </tbody>
+  </table></div>
   <div class="ex"><span class="kk">Example (measured 2026-10-07)</span>
-    <p><span class="lbl">Input:</span> one session from a weather agent run on a laptop with <code class="i">adk api_server --otel_to_cloud</code>.</p>
-    <p><span class="lbl">Result:</span> <code class="i">importedItemCount: 1</code> in 5.4 seconds. The item held the instruction, the <code class="i">get_weather</code> declaration, the prompt, the call and its result, and the reply. The run over the set succeeded in 75 seconds.</p>
+    <p><span class="lbl">Input:</span> one session from a weather agent served on a laptop with export to Google Cloud on.</p>
+    <p><span class="lbl">Mechanism:</span> step 1 imported <code class="i">importedItemCount: 1</code> in 5.4 seconds; the item held the instruction, the <code class="i">get_weather</code> declaration, the prompt, the call and its result, and the reply. Step 2 ran over the set.</p>
+    <p><span class="lbl">Result:</span> the run reached SUCCEEDED in 75 seconds. Its results went to a new set, &ldquo;Results Set for EvaluationRun &hellip;&rdquo;, whose item pointed at a <code class="i">result_&hellip;.json</code> under <code class="i">dest</code>.</p>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> collect session ids, import them into a set, and run the metrics over it; read the failing rubrics, not only the average.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate offline</a> &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">import_evaluation_set</code>), <code class="i">types/common.py</code> (<code class="i">EvaluationSetCloudTraceSource</code>), aiplatform 2.4.0 &middot; run end to end 2026-10-07.</div>
+  <div class="takeaway"><b>Takeaway:</b> collect session ids, import them into a set, and run the metrics over it; then read the failing rubrics in the result files, not only the average.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">evaluate offline</a> &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">import_evaluation_set</code>, <code class="i">create_evaluation_run</code>, <code class="i">get_evaluation_run</code>), <code class="i">types/common.py</code> (<code class="i">EvaluationSetCloudTraceSource</code>), aiplatform 2.4.0 &middot; run end to end 2026-10-07.</div>
 </section>
-<details class="notes" data-title="Importing traces into an evaluation set">
-  <summary>Speaker notes &mdash; Importing traces</summary>
+<details class="notes" data-title="Importing traces into an evaluation set, then scoring it">
+  <summary>Speaker notes &mdash; Importing traces and scoring them</summary>
   <div class="n-body"><ul>
-    <li>Tested 2026-10-07 in <code>jwd-dev-5</code>: the call above ran as written; the returned <code>ImportEvaluationSetOperation</code> had only <code>name</code> populated and no <code>response</code> field. The raw operation carried <code>response.evaluationSet</code> and <code>metadata.importedItemCount</code>. Two imports took 5.4 s and 8.5 s. <code>AUTH</code> is a bearer-token header from <code>google.auth.default()</code>. There is no polling helper on <code>Evals</code>.</li>
+    <li>Tested 2026-10-07 in <code>jwd-dev-5</code>: step 1 ran as written; the returned <code>ImportEvaluationSetOperation</code> had only <code>name</code> populated and no <code>response</code> field. The raw operation carried <code>response.evaluationSet</code> and <code>metadata.importedItemCount</code>. Two imports took 5.4 s and 8.5 s; each item was about 2 KB. <code>AUTH</code> is a bearer-token header from <code>google.auth.default()</code>. There is no polling helper on <code>Evals</code>.</li>
+    <li>Step 2 over the imported set, same day: <code>EvaluationRunState.SUCCEEDED</code> in 75 s; <code>evaluation_run_results.evaluation_set</code> named a new set (&ldquo;Results Set for EvaluationRun &lt;id&gt;&rdquo;), not the source set; its item had <code>evaluationItemType: RESULT</code>, a <code>gcsUri</code> to <code>&hellip;/eval-results/result_&hellip;.json</code>, and a <code>session_id</code> label. The test log does not record that run&rsquo;s score values, so the page shows where results are, not numbers. Page 22&rsquo;s run (same calls, inline data) showed <code>summary_metrics</code> with AVERAGE/MEDIAN/P90 and, with <code>include_evaluation_items=True</code>, the rubric verdicts.</li>
     <li>Exactly one of <code>gcs_source</code>, <code>inline_source</code>, <code>cloud_trace_source</code>; <code>gcs_destination</code> is required. Both <code>trace_ids</code> and <code>session_ids</code> given &rarr; the union is imported.</li>
-    <li>The run auto-creates an <code>EvaluationExperiment</code>, listable only on <code>v1beta1</code> (<code>v1</code> returns 404). Result items carry metadata and a <code>gcsUri</code>; scores are in the GCS object.</li>
-    <li>Console flow not seen: there was no browser access to the console. <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">Evaluate offline</a> (&ldquo;Create an evaluation from the registry&rdquo;) says &ldquo;Click New evaluation&rdquo; and &ldquo;Use the filter icon and time picker to filter data (for example, by Version or &lsquo;Last 2 weeks&rsquo;)&rdquo;, with an Agent Runtime deployed and Cloud Trace enabled as prerequisites.</li>
-    <li>Console: current docs name the Evaluation page&rsquo;s tabs Evaluations, Online monitors, and Metrics, and describe a New evaluation button; the console requires an Agent Runtime agent. The previous deck said the button did not exist; re-check in the console before teaching it. By default the console flow adds &ldquo;all four core metrics&rdquo;, likely the four single-turn agent metrics.</li>
+    <li>The run auto-creates an <code>EvaluationExperiment</code>, listable only on <code>v1beta1</code> (<code>v1</code> returns 404).</li>
+    <li>Console flow not seen: there was no browser access to the console. <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-offline">Evaluate offline</a> (&ldquo;Create an evaluation from the registry&rdquo;) says &ldquo;Click New evaluation&rdquo; and &ldquo;Use the filter icon and time picker to filter data (for example, by Version or &lsquo;Last 2 weeks&rsquo;)&rdquo;, with an Agent Runtime deployed and Cloud Trace enabled as prerequisites. By default the console flow adds &ldquo;all four core metrics&rdquo;, likely the four single-turn agent metrics. Re-check in the console before teaching it.</li>
   </ul></div>
 </details>
 
-<!-- ==== 28. ONLINE MONITOR ==== -->
+<!-- ==== 29. ONLINE MONITOR ==== -->
 <section class="page">
   <h1>An online monitor scores live traces on a schedule</h1>
   <p class="lede">An on-demand run answers a question once. To see a drop while it happens, a team configures an online monitor that samples the agent&rsquo;s traces and scores them every 10 minutes in our test.</p>
@@ -1324,10 +1400,10 @@ EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationS
   </ul></div>
 </details>
 
-<!-- ==== 29. ALERTING ==== -->
+<!-- ==== 30. ALERTING ==== -->
 <section class="page">
   <h1>Alerting on a quality score</h1>
-  <p class="lede">A monitor writes task-success scores to Cloud Monitoring. An ordinary alert policy on that metric opens an incident when the score stays low.</p>
+  <p class="lede">Each monitor run writes one reading: the mean task-success score of the traces it scored, pooled across every agent the filter matches. This policy opens an incident only when every reading for 30 minutes is below 0.8. A healthy agent reads above 0.8 and never alerts; one good reading during a bad stretch starts the 30 minutes over.</p>
   <p class="codelabel good">policy.yaml &mdash; accepted by <code class="i">gcloud monitoring policies create --policy-from-file</code></p>
   <pre class="code"><span class="st">displayName</span>: <span class="st">"Low task success"</span>
 <span class="st">combiner</span>: OR
@@ -1345,6 +1421,21 @@ EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationS
     - <span class="st">alignmentPeriod</span>: 60s
       <span class="st">perSeriesAligner</span>: ALIGN_DELTA
       <span class="st">crossSeriesReducer</span>: REDUCE_MEAN</pre>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>If&hellip;</th><th>Then</th></tr></thead>
+    <tbody>
+      <tr><td>every reading stays under 0.8 for 1800 s, such as 0.74, 0.77, 0.72, 0.75 from four consecutive runs</td><td>an incident opens for the policy; the monitor&rsquo;s Sampled traces lead to the failing conversations</td></tr>
+      <tr><td>one reading is 0.8 or higher in that window</td><td>the 1800 s clock restarts</td></tr>
+      <tr><td>every reading is 0.8 or higher, such as 0.91, 0.88, 0.93</td><td>nothing happens: quality is above the threshold</td></tr>
+    </tbody>
+  </table></div>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot red"></div><p><b>Check the label value before you rely on the alert.</b> The docs&rsquo; sample uses <code class="i">task_success</code>, but a safety monitor&rsquo;s scores carry <code class="i">safety_v1</code>. A value that matches nothing never fires, so copy it from Metrics Explorer.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Two required parts:</b> the filter must name the <code class="i">resource.type</code>, which the docs&rsquo; sample leaves out, and the policy needs a <code class="i">combiner</code>. Add a channel with <code class="i">--notification-channels</code>.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>The console offers templates:</b> a monitor&rsquo;s Create alerting policy (one per metric on the monitor), or the dashboard&rsquo;s Recommended Alerts.</p></div>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> alert on the score with a duration that spans several monitor runs.</div>
+  <h2 class="deep"><span class="kk">Deep dive</span>How the policy turns scores into one number</h2>
   <div class="checks">
     <div class="checkrow"><div class="cdot"></div><p><b>The score metric is a distribution.</b> A monitor run scores many traces. Cloud Monitoring does not store each score as its own number. It stores one point that counts how many scores fell in each range, like a histogram. Each point covers only its own stretch of time (the metric&rsquo;s kind is DELTA).</p></div>
     <div class="checkrow"><div class="cdot"></div><p><b>A time series is one stream of points for one set of labels,</b> such as one agent and one <code class="i">evaluation_metric_name</code>. <b>Alignment</b> puts a series on a regular clock: it cuts the series into equal blocks of time and makes one value per block, so that the policy can compare it with a threshold and combine it with other series.</p></div>
@@ -1358,19 +1449,6 @@ EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationS
       <tr><td><code>crossSeriesReducer: REDUCE_MEAN</code></td><td>combines every series the filter matches into one line, with a mean for each block</td><td>accepts distributions and outputs a plain number, which is what the policy compares with 0.8</td></tr>
     </tbody>
   </table></div>
-  <div class="tscroll"><table class="cmp">
-    <thead><tr><th>If&hellip;</th><th>Then</th></tr></thead>
-    <tbody>
-      <tr><td>every point stays under 0.8 for 1800 s, such as 0.74, 0.77, 0.72, 0.75 from four consecutive runs</td><td>an incident opens, labeled with the monitor; the monitor&rsquo;s Sampled traces lead to the failing conversations</td></tr>
-      <tr><td>one point is 0.8 or higher in that window</td><td>the 1800 s clock restarts</td></tr>
-    </tbody>
-  </table></div>
-  <div class="checks">
-    <div class="checkrow"><div class="cdot red"></div><p><b>Check the label value before you rely on the alert.</b> The docs&rsquo; sample uses <code class="i">task_success</code>, but a safety monitor&rsquo;s scores carry <code class="i">safety_v1</code>. A value that matches nothing never fires, so copy it from Metrics Explorer.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Two required parts:</b> the filter must name the <code class="i">resource.type</code>, which the docs&rsquo; sample leaves out, and the policy needs a <code class="i">combiner</code>. Add a channel with <code class="i">--notification-channels</code>.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>The console offers templates:</b> a monitor&rsquo;s Create alerting policy (one per metric on the monitor), or the dashboard&rsquo;s Recommended Alerts.</p></div>
-  </div>
-  <div class="takeaway"><b>Takeaway:</b> alert on the score with a duration that spans several monitor runs.</div>
   <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/quality-alerts">quality alerts</a> &middot; <a href="https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies">alertPolicies API</a> (aligners, reducers) &middot; policy created and deleted 2026-10-07.</div>
 </section>
 <details class="notes" data-title="Alerting on a quality score">
@@ -1381,69 +1459,68 @@ EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationS
     <li>Metric descriptor: <code>online_evaluator/scores</code>, DELTA, DISTRIBUTION, launch stage BETA, labels <code>agent_resource_name</code>, <code>evaluation_metric_name</code>, <code>runtime_revision_id</code>. The label value <code>task_success</code> is from the docs sample; no scores were written in the 2026-10-07 test. Checked 2026-10-31: <code>jwd-dev-5</code> has one series for this metric, labeled <code>evaluation_metric_name="safety_v1"</code>. A task-success series was not available, so its real value is unconfirmed and the docs do not list the allowed values.</li>
     <li>From the <a href="https://docs.cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.alertPolicies">alertPolicies reference</a>: <code>ALIGN_MEAN</code> &ldquo;is valid for GAUGE and DELTA metrics with numeric values&rdquo;; <code>ALIGN_DELTA</code> &ldquo;is valid for CUMULATIVE and DELTA metrics&rdquo; and its result has &ldquo;the same&rdquo; value type as its input; <code>REDUCE_MEAN</code> &ldquo;is valid for DELTA and GAUGE metrics with numeric or distribution values&rdquo; and outputs DOUBLE. The docs do not say how the mean weights series with different numbers of scores. Distribution explained: <a href="https://docs.cloud.google.com/monitoring/api/v3/distribution-metrics">distribution-valued metrics</a>; alignment and reduction: <a href="https://docs.cloud.google.com/monitoring/api/v3/aggregation">aggregation</a>.</li>
     <li>Not tested: how the condition treats the empty 60-second blocks between points 10 minutes apart. The reference says that for <code>ALIGN_DELTA</code> the value of a period with no data &ldquo;is created by interpolation&rdquo;. Four points are the fewest that span 30 minutes at a 10-minute schedule (0, 10, 20, 30); no scores were written in the test, so the exact moment the incident opens was not observed. Watch for it the first time the alert runs.</li>
+    <li>The policy has no <code>groupByFields</code>, so <code>REDUCE_MEAN</code> merges every agent and revision the filter matches into one series: a healthy agent can mask a failing one, and the incident carries no per-agent label. One condition per agent would add <code>groupByFields: [metric.label.agent_resource_name]</code> (not tested).</li>
     <li>A second Cloud Monitoring metric, <code>online_evaluator/evaluations_count</code>, can alert when evaluations themselves fail.</li>
     <li>The docs gloss the condition as &ldquo;falls below 80% over a 30-minute window&rdquo;; a threshold condition with <code>duration</code> needs every point below for the whole duration, not a 30-minute mean.</li>
     <li>Severity (ticket vs page) is a team decision; no source sets it. Generic Cloud Monitoring otherwise; Module 3 covers alert policies.</li>
   </ul></div>
 </details>
 
-<!-- ==== 30. REACTING ==== -->
+<!-- ==== 31. REACTING ==== -->
 <section class="page">
-  <h1>Reacting: cluster the failures, then read the traces</h1>
-  <p class="lede">An evaluation over a week of multi-turn conversations has 40 failing cases. Loss clustering, the service&rsquo;s grouping of failed cases, sorts the failures into named failure patterns, 13 per metric, before anyone opens a trace.</p>
-  <figure>
-    <svg viewBox="0 0 1000 220" width="1000" height="220" role="img" aria-label="The triage order from the docs, and the course's additions">
-      <defs><marker id="m30a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
-      <rect x="20" y="30" width="140" height="66" rx="6" fill="var(--fill-gray)" stroke="var(--line)"/><text x="90" y="58" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">summary</text><text x="90" y="80" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">per metric</text>
-      <line x1="160" y1="63" x2="182" y2="63" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m30a)"/>
-      <rect x="184" y="30" width="140" height="66" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="254" y="52" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">clusters</text><text x="254" y="72" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">one metric&rsquo;s</text><text x="254" y="88" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">patterns</text>
-      <line x1="324" y1="63" x2="346" y2="63" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m30a)"/>
-      <rect x="348" y="30" width="140" height="66" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="418" y="58" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">traces</text><text x="418" y="80" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">the examples</text>
-      <line x1="488" y1="63" x2="510" y2="63" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m30a)"/>
-      <rect x="512" y="30" width="140" height="66" rx="6" fill="var(--fill-blue)" stroke="var(--g-blue)"/><text x="582" y="58" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">cause</text><text x="582" y="80" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">prompt, tool, data</text>
-      <line x1="652" y1="63" x2="674" y2="63" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m30a)"/>
-      <rect x="676" y="30" width="140" height="66" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="746" y="58" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">targeted fix</text><text x="746" y="80" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">one change</text>
-      <line x1="816" y1="63" x2="838" y2="63" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m30a)"/>
-      <rect x="840" y="30" width="140" height="66" rx="6" fill="var(--fill-green)" stroke="var(--g-green)"/><text x="910" y="58" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">re-run</text><text x="910" y="80" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">and compare</text>
-      <rect x="348" y="134" width="632" height="62" rx="6" fill="none" stroke="var(--ink-3)" stroke-dasharray="5 4"/><text x="664" y="160" font-family="var(--sans)" font-size="15" fill="var(--ink-2)" text-anchor="middle">Course addition, not in the docs&rsquo; list</text><text x="664" y="182" font-family="var(--sans)" font-size="13" fill="var(--ink-2)" text-anchor="middle">add the failing traces to the eval set, and gate the fix on a PR (Module 2)</text>
-      <line x1="418" y1="96" x2="418" y2="131" stroke="#5f6368" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#m30a)"/>
-    </svg>
-    <figcaption>The top row is the docs&rsquo; recommended triage order. Dashed: the course&rsquo;s addition.</figcaption>
-  </figure>
-  <div class="tscroll"><table class="cmp">
-    <thead><tr><th>Metric clustered</th><th>Categories</th><th>Example patterns (13 per metric)</th></tr></thead>
-    <tbody>
-      <tr><td class="m">multi_turn_task_success_v1</td><td>Hallucination, Instruction Following, Tool Calling, Tool Output Handling, Tool Quality</td><td>Hallucination of Action; Over-Punting (declines a task it has a tool for); Incorrect Tool Selection; Incomplete Execution; Tool Failure</td></tr>
-      <tr><td class="m">multi_turn_tool_use_quality_v1</td><td>Hallucination, Tool Calling, Tool Response</td><td>Hallucination of Parameter Value; Omission of Required Tool Call; Incorrect Parameter Value; Tool Error</td></tr>
-    </tbody>
-  </table></div>
-  <div class="note"><span class="kk">Limits</span>Loss clustering works only for these two metrics, and only in the <code class="i">global</code> region.</div>
-  <div class="ex"><span class="kk">Example</span>
-    <p><span class="lbl">Input:</span> the 40 failures, clustered on <code class="i">multi_turn_tool_use_quality_v1</code>.</p>
-    <p><span class="lbl">Result:</span> three clusters: Omission of Required Tool Call 31, Incorrect Parameter Value 6, Tool Error 3 <span class="tag illus">illustrative</span>. The 31 traces all skip the same lookup, so the fix is one instruction clause, not 31 separate cases.</p>
+  <h1>Reacting: let the service group the failures, then read a few traces</h1>
+  <p class="lede">A run over last week&rsquo;s conversations flags 40 failures. An engineer opening all 40 traces spends hours. Loss clustering hands that first pass to the evaluation service: it reads every failed result, sorts the failures into named failure patterns, and gives a reason for each. The engineer then reads two or three traces per pattern.</p>
+  <p class="codelabel">Score, then cluster the failures (aiplatform 2.7.0)</p>
+  <pre class="code"><span class="kw">from</span> agentplatform <span class="kw">import</span> Client, types
+client = Client(project=PROJECT, location=<span class="st">"global"</span>)   <span class="cm"># loss clustering is global-only</span>
+
+<span class="cm"># cases: one EvalCase per conversation, holding its agent_data</span>
+result = client.evals.<span class="fn">evaluate</span>(
+    dataset=types.EvaluationDataset(eval_cases=cases),
+    metrics=[types.RubricMetric.MULTI_TURN_TOOL_USE_QUALITY])
+
+clusters = client.evals.<span class="fn">generate_loss_clusters</span>(eval_result=result)
+<span class="kw">for</span> c <span class="kw">in</span> clusters.results[0].clusters:
+    print(c.taxonomy_entry.l2_category, c.item_count)
+    <span class="kw">for</span> ex <span class="kw">in</span> c.examples:
+        print(<span class="st">"   "</span>, ex.failed_rubrics[0].classification_rationale)</pre>
+  <p class="codelabel">Output, six weather-agent conversations, four with planted faults (measured 2026-11-03; rationales shortened)</p>
+  <pre class="term">Omission of Required Tool Call 3
+    &hellip;the agent provided a text response about the weather in Denver
+       without executing the required `get_weather` tool call&hellip;
+    &hellip;failed to call the required tool `get_weather`&hellip;
+    &hellip;provided a direct text response &hellip; without initiating the required
+       `get_weather` tool call&hellip;
+Incorrect Parameter Value 1
+    &hellip;provided the value "Portland, OR" instead of the requested "Portland, Maine"&hellip;</pre>
+  <div class="checks">
+    <div class="checkrow"><div class="cdot"></div><p><b>What the service reads:</b> each failed case&rsquo;s conversation and the judge&rsquo;s failed rubrics. It assigns each failure to patterns from a fixed list that belongs to the metric (13 for tool-use quality, 12 for task success). Only these two multi-turn metrics are supported.</p></div>
+    <div class="checkrow"><div class="cdot red"></div><p><b>It groups only what the metric failed.</b> The fourth planted fault ignored a tool error and invented &ldquo;30&deg;C and sunny&rdquo;. Tool-use quality scored it 1.0, so it is in no cluster.</p></div>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> cluster first, read a few traces per cluster, decide whether the cause is the prompt, a tool, or the data, and keep the failing traces as eval cases.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view results</a> (loss taxonomies, recommended triage workflow) &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">generate_loss_clusters</code>), aiplatform 2.4.0.</div>
+  <div class="takeaway"><b>Takeaway:</b> let the service read all the failures; you read a few traces per pattern and fix the largest pattern first. Then re-run, and add those conversations to the eval set.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/view-results">view results</a> (loss analysis, taxonomies, recommended triage workflow) &middot; <code class="i">agentplatform/_genai/evals.py</code> (<code class="i">generate_loss_clusters</code>), aiplatform 2.7.0 &middot; test run 2026-11-03.</div>
 </section>
-<details class="notes" data-title="Reacting: cluster the failures">
+<details class="notes" data-title="Reacting: group the failures">
   <summary>Speaker notes &mdash; Reacting</summary>
   <div class="n-body"><ul>
-    <li>Constraints (aiplatform 2.4.0 docstrings): loss analysis supports only <code>multi_turn_task_success_v1</code> and <code>multi_turn_tool_use_quality_v1</code>, and &ldquo;is only available in the global region&rdquo;. <code>client.evals</code>&rsquo;s <code>generate_loss_clusters(eval_result=…)</code> takes the result of <code>client.evals.evaluate()</code>; for an evaluation run, request it up front with <code>create_evaluation_run(loss_analysis_metrics=[…])</code> (experimental). <code>agents-cli eval analyze</code> wraps it. Tested 2026-10-07 (aiplatform 2.4.0, <code>global</code>, judge <code>gemini-3.5-flash</code>): <code>evaluate()</code> on five two-turn refund cases, four with planted faults, then <code>generate_loss_clusters(eval_result=…)</code>, which inferred the metric and candidate. Tool-use quality gave Omission of Required Tool Call 3, Incorrect Parameter Value 1. Each cluster returns an L1 category, an L2 pattern, a count, and the failing cases, each with the failed rubric and a one-line rationale. The passing case was in no cluster.</li>
-    <li>A case can land in more than one cluster, so cluster counts can add up to more than the failures: on the same cases, task success put 4 failing cases into 7 cluster memberships (one case in three clusters, one in two).</li>
-    <li>For the multi-turn metrics, set the judge with <code>judge_model_step_configs</code> and a full model resource name (<code>…/models/gemini-3.5-flash</code>); <code>judge_model</code> is ignored (the SDK warns), and a bare model name fails with <code>400 … Invalid autorater model resource name</code>.</li>
-    <li>One run clusters with one metric&rsquo;s taxonomy; the two taxonomies do not mix (Over-Punting is only in task success).</li>
-    <li>Docs&rsquo; triage: summary metrics &rarr; per-case results &rarr; failure clusters &rarr; traces &rarr; root cause (&ldquo;a prompt problem, a tool configuration problem, or a data problem&rdquo;) &rarr; targeted fix &rarr; re-run and compare. Over-Punting: the agent declines a task, claiming it lacks a tool or capability it has.</li>
-    <li>Compare versions with <code>agents-cli eval compare</code> on two result files, or the dashboard&rsquo;s Performance Trends (online monitors).</li>
-    <li>Agent-specific: eval sets are maintained artifacts, and production is where new cases come from.</li>
+    <li>Point of the page: the slow part of reacting is a person reading failures one at a time. The service does the first read of every failure; the person reads a few per pattern and fixes the biggest pattern first.</li>
+    <li>Test, 2026-11-03 (aiplatform 2.7.0, <code>global</code>, default judge): six two-turn weather-agent conversations built as <code>agent_data</code> (agent instruction &ldquo;Always call get_weather &hellip; never guess&rdquo;, one tool, turns of events). Faults: three answer without calling the tool, one calls it with &ldquo;Portland, OR&rdquo; for Portland, Maine, one ignores a tool error and invents an answer. Scores: 1.0, 0.0, 0.0, 0.0, 0.67, 1.0. Scoring took about 45 s. <code>generate_loss_clusters</code> inferred the metric and candidate and returned the two clusters on the page; the passing cases and the tool-error case were in none.</li>
+    <li>Each cluster carries a <code>taxonomy_entry</code> (<code>l1_category</code>, <code>l2_category</code>, <code>description</code>), an <code>item_count</code>, and <code>examples</code>. Each example holds the full evaluation result and its <code>failed_rubrics</code>: a <code>rubric_id</code> and a <code>classification_rationale</code>, which the SDK describes as written by &ldquo;the Loss Analysis Classifier&rdquo;. The failed rubric for Denver: &ldquo;The agent calls the <code>get_weather</code> function to check the current weather.&rdquo; In a notebook, <code>clusters.show()</code> renders a report; the console shows the same under a run&rsquo;s Failure Clusters.</li>
+    <li>Docs&rsquo; wording: loss analysis &ldquo;analyzes the pass or fail signals from rubric-based metrics&rdquo;, assigns each failure to &ldquo;predefined loss patterns&rdquo;, and &ldquo;groups them into semantic clusters&rdquo;. It clusters failed rubrics, not low scores: the Portland case scored 0.67 and was still clustered.</li>
+    <li>Taxonomies (docs, 2026-11-03): tool-use quality, 13 patterns in 3 categories (Hallucination, Tool Calling, Tool Response). Task success, 12 patterns in 5 categories (Hallucination, Instruction Following, Tool Calling, Tool Output Handling, Tool Quality), e.g. Hallucination of Action, Over-Punting (declines a task it has a tool for). One analysis uses one metric&rsquo;s list. The tool-error case would likely be caught by task success; not tested.</li>
+    <li>A case can land in more than one cluster, so counts can add up to more than the failures (2026-10-07 test: task success put 4 failing cases into 7 cluster memberships).</li>
+    <li>For a managed run like page 28&rsquo;s, request clustering up front with <code>create_evaluation_run(loss_analysis_metrics=[&hellip;])</code> (experimental, not tested here). The run must be in <code>global</code>; page 28&rsquo;s example ran in <code>us-central1</code>. <code>agents-cli eval analyze</code> wraps <code>generate_loss_clusters</code>.</li>
+    <li>For the multi-turn metrics, set a non-default judge with <code>judge_model_step_configs</code> and a full model resource name (<code>&hellip;/models/gemini-3.5-flash</code>); <code>judge_model</code> is ignored (the SDK warns), and a bare model name fails with <code>400 &hellip; Invalid autorater model resource name</code>.</li>
+    <li>Docs&rsquo; triage order: summary metrics &rarr; per-case results &rarr; failure clusters &rarr; traces &rarr; root cause (prompt, tool configuration, or data) &rarr; targeted fix &rarr; re-run and compare. Adding the failing conversations to the eval set is the course&rsquo;s addition (Module 2).</li>
   </ul></div>
 </details>
 
-<!-- ==== 31. SECTION 3 RECAP ==== -->
+<!-- ==== 32. SECTION 3 RECAP ==== -->
 <section class="page">
   <h1>Section 3 recap</h1>
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>Score production with reference-free metrics; only production scoring sees a change in what users send.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>On Agent Runtime, set the telemetry variable and both OTEL variables at deploy; a self-run ADK agent already records prompt text in spans.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>The deployed agent must export its telemetry and record the prompt and reply; import one session to check. Module 3 sets this up per runtime.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Import sessions by id from any runtime, then run the metrics over the set.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>An online monitor samples Agent Runtime traces on a schedule and writes scores to Cloud Monitoring; alert on them with <code class="i">ALIGN_DELTA</code> + <code class="i">REDUCE_MEAN</code> and a duration of several runs.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Cluster failures, read their traces, fix the cause, and add the traces as cases.</p></div>
@@ -1454,7 +1531,7 @@ EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationS
   <div class="n-body"><ul><li>Hand-off: the optional section if there is time; otherwise go to the consequences page.</li></ul></div>
 </details>
 
-<!-- ==== 32. SECTION DIVIDER: OPTIONAL ==== -->
+<!-- ==== 33. SECTION DIVIDER: OPTIONAL ==== -->
 <section class="page divider">
   <div class="wrap">
     <div class="shapes"><div class="sh green"></div><div class="sh yellow"></div><div class="sh blue">4</div><div class="sh red"></div></div>
@@ -1470,7 +1547,7 @@ EVAL_SET = lro[<span class="st">"response"</span>][<span class="st">"evaluationS
   <div class="n-body"><ul><li>Cut here if out of time; the consequences and references pages do not depend on these.</li></ul></div>
 </details>
 
-<!-- ==== 33. CONFORMANCE REPLAY ==== -->
+<!-- ==== 34. CONFORMANCE REPLAY ==== -->
 <section class="page">
   <h1>Conformance replay: did a code change alter what the agent sends the model?</h1>
   <p class="lede">A developer tidying a weather agent&rsquo;s code renames a tool and wants to know whether the agent still behaves the same. An eval can&rsquo;t answer that cleanly: model output varies from run to run, so a different reply could come from the rename or from the model.</p>
@@ -1569,7 +1646,7 @@ Running weather/paris... ✓ PASS</pre>
   </ul></div>
 </details>
 
-<!-- ==== 34. RELATED TOPICS ==== -->
+<!-- ==== 35. RELATED TOPICS ==== -->
 <section class="page">
   <h1>Related topics</h1>
   <p class="lede">Four ADK features this module names and does not teach. Each extends an eval set or a run.</p>
@@ -1591,7 +1668,7 @@ Running weather/paris... ✓ PASS</pre>
   </ul></div>
 </details>
 
-<!-- ==== 35. CONSEQUENCES ==== -->
+<!-- ==== 36. CONSEQUENCES ==== -->
 <section class="page">
   <h1>You observed &rarr; because &rarr; so you&hellip;</h1>
   <div class="tscroll"><table class="cmp" style="margin-top:14px;">
@@ -1617,7 +1694,7 @@ Running weather/paris... ✓ PASS</pre>
   </ul></div>
 </details>
 
-<!-- ==== 36. REFERENCES ==== -->
+<!-- ==== 37. REFERENCES ==== -->
 <section class="page">
   <h1>References</h1>
   <ul style="margin-top:14px;">
