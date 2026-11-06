@@ -371,7 +371,7 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
   <summary>Speaker notes &mdash; Module objectives</summary>
   <div class="n-body"><ul>
     <li>Each objective is something the student can do on Monday, not a topic name.</li>
-    <li>Objective 1 carries the surprise of the module (page 7: the obvious eval command never fails a build). Flag it now.</li>
+    <li>Objective 1 carries the surprise of the module (page 8: the obvious eval command never fails a build). Flag it now.</li>
   </ul></div>
 </details>
 
@@ -493,57 +493,104 @@ figure{--panel:#fff;--fill-gray:#fff;--g-blue:#475569;--g-blue-deep:#334155;--fi
 <!-- ==== 6. WHEN EVALS RUN ==== -->
 <section class="page">
   <h1>When evals run, and how many cases</h1>
-  <p class="lede">Running every eval case on every edit is slow and costs model calls. Running none until release finds the problem after the change has merged.</p>
+  <p class="lede">A team has 400 eval cases. Running all of them on every edit is slow and costs model calls; waiting until release finds a problem after the change has merged.</p>
   <figure>
-    <svg viewBox="0 0 1000 300" width="1000" height="300" role="img" aria-label="Three eval cadences with case counts">
+    <svg viewBox="0 0 1000 410" width="1000" height="410" role="img" aria-label="Four eval stages with their cases and what a failure does">
       <defs><marker id="m6" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5f6368"/></marker></defs>
       <text x="16" y="24" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">WHILE YOU WORK</text>
       <rect x="16" y="34" width="330" height="58" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
-      <text x="181" y="58" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">~12 cases, under a minute</text>
+      <text x="181" y="58" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">~12 related cases</text>
       <text x="181" y="80" font-family="var(--mono)" font-size="13" fill="var(--g-blue-deep)" text-anchor="middle">you read the scores; no gate</text>
-      <text x="16" y="128" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">ON EVERY PULL REQUEST</text>
+      <text x="16" y="128" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">BEFORE MERGE, ON EVERY PULL REQUEST</text>
       <rect x="16" y="138" width="330" height="58" rx="8" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="2"/>
-      <text x="181" y="162" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">~60 cases, a few minutes</text>
-      <text x="181" y="184" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">a low score fails the build</text>
+      <text x="181" y="162" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">full set, ~400 cases</text>
+      <text x="181" y="184" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">a low score blocks the merge</text>
       <line x1="346" y1="167" x2="400" y2="167" stroke="#5f6368" stroke-width="1.6" marker-end="url(#m6)"/>
       <rect x="408" y="138" width="230" height="58" rx="8" fill="var(--panel)" stroke="var(--line)"/>
       <text x="523" y="162" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">merge to main</text>
       <text x="523" y="184" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">then build image, deploy</text>
-      <text x="16" y="232" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">NIGHTLY</text>
-      <rect x="16" y="242" width="330" height="54" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
-      <text x="181" y="265" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">full set, ~400 cases</text>
-      <text x="181" y="286" font-family="var(--mono)" font-size="13" fill="var(--g-blue-deep)" text-anchor="middle">off the merge path</text>
+      <text x="16" y="232" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">AFTER DEPLOY TO STAGING</text>
+      <rect x="16" y="242" width="330" height="58" rx="8" fill="var(--fill-green)" stroke="var(--g-green)" stroke-width="2"/>
+      <text x="181" y="266" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">smoke test: main paths, each tool</text>
+      <text x="181" y="288" font-family="var(--mono)" font-size="13" fill="var(--g-green-deep)" text-anchor="middle">a failure blocks production</text>
+      <line x1="346" y1="271" x2="400" y2="271" stroke="var(--g-gray)" stroke-width="1.6" marker-end="url(#m6)"/>
+      <rect x="408" y="242" width="230" height="58" rx="8" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="523" y="266" font-family="var(--sans)" font-size="15" fill="var(--ink)" text-anchor="middle">deploy to production</text>
+      <text x="523" y="288" font-family="var(--mono)" font-size="13" fill="var(--ink-2)" text-anchor="middle">after staging passes</text>
+      <text x="16" y="336" font-family="var(--mono)" font-size="13" fill="var(--ink-3)">ON A SCHEDULE, SAME CODE</text>
+      <rect x="16" y="346" width="330" height="58" rx="8" fill="var(--fill-blue)" stroke="var(--g-blue)" stroke-width="1.6"/>
+      <text x="181" y="370" font-family="var(--sans)" font-size="16" fill="var(--ink)" text-anchor="middle">full set, ~400 cases</text>
+      <text x="181" y="392" font-family="var(--mono)" font-size="13" fill="var(--g-blue-deep)" text-anchor="middle">a low score alerts someone</text>
       <text x="670" y="60" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">Same case format at every size.</text>
       <text x="670" y="84" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">Cost grows with cases &times; runs</text>
       <text x="670" y="106" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">per case &times; judge calls.</text>
       <text x="670" y="134" font-family="var(--sans)" font-size="13.5" fill="var(--ink-3)">Runs per case: 2 by default in AgentEvaluator.</text>
       <text x="670" y="154" font-family="var(--sans)" font-size="13.5" fill="var(--ink-3)">Judge call: a second model call</text>
       <text x="670" y="172" font-family="var(--sans)" font-size="13.5" fill="var(--ink-3)">that grades the answer.</text>
-      <text x="670" y="270" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">A failed conversation from</text>
-      <text x="670" y="292" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">production becomes a new case.</text>
+      <text x="670" y="372" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">A failed conversation from</text>
+      <text x="670" y="394" font-family="var(--sans)" font-size="15" fill="var(--ink-2)">production becomes a new case.</text>
     </svg>
-    <figcaption>Case counts and times are illustrative; the sizes are a team decision.</figcaption>
+    <figcaption>Case counts are illustrative; the stages are this course&rsquo;s recommendation, not a published standard.</figcaption>
   </figure>
+  <div class="note blue"><span class="kk">Smoke test</span>The full set ran in CI, so it never touched the deployed agent. A smoke test sends a few conversations to that agent to confirm that its permissions, configuration, and tools work there. It does not grade quality. Generic: any deployed service needs this check.</div>
+  <div class="note"><span class="kk">When a subset makes sense</span>Frequent pull requests or a slow, expensive set can justify a smaller gate. Choose its cases on purpose: business-critical behaviors, past production failures, and at least one case per tool. Then run the full set after merge, before production.</div>
   <div class="ex"><span class="kk">Example</span>
     <p><span class="lbl">Actor:</span> a developer editing a travel agent&rsquo;s instruction.</p>
     <p><span class="lbl">Input:</span> &ldquo;offer a rebooking when appropriate&rdquo; becomes &ldquo;only offer a rebooking after confirming the flight was cancelled.&rdquo;</p>
-    <p><span class="lbl">Mechanism:</span> the 12 local cases show two failures; after the developer fixes the wording, all 12 pass. The 60-case PR set also has delayed-flight and missed-connection cases that expect a rebooking offer, and the agent now refuses those three.</p>
+    <p><span class="lbl">Mechanism:</span> the 12 local cases show two failures; after the developer fixes the wording, all 12 pass. The full set on the pull request also has three delayed-flight and missed-connection cases that expect a rebooking offer, and the agent now refuses all three.</p>
     <p><span class="lbl">Result:</span> the three cases fail on the pull request and the merge is blocked, before any image is built <span class="tag illus">illustrative</span>.</p>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> run a few cases while you work and a larger set on every pull request; neither waits for an image build.</div>
+  <div class="takeaway"><b>Takeaway:</b> gate every pull request on the full set unless cost or speed rules it out, and smoke-test the deployed agent before production.</div>
   <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">Evaluate agents</a> (development, CI/CD, and production evaluation) &middot; <a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/agent_evaluator.py#L73">agent_evaluator.py</a> (<code class="i">NUM_RUNS = 2</code>) (verified 2026-10-07).</div>
 </section>
 <details class="notes" data-title="When evals run">
   <summary>Speaker notes &mdash; When evals run</summary>
   <div class="n-body"><ul>
-    <li>Why this page exists: developers ask whether evals run on every commit and whether the CI set is the one they use locally. Answer: same files, different sizes and cadences. The tiering and sizes are this course&rsquo;s recommendation; Google&rsquo;s <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">Evaluate agents</a> page names a similar split (Rapid Evaluation in development, Test Case Evaluation for regression in CI/CD, Online Monitoring in production).</li>
-    <li>Cost: each case runs the agent (model calls) plus any judge calls, and <code>AgentEvaluator</code> runs each case twice by default (<code>num_runs</code>), so a 60-case PR set is at least 120 agent runs. The scaffold&rsquo;s PR job already calls Gemini in its integration tests.</li>
-    <li>Caveat: a nightly run against a <i>deployed</i> agent (<code>agents-cli eval run --url</code>, or <code>eval submit</code>, marked experimental in <code>agents-cli eval --help</code> 1.9.0) does need the deploy first. The local and PR runs do not.</li>
+    <li>Why this page exists: developers ask whether evals run on every commit and whether the CI set is the one they use locally. Answer: same case format, and each stage has its own job and consequence. The stages are this course&rsquo;s recommendation; no authoritative standard sets them. Google&rsquo;s <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/optimize/evaluation/evaluate-agents">Evaluate agents</a> page names a similar split (Rapid Evaluation in development, Test Case Evaluation for regression in CI/CD, Online Monitoring in production) but says nothing on set sizes or subsets. Practitioner guides mostly use a subset on pull requests with the full set later, for cost and speed (<a href="https://dzone.com/articles/ai-agent-evals-ci">DZone</a>, <a href="https://getautonoma.com/blog/how-to-run-llm-evals-in-ci-cd">Autonoma</a>); this page makes the full set the default and the subset the fallback, because only a gate before merge can keep a regression off <code>main</code>.</li>
+    <li>Each stage answers a different question. Pull request: did this diff break anything? Staging: does the deployed agent work? Schedule: did something change with no change to our code? If asked why the schedule still matters after a full gate: it is not there for coverage. With a pinned model and mocked tools it has little to detect, so weekly may be enough.</li>
+    <li>The smoke test is a step you add: the scaffold&rsquo;s staging stage runs only a load test (page 9). <code>AgentEvaluator</code> runs the agent in process, so a deployed run uses <code>agents-cli eval run --url</code> plus a script that checks the results file and exits non-zero (page 8). This combination has not been run end to end.</li>
+    <li>Cost: each case runs the agent (model calls) plus any judge calls, and <code>AgentEvaluator</code> runs each case twice by default (<code>num_runs</code>), so a 400-case PR set is at least 800 agent runs on every push, and 60 cases is at least 120. The scaffold&rsquo;s PR job already calls Gemini in its integration tests.</li>
+    <li>Caveat: a scheduled run against a <i>deployed</i> agent (<code>agents-cli eval run --url</code>, or <code>eval submit</code>, marked experimental in <code>agents-cli eval --help</code> 1.9.0) does need the deploy first. The local and PR runs do not.</li>
     <li>For experienced rooms: hold some cases out of the local loop, so a fix that only fits the cases you iterated on doesn&rsquo;t pass unnoticed.</li>
   </ul></div>
 </details>
 
-<!-- ==== 7. A FAILING EVAL THAT PASSES THE BUILD ==== -->
+<!-- ==== 7. FOUR WAYS TO RUN AN EVAL ==== -->
+<section class="page">
+  <h1>Four ways to run an eval</h1>
+  <p class="lede">A bug report arrives: a booking agent cancelled a reservation the customer wanted to keep. Four tools run evals, and they read two file formats.</p>
+  <div class="tscroll"><table class="cmp">
+    <thead><tr><th>Tool</th><th>What it is for</th><th>Files</th><th>Fails a build?</th></tr></thead>
+    <tbody>
+      <tr><td><code>adk web</code> (ADK&rsquo;s local browser UI)</td><td>chat with the agent, <b>save the session as an eval case</b>, run a set and read results in the browser</td><td>ADK <code>.evalset.json</code></td><td class="no">no; you read the scores</td></tr>
+      <tr><td><code>adk eval</code></td><td>run an ADK eval set from a terminal</td><td>ADK <code>.evalset.json</code> + <code>test_config.json</code></td><td class="no">no; see next page</td></tr>
+      <tr><td><code>agents-cli eval run</code></td><td>run the agent, then grade; built-in metrics are scored by Google&rsquo;s hosted evaluation service (Gen AI evals), metrics you write run on your machine; can target a deployed agent with <code>--url</code></td><td>agents-cli dataset + <code>eval_config.yaml</code></td><td class="no">no; writes a results file</td></tr>
+      <tr class="hl"><td><code>pytest</code> + <code>AgentEvaluator</code></td><td>the same ADK eval set, run as a test; <code>AgentEvaluator</code> is ADK&rsquo;s Python class that runs an eval set inside a pytest test</td><td>ADK <code>.evalset.json</code> + <code>test_config.json</code></td><td class="yes">yes; asserts</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note blue"><span class="kk">Two formats</span>The ADK eval set and the agents-cli dataset are not interchangeable. A team usually picks one so it maintains one set of cases.</div>
+  <div class="ex"><span class="kk">Example</span>
+    <p><span class="lbl">Actor:</span> a developer turning the bug report into a regression case.</p>
+    <p><span class="lbl">Input:</span> the conversation from the report, replayed in <code class="i">adk web</code>.</p>
+    <p><span class="lbl">Mechanism:</span> the developer saves the session into <code class="i">booking.evalset.json</code>. The saved case records the calls the agent actually made, including <code class="i">cancel_reservation</code>, so the developer edits its expected calls to leave that call out, then runs <code class="i">pytest tests/eval</code>.</p>
+    <p><span class="lbl">Result:</span> the new case fails until the instruction is fixed, and the PR job runs the same file from then on <span class="tag illus">illustrative</span>.</p>
+  </div>
+  <div class="takeaway"><b>Takeaway:</b> build cases in <code class="i">adk web</code>, explore scores with a CLI, and gate with pytest.</div>
+  <div class="src">Sources: <code class="i">adk eval --help</code>, dev-server routes <code class="i">/eval-sets/{id}/add-session</code> and <code class="i">/run</code> (google-adk 2.11.0) &middot; <code class="i">agents-cli eval --help</code> (1.9.0) (verified 2026-10-07).</div>
+</section>
+<details class="notes" data-title="Four ways to run an eval">
+  <summary>Speaker notes &mdash; Four ways to run an eval</summary>
+  <div class="n-body"><ul>
+    <li>Why this page exists: &ldquo;run an eval&rdquo; is four commands and two dataset formats. Picking the wrong pair costs an afternoon.</li>
+    <li>Evidence: <code>adk web</code> routes <code>POST /dev/apps/{app}/eval-sets/{id}/add-session</code> and <code>.../run</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/dev_server.py#L1148">dev_server.py</a>). agents-cli 1.9.0 grades with the managed service only for built-in metrics (<code>eval/cmd_grade.py</code>); the scaffold&rsquo;s default metric is a local LLM judge in <code>tests/eval/response_quality.py</code> that calls Gemini directly. Gen AI evals is the current name of the Gen AI evaluation service (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/release-notes">release notes</a>, 2026-04-22).</li>
+    <li>Gotchas: <code>adk eval</code> grades trajectory and ROUGE match in process, but <code>safety_v1</code> and judge metrics call a model or the eval service and need a project (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/safety_evaluator.py#L27">safety_evaluator.py</a>). <code>eval grade</code> defaults to the <code>global</code> endpoint and 15 queries per second (<code>--qps</code>). <code>agents-cli eval compare</code> compares two results files, useful for baseline vs candidate. <code>eval submit</code> and <code>results</code> are experimental in 1.9.0.</li>
+    <li>Saving a session with <code>add-session</code> records the agent&rsquo;s actual tool calls and replies as the expected ones, so a case saved from a buggy conversation passes until someone edits the expected calls. Say this out loud; it is the step people skip.</li>
+    <li>Metric choice, rubrics, and judges are Module 4, Agent Evaluation.</li>
+    <li>Hand-off: don&rsquo;t explain why <code>adk eval</code> can&rsquo;t fail a build yet. The next page shows it, and the room gets to guess the exit code first.</li>
+  </ul></div>
+</details>
+
+<!-- ==== 8. A FAILING EVAL THAT PASSES THE BUILD ==== -->
 <section class="page">
   <h1>A failing eval that passes the build</h1>
   <p class="lede">You add <code class="i">adk eval</code> as a build step, push a change that breaks a case, and the build goes green.</p>
@@ -576,7 +623,7 @@ $ echo $?
   <div class="ex"><span class="kk">Example</span>
     <p><span class="lbl">Actor:</span> an agent whose model always replies &ldquo;I cannot help with that.&rdquo;</p>
     <p><span class="lbl">Input:</span> one case expecting &ldquo;Your refund is issued,&rdquo; with <code class="i">response_match_score: 0.9</code> in <code class="i">test_config.json</code>.</p>
-    <p><span class="lbl">Mechanism:</span> <code class="i">AgentEvaluator</code> (ADK&rsquo;s Python class that runs an eval set inside a pytest test) compares the score with the threshold and raises <code class="i">AssertionError</code>; <code class="i">adk eval</code> prints the same result and returns.</p>
+    <p><span class="lbl">Mechanism:</span> <code class="i">AgentEvaluator</code> compares the score with the threshold and raises <code class="i">AssertionError</code>; <code class="i">adk eval</code> prints the same result and returns.</p>
     <p><span class="lbl">Result:</span> exit 0 from <code class="i">adk eval</code>, exit 1 from pytest, on google-adk 2.11.0.</p>
   </div>
   <div class="takeaway"><b>Takeaway:</b> gate on pytest with <code class="i">AgentEvaluator</code>, or on your own check of a results file, never on <code class="i">adk eval</code>&rsquo;s exit code.</div>
@@ -585,51 +632,17 @@ $ echo $?
 <details class="notes" data-title="A failing eval that passes the build">
   <summary>Speaker notes &mdash; A failing eval that passes the build</summary>
   <div class="n-body"><ul>
-    <li>Why this page exists: someone will go home and add <code>adk eval</code> as a build step. Without this page it passes forever.</li>
+    <li>Why this page exists: page 7 listed the tools; this page shows which one can fail a build. Someone will go home and add <code>adk eval</code> as a build step. Without this page it passes forever.</li>
     <li>Delivery beat: show the first block, ask for the exit code, let the room say 1, then show the 0.</li>
     <li>Evidence: tested 2026-10-07 on google-adk 2.11.0 with a fake model and a one-case eval set: <code>adk eval</code> printed &ldquo;Tests failed: 1&rdquo; and exited 0; <code>pytest tests/eval</code> printed the two AssertionError lines and <code>1 failed, 9 warnings in 5.85s</code>, exit 1. The real <code>adk eval</code> output also prints a &ldquo;Using evaluation criteria&rdquo; line first. <code>adk eval</code> exited 1 on a missing eval extra, an unknown eval-set id, and an agent that raises on import.</li>
     <li>Thresholds: <code>test_config.json</code> next to the eval set is picked up by both tools. Without it ADK uses defaults of 1.0 for <code>tool_trajectory_avg_score</code> and 0.8 for <code>response_match_score</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/eval_config.py#L238-L240">eval_config.py</a>). <code>agents-cli eval grade</code> writes <code>results_&lt;timestamp&gt;.json</code>; a script that reads it and exits non-zero is the non-pytest gate. No <code>--fail-on</code> flag exists at 2.11.0.</li>
   </ul></div>
 </details>
 
-<!-- ==== 8. FOUR WAYS TO RUN AN EVAL ==== -->
-<section class="page">
-  <h1>Four ways to run an eval</h1>
-  <p class="lede">A bug report arrives: a booking agent cancelled a reservation the customer wanted to keep. Four tools run evals, and they read two file formats.</p>
-  <div class="tscroll"><table class="cmp">
-    <thead><tr><th>Tool</th><th>What it is for</th><th>Files</th><th>Fails a build?</th></tr></thead>
-    <tbody>
-      <tr><td><code>adk web</code> (ADK&rsquo;s local browser UI)</td><td>chat with the agent, <b>save the session as an eval case</b>, run a set and read results in the browser</td><td>ADK <code>.evalset.json</code></td><td class="no">no; you read the scores</td></tr>
-      <tr><td><code>adk eval</code></td><td>run an ADK eval set from a terminal</td><td>ADK <code>.evalset.json</code> + <code>test_config.json</code></td><td class="no">no; exits 0 (page 7)</td></tr>
-      <tr><td><code>agents-cli eval run</code></td><td>run the agent, then grade; built-in metrics are scored by Google&rsquo;s hosted evaluation service (Gen AI evals), metrics you write run on your machine; can target a deployed agent with <code>--url</code></td><td>agents-cli dataset + <code>eval_config.yaml</code></td><td class="no">no; writes a results file</td></tr>
-      <tr class="hl"><td><code>pytest</code> + <code>AgentEvaluator</code></td><td>the same ADK eval set, run as a test</td><td>ADK <code>.evalset.json</code> + <code>test_config.json</code></td><td class="yes">yes; asserts</td></tr>
-    </tbody>
-  </table></div>
-  <div class="note blue"><span class="kk">Two formats</span>The ADK eval set and the agents-cli dataset are not interchangeable. A team usually picks one so it maintains one set of cases.</div>
-  <div class="ex"><span class="kk">Example</span>
-    <p><span class="lbl">Actor:</span> a developer turning the bug report into a regression case.</p>
-    <p><span class="lbl">Input:</span> the conversation from the report, replayed in <code class="i">adk web</code>.</p>
-    <p><span class="lbl">Mechanism:</span> the developer saves the session into <code class="i">booking.evalset.json</code>. The saved case records the calls the agent actually made, including <code class="i">cancel_reservation</code>, so the developer edits its expected calls to leave that call out, then runs <code class="i">pytest tests/eval</code>.</p>
-    <p><span class="lbl">Result:</span> the new case fails until the instruction is fixed, and the PR job runs the same file from then on <span class="tag illus">illustrative</span>.</p>
-  </div>
-  <div class="takeaway"><b>Takeaway:</b> build cases in <code class="i">adk web</code>, explore scores with a CLI, and gate with pytest.</div>
-  <div class="src">Sources: <code class="i">adk eval --help</code>, dev-server routes <code class="i">/eval-sets/{id}/add-session</code> and <code class="i">/run</code> (google-adk 2.11.0) &middot; <code class="i">agents-cli eval --help</code> (1.9.0) (verified 2026-10-07).</div>
-</section>
-<details class="notes" data-title="Four ways to run an eval">
-  <summary>Speaker notes &mdash; Four ways to run an eval</summary>
-  <div class="n-body"><ul>
-    <li>Why this page exists: &ldquo;run an eval&rdquo; is four commands and two dataset formats. Picking the wrong pair costs an afternoon.</li>
-    <li>Evidence: <code>adk web</code> routes <code>POST /dev/apps/{app}/eval-sets/{id}/add-session</code> and <code>.../run</code> (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/cli/dev_server.py#L1148">dev_server.py</a>). agents-cli 1.9.0 grades with the managed service only for built-in metrics (<code>eval/cmd_grade.py</code>); the scaffold&rsquo;s default metric is a local LLM judge in <code>tests/eval/response_quality.py</code> that calls Gemini directly. Gen AI evals is the current name of the Gen AI evaluation service (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/release-notes">release notes</a>, 2026-04-22).</li>
-    <li>Gotchas: <code>adk eval</code> grades trajectory and ROUGE match in process, but <code>safety_v1</code> and judge metrics call a model or the eval service and need a project (<a href="https://github.com/google/adk-python/blob/v2.11.0/src/google/adk/evaluation/safety_evaluator.py#L27">safety_evaluator.py</a>). <code>eval grade</code> defaults to the <code>global</code> endpoint and 15 queries per second (<code>--qps</code>). <code>agents-cli eval compare</code> compares two results files, useful for baseline vs candidate. <code>eval submit</code> and <code>results</code> are experimental in 1.9.0.</li>
-    <li>Saving a session with <code>add-session</code> records the agent&rsquo;s actual tool calls and replies as the expected ones, so a case saved from a buggy conversation passes until someone edits the expected calls. Say this out loud; it is the step people skip.</li>
-    <li>Metric choice, rubrics, and judges are Module 4, Agent Evaluation.</li>
-  </ul></div>
-</details>
-
 <!-- ==== 9. ADDING THE EVAL TO THE GENERATED PIPELINE ==== -->
 <section class="page">
   <h1>Adding the eval to the generated pipeline</h1>
-  <p class="lede"><code class="i">agents-cli create</code> generates a project with a CI/CD pipeline and a <code class="i">tests/eval/</code> folder, but no pipeline stage runs an eval. Page 7&rsquo;s pytest test does nothing in CI until you add it to a stage.</p>
+  <p class="lede"><code class="i">agents-cli create</code> generates a project with a CI/CD pipeline and a <code class="i">tests/eval/</code> folder, but no pipeline stage runs an eval. Page 8&rsquo;s pytest test does nothing in CI until you add it to a stage.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th>Generated stage</th><th>Trigger</th><th>What it runs</th></tr></thead>
     <tbody>
@@ -639,8 +652,8 @@ $ echo $?
     </tbody>
   </table></div>
   <div class="checks">
-    <div class="checkrow"><div class="cdot"></div><p><b>Add the test from page 7 as <code class="i">tests/eval/test_regression.py</code>,</b> pointing at <code class="i">regression.evalset.json</code>.</p></div>
-    <div class="checkrow"><div class="cdot"></div><p><b>Add <code class="i">regression.evalset.json</code> and <code class="i">test_config.json</code> beside it.</b> You need new files: the generated folder holds the agents-cli format, which <code class="i">AgentEvaluator</code> can&rsquo;t read (page 8).</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Add the test from page 8 as <code class="i">tests/eval/test_regression.py</code>,</b> pointing at <code class="i">regression.evalset.json</code>.</p></div>
+    <div class="checkrow"><div class="cdot"></div><p><b>Add <code class="i">regression.evalset.json</code> and <code class="i">test_config.json</code> beside it.</b> You need new files: the generated folder holds the agents-cli format, which <code class="i">AgentEvaluator</code> can&rsquo;t read (page 7).</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><b>Add a step to the PR checks,</b> shown below for Cloud Build. <code class="i">--extra eval</code> installs <code class="i">google-adk[eval]</code>, which the job otherwise leaves out.</p></div>
   </div>
   <p class="codelabel good">New step at the end of .cloudbuild/pr_checks.yaml</p>
@@ -658,11 +671,11 @@ $ echo $?
 <details class="notes" data-title="Adding the eval to the generated pipeline">
   <summary>Speaker notes &mdash; Adding the eval to the generated pipeline</summary>
   <div class="n-body"><ul>
-    <li>Why this page exists: page 7 showed which command can fail a build. This page shows where that command goes in the project students will generate.</li>
+    <li>Why this page exists: page 8 showed which command can fail a build. This page shows where that command goes in the project students will generate.</li>
     <li>Walk through it in order: the table shows that no stage runs an eval; the PR stage is the place to add it, so a bad change fails before merge; the three steps are the whole edit.</li>
     <li>Likely question: &ldquo;Why can&rsquo;t the test use the files already in <code>tests/eval/</code>?&rdquo; They are the agents-cli dataset and <code>eval_config.yaml</code>, used by <code>agents-cli eval run</code>. <code>AgentEvaluator</code> reads the ADK eval set format. That folder also has no <code>test_*.py</code>, so <code>pytest tests/eval</code> finds nothing until you add one.</li>
     <li>On GitHub Actions, the same command goes in a new step of the pull request workflow.</li>
-    <li>Evidence: agents-cli 1.9.0 projects generated 2026-10-07 for all three deployment targets on both CI runners. Each has three pipeline files. Of those 18 files, none mention eval and 6 run pytest. The PR job runs <code>uv sync --locked</code> without extras, and <code>google-adk[eval]</code> is only in the optional <code>eval</code> extra. The YAML copies the generated <code>integration-tests</code> step. The test was reproduced on its own (page 7), but this added step has not been run end to end in a generated project.</li>
+    <li>Evidence: agents-cli 1.9.0 projects generated 2026-10-07 for all three deployment targets on both CI runners. Each has three pipeline files. Of those 18 files, none mention eval and 6 run pytest. The PR job runs <code>uv sync --locked</code> without extras, and <code>google-adk[eval]</code> is only in the optional <code>eval</code> extra. The YAML copies the generated <code>integration-tests</code> step. The test was reproduced on its own (page 8), but this added step has not been run end to end in a generated project.</li>
     <li>If asked about production approval: the generated Cloud Build trigger sets <code>approval_required = true</code>. GitHub Actions uses <code>environment: production</code>, and you add the required-reviewer rule yourself.</li>
     <li>If asked why a PR ran no checks: the generated triggers only fire on changes under <code>app/**</code>, <code>tests/**</code>, and <code>deployment/**</code>, or to <code>uv.lock</code>.</li>
   </ul></div>
@@ -728,7 +741,7 @@ $ echo $?
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>The instruction, tool docstrings, and model id are lines in <code class="i">app/agent.py</code>; change them through a pull request like any code.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Unit and integration tests say the agent ran; an eval scores what it decided.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Run a few cases while you work and a larger set on every pull request, before any image is built.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Run a few cases while you work and the full set on every pull request, unless cost or speed calls for a chosen subset; smoke-test the deployed agent before production.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Gate with pytest and <code class="i">AgentEvaluator</code>; <code class="i">adk eval</code> exits 0 whatever the scores, and <code class="i">agents-cli eval run</code> never compares scores to a threshold.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>The scaffold&rsquo;s pipeline runs no eval; add a test file and one step to <code class="i">pr_checks.yaml</code>.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>On GitHub, the PR job tests the merge result, so changes that pass alone are tested together.</p></div>
@@ -797,35 +810,41 @@ $ echo $?
 <!-- ==== 14. CHOOSING A TARGET ==== -->
 <section class="page">
   <h1>Choosing a deployment target</h1>
-  <p class="lede">A two-person team with no infrastructure owner is choosing between Agent Runtime, Cloud Run, and GKE for an ADK agent.</p>
+  <p class="lede">A two-person team with no infrastructure owner has an ADK agent ready to ship. Agent Runtime, Cloud Run, and GKE can all run it, but they differ in what they provide and what they ask of the team.</p>
   <div class="tscroll"><table class="cmp">
     <thead><tr><th></th><th>Agent Runtime</th><th>Cloud Run</th><th>GKE</th></tr></thead>
     <tbody>
-      <tr><td>How callers reach it</td><td>the API resource <code>reasoningEngines/NNN</code>, with a Google access token</td><td>an HTTPS URL you configure: ingress, invoker IAM, IAP, custom domain, Cloud Armor (Google&rsquo;s web application firewall)</td><td>a Service, Ingress, or Gateway you configure</td></tr>
-      <tr><td>What you operate</td><td>your code; the platform builds, serves, and scales it</td><td>the service: revisions, traffic, networking</td><td>the cluster: nodes, manifests, autoscalers, upgrades</td></tr>
-      <tr><td>Running code the model wrote</td><td>Code Execution sandbox</td><td>Cloud Run sandboxes (Preview)</td><td>GKE Agent Sandbox (GA)</td></tr>
-      <tr><td>Reaching a private VPC</td><td>Private Service Connect (PSC) interface, a network attachment into your VPC, set when the agent is created</td><td>direct VPC egress or a connector</td><td>native</td></tr>
-      <tr><td>Per-agent identity</td><td>Agent Identity (GA, opt-in): the agent gets its own IAM principal instead of a shared service account</td><td>Agent Identity, through Cloud Run&rsquo;s Agent Platform features (Preview)</td><td>not offered; use a Kubernetes service account</td></tr>
+      <tr><td><b>Choose it when</b></td><td><b>you want the platform to run the agent, with little operations work</b></td><td><b>you want to control the service: its container, framework, and front door</b></td><td><b>you already run Kubernetes, or need control of pods, hardware, and long-lived state</b></td></tr>
+      <tr><td>You provide</td><td>Python agent code with no Dockerfile, or a container that meets its runtime contract</td><td>a container and the server inside it, in any language</td><td>a container, its manifests, and a cluster</td></tr>
+      <tr><td>You operate</td><td>your code; the platform builds, serves, and scales it</td><td>the service: revisions, traffic, networking</td><td>the cluster: nodes, autoscalers, upgrades</td></tr>
+      <tr><td>Conversations and memory</td><td>Sessions and Memory Bank are built in</td><td>instances keep nothing; connect a store, which can be Agent Platform Sessions and Memory Bank</td><td>pods are replaceable; connect a store, as on Cloud Run</td></tr>
+      <tr><td>Longest task</td><td>10-minute streamed reply; background job up to 7 days</td><td>60-minute request; 5 minutes by default</td><td>the limits you set on your gateway and pods</td></tr>
+      <tr><td>How callers reach it</td><td>the API resource <code>reasoningEngines/NNN</code>, with a Google access token</td><td>an HTTPS URL you control: custom domain, IAP, Cloud Armor (Google&rsquo;s web application firewall)</td><td>a Service, Ingress, or Gateway you configure</td></tr>
+      <tr><td>Hardware</td><td>CPU only: up to 8 vCPU and 32 GiB</td><td>CPU, or GPU to serve your own model</td><td>the full pod spec, including GPU and TPU</td></tr>
+      <tr><td>When idle</td><td>1 instance by default; 0 is allowed in Preview</td><td>scales to zero by default; the next request waits for a cold start</td><td>pods keep running unless you configure otherwise</td></tr>
     </tbody>
   </table></div>
-  <div class="checks">
-    <div class="checkrow"><div class="cdot gray"></div><p><b>All three run the agent on CPU.</b> The model is a separate endpoint the agent calls, so accelerators don&rsquo;t separate the targets.</p></div>
-  </div>
+  <div class="note blue"><span class="kk">What is specific to agents</span>Most of this is the usual trade-off between a managed service and control. Two rows are specific to agents: where conversation state lives, and how long one task can run.</div>
   <div class="ex"><span class="kk">Example</span>
     <p><span class="lbl">Actor:</span> the two-person team.</p>
     <p><span class="lbl">Input:</span> an ADK agent folder and no Dockerfile.</p>
-    <p><span class="lbl">Mechanism:</span> <code class="i">adk deploy agent_engine</code> creates the Agent Runtime resource (the API and CLI still call it a reasoning engine) and builds the container; six months later security requires a company domain behind Cloud Armor, which needs a URL the team owns.</p>
-    <p><span class="lbl">Result:</span> the agent moves to Cloud Run; callers switch from the <code class="i">reasoningEngines</code> API to the service URL, and the agent code stays the same <span class="tag illus">illustrative</span>.</p>
+    <p><span class="lbl">Mechanism:</span> <code class="i">adk deploy agent_engine</code> creates the Agent Runtime resource (the API and CLI still call it a reasoning engine), so the team runs no servers and no session store. Six months later, security requires a company domain behind Cloud Armor, which needs a URL the team owns.</p>
+    <p><span class="lbl">Result:</span> the agent moves to Cloud Run. Callers switch from the <code class="i">reasoningEngines</code> API to the service URL, the agent code stays the same, and the team now sets the session store itself (page 15) <span class="tag illus">illustrative</span>.</p>
   </div>
-  <div class="takeaway"><b>Takeaway:</b> choose the target on what callers must pass through (custom domain, firewall, private network) and how much of it your team runs.</div>
-  <div class="src">Sources: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">Deploy an agent</a> &middot; <a href="https://docs.cloud.google.com/run/docs/configuring/services/sandboxes">Cloud Run sandboxes</a> &middot; <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox">GKE Agent Sandbox</a> &middot; <a href="https://docs.cloud.google.com/iam/docs/release-notes">IAM release notes</a> (Agent Identity GA 2026-04-22) (verified 2026-10-07).</div>
+  <div class="takeaway"><b>Takeaway:</b> choose Agent Runtime to have the platform run the agent, Cloud Run to control the service, and GKE to control the infrastructure. If your team already runs one of them well, that counts in its favor.</div>
+  <div class="src">Sources: <a href="https://docs.cloud.google.com/architecture/choose-agentic-ai-architecture-components">Choose your agentic AI architecture components</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">Deploy an agent</a> &middot; <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/use-an-adk-agent">Use an ADK agent</a> &middot; <a href="https://docs.cloud.google.com/run/docs/configuring/request-timeout">Cloud Run request timeout</a> &middot; <a href="https://docs.cloud.google.com/run/docs/configuring/min-instances">Cloud Run minimum instances</a> (verified 2026-11-01).</div>
 </section>
 <details class="notes" data-title="Choosing a deployment target">
   <summary>Speaker notes &mdash; Choosing a deployment target</summary>
   <div class="n-body"><ul>
-    <li>Why this page exists: the choice is usually made on impressions. Delivery beat: ask what they need in front of the agent (company domain, IAP, a WAF); each answer pushes right in the table. Sessions also differ by deploy path, which gets its own page next.</li>
-    <li>Evidence: callers and contract, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">Deploy an agent</a>; PSC interface: &ldquo;You can&rsquo;t change an existing Private Service Connect interface for a Runtime agent without recreating the resources&rdquo; (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/private-service-connect-interface">PSC interface</a>); GKE Agent Sandbox GA 2026-05-20. Agent Runtime Code Execution showed no Preview banner on 2026-10-07; re-check its stage before delivery. Agent Identity: GA (2026-04-22) and opt-in on Agent Runtime, per the <a href="https://docs.cloud.google.com/iam/docs/release-notes">IAM release notes</a> (the Agent Identity APIs and auth manager went GA 2026-08-22; only ADK&rsquo;s integration is Preview). On Cloud Run it is set up through <a href="https://docs.cloud.google.com/run/docs/ai/agent-platform-features">Configure Agent Platform features for Cloud Run</a>, a page under a Preview banner (checked 2026-10-07; <code>gcloud beta run deploy --functional-type=agent --identity-type=agent-identity</code>). Not listed for GKE (<a href="https://docs.cloud.google.com/iam/docs/agent-identity-overview">Agent Identity overview</a>).</li>
-    <li>Agent Runtime limits if asked: 1, 2, 4, 6, or 8 vCPU; up to 32 GiB; CPU only. It also accepts Developer Connect, a Dockerfile, a prebuilt image, or a pickled object through the SDK; a custom container must listen on 8080 and serve <code>/api/reasoning_engine</code> and <code>/api/stream_reasoning_engine</code> (Deploy an agent).</li>
+    <li>Why this page exists: the choice is usually made on impressions. Delivery beat: read the top row, then ask the room what they need: a company domain, tasks over an hour, a GPU, no operations work. Each answer points to a column. Sessions get their own page next.</li>
+    <li>Selection guidance: Google&rsquo;s <a href="https://docs.cloud.google.com/architecture/choose-agentic-ai-architecture-components">architecture guide</a> (last reviewed 2026-04-21) recommends Agent Runtime for a &ldquo;fully managed experience with minimal operational overhead,&rdquo; Cloud Run for serverless scaling with language flexibility, and GKE for &ldquo;complex stateful requirements&rdquo; and fine-grained configuration. It also says that using a platform you already manage can simplify long-term operations. It describes Agent Runtime as a fit for Python agents, but <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/deploy-an-agent">Deploy an agent</a> allows any language through a Dockerfile or image; the deploy page is the more specific source. The same guide says Agent Runtime doesn&rsquo;t host custom MCP servers, while Cloud Run and GKE can.</li>
+    <li>State: Memory Bank works &ldquo;in any environment that has permission to read and write memories&rdquo; (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank/setup">Set up Memory Bank</a>), and Cloud Run needs an Agent Engine instance to use it (<a href="https://docs.cloud.google.com/run/docs/ai-agents">Host AI agents on Cloud Run</a>). So the difference is who wires it up, not who can have it.</li>
+    <li>Duration: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/use-an-adk-agent">Use an ADK agent</a> gives a 10-minute maximum for a streamed query and sends longer work to query jobs of up to seven days, with results written to Cloud Storage. Another page, <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/use-a-custom-agent">Use a custom agent</a>, says 15 minutes for streaming; check both before delivery. The 7-day figure is in the <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/release-notes">release notes</a> (2026-04-22). No GKE limit is documented in these sources, so that cell is a statement about your own configuration.</li>
+    <li>Idle and hardware: on Agent Runtime, <code>min_instances</code> runs 0&ndash;75 with a default of 1; idle time isn&rsquo;t billed while this is in Preview, which the docs say is subject to change. Cloud Run&rsquo;s default minimum is 0, and idle instances are billed under instance-based billing even at 0. CPU options on Agent Runtime are 1, 2, 4, 6, or 8 vCPU, up to 32 GiB. <a href="https://docs.cloud.google.com/run/docs/ai-agents">Cloud Run</a> recommends a GPU service for self-hosted models, and ADK names running open models as a reason to choose <a href="https://adk.dev/deploy/">GKE</a>. If the model is a hosted endpoint, the agent itself needs only CPU, so hardware won&rsquo;t decide the choice.</li>
+    <li>If asked, these exist on all three, so they rarely decide the choice. Running code the model wrote: Code Execution on Agent Runtime (no Preview banner on 2026-10-07; re-check), Cloud Run <a href="https://docs.cloud.google.com/run/docs/configuring/services/sandboxes">sandboxes</a> (Preview), <a href="https://docs.cloud.google.com/kubernetes-engine/docs/concepts/machine-learning/agent-sandbox">GKE Agent Sandbox</a> (GA 2026-05-20). Private VPC: a PSC interface on Agent Runtime, which you can&rsquo;t change without recreating the resources (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/private-service-connect-interface">PSC interface</a>); direct VPC egress or a connector on Cloud Run; native on GKE. <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/govern/gateways/agent-gateway-overview">Agent Gateway</a> governs agents on all three.</li>
+    <li>Per-agent identity does differ: Agent Identity is GA and opt-in on Agent Runtime (<a href="https://docs.cloud.google.com/iam/docs/release-notes">IAM release notes</a>, 2026-04-22), Preview on Cloud Run (<a href="https://docs.cloud.google.com/run/docs/ai/agent-platform-features">Agent Platform features</a>; <code>gcloud beta run deploy --functional-type=agent --identity-type=agent-identity</code>), and not listed for GKE (<a href="https://docs.cloud.google.com/iam/docs/agent-identity-overview">overview</a>), which uses a Kubernetes service account. Pages 17 and 18 cover identity.</li>
+    <li>Agent Runtime custom containers listen on 8080; SDK support needs <code>/api/reasoning_engine</code> and <code>/api/stream_reasoning_engine</code> (<a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/runtime/runtime-contract">runtime contract</a>). For agents that suspend and resume, GKE also has <a href="https://docs.cloud.google.com/kubernetes-engine/ai-ml/about-agent-substrate">Agent Substrate</a>, for evaluation and non-production use, with production on an allowlist.</li>
   </ul></div>
 </details>
 
@@ -1159,7 +1178,7 @@ $ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="
   <h1>Section 2 recap</h1>
   <div class="checks" style="margin-top:14px;">
     <div class="checkrow"><div class="cdot green"></div><p>For a scaffolded project, deploy with <code class="i">agents-cli deploy</code>; there is no <code class="i">gcloud</code> command for Agent Runtime.</p></div>
-    <div class="checkrow"><div class="cdot green"></div><p>Choose the target on what stands in front of the agent and how much your team runs.</p></div>
+    <div class="checkrow"><div class="cdot green"></div><p>Choose Agent Runtime to have the platform run the agent, Cloud Run to control the service, and GKE to control the infrastructure.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p><code class="i">adk deploy cloud_run</code> and <code class="i">gke</code> keep sessions in memory unless you pass a session store.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Each deploy path has its own default for prompt text in traces; set the variable yourself.</p></div>
     <div class="checkrow"><div class="cdot green"></div><p>Grant secret access to the runtime identity before you deploy, pin the version, and know whose sizing defaults you got.</p></div>
@@ -1307,7 +1326,7 @@ $ adk deploy cloud_run <span class="flag">--project</span> my-proj <span class="
   <summary>Speaker notes &mdash; References</summary>
   <div class="n-body"><ul>
     <li>Every load-bearing claim cites its doc, permalink, or test in that page&rsquo;s notes.</li>
-    <li>Most likely to age: the <code>adk eval</code> exit code (page 7; re-run the reproduction), launch stages on pages 14 and 20, model regions and dates on page 24, and agents-cli defaults on pages 16&ndash;19.</li>
+    <li>Most likely to age: the <code>adk eval</code> exit code (page 8; re-run the reproduction), launch stages on pages 14 and 20, model regions and dates on page 24, and agents-cli defaults on pages 16&ndash;19.</li>
     <li>Live-tested on Agent Runtime 2026-10-07 (details in the page 16 and 18 notes): <code>.env</code> content capture survives <code>adk deploy agent_engine</code>; a secret the agent can&rsquo;t read fails the deploy; <code>--agent-identity</code> on redeploy switches the principal in place.</li>
   </ul></div>
 </details>
